@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420">
 <meta property="article:published_time" content="2025-01-14T13:01:25.000Z">
-<meta property="article:modified_time" content="2025-01-14T13:08:10.913Z">
+<meta property="article:modified_time" content="2025-01-14T13:14:13.811Z">
 <meta property="article:author" content="Boremycin">
 <meta property="article:tag" content="笔记">
 <meta property="article:tag" content="论文">
@@ -230,7 +230,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-01-14 21:01:25 / 修改时间：21:08:10" itemprop="dateCreated datePublished" datetime="2025-01-14T21:01:25+08:00">2025-01-14</time>
+              <time title="创建时间：2025-01-14 21:01:25 / 修改时间：21:14:13" itemprop="dateCreated datePublished" datetime="2025-01-14T21:01:25+08:00">2025-01-14</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -289,13 +289,13 @@
 <p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
 <h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
-<figcaption>论文中列举的SAR数据集</figcaption>    
+<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
 
 <h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
-<figcaption>论文二阶段预训练示意图</figcaption>  
+<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
 
 <script type="math/tex; mode=display">
-MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信心。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
+MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
 <p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
 <p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
 <h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
