@@ -24,7 +24,7 @@
 
   <meta name="description" content="关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记">
 <meta property="og:type" content="article">
-<meta property="og:title" content="；论文笔记：SARATRX">
+<meta property="og:title" content="论文笔记：SARATRX">
 <meta property="og:url" content="http://boremycin.github.io/2025/01/14/paper1-saratrx/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
 <meta property="og:description" content="关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记">
@@ -34,9 +34,11 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420">
 <meta property="article:published_time" content="2025-01-14T13:01:25.000Z">
-<meta property="article:modified_time" content="2025-01-14T13:03:22.943Z">
+<meta property="article:modified_time" content="2025-01-14T13:08:10.913Z">
 <meta property="article:author" content="Boremycin">
-<meta property="article:tag" content="CPP,Linux,Python,SAR,Adersarial Attack">
+<meta property="article:tag" content="笔记">
+<meta property="article:tag" content="论文">
+<meta property="article:tag" content="SAR">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208">
 
@@ -53,7 +55,7 @@
   };
 </script>
 
-  <title>；论文笔记：SARATRX | Boremycin's Blog</title>
+  <title>论文笔记：SARATRX | Boremycin's Blog</title>
   
 
 
@@ -215,7 +217,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          ；论文笔记：SARATRX
+          论文笔记：SARATRX
         </h1>
 
         <div class="post-meta">
@@ -228,7 +230,16 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-01-14 21:01:25 / 修改时间：21:03:22" itemprop="dateCreated datePublished" datetime="2025-01-14T21:01:25+08:00">2025-01-14</time>
+              <time title="创建时间：2025-01-14 21:01:25 / 修改时间：21:08:10" itemprop="dateCreated datePublished" datetime="2025-01-14T21:01:25+08:00">2025-01-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
+                </span>
             </span>
 
           
@@ -263,27 +274,31 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记<br><span id="more"></span>  </p>
-<h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>论文最终被TIP2025接收  </p>
-<h3 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h3><h4 id="1-论文摘要总结"><a href="#1-论文摘要总结" class="headerlink" title="1.论文摘要总结"></a>1.论文摘要总结</h4><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
+        <div style="text-align: center;"> 
+关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
+</div>  
+
+<span id="more"></span>  
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
 <p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
 <p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
-<h4 id="2-pre-train方法"><a href="#2-pre-train方法" class="headerlink" title="2.pre-train方法"></a>2.pre-train方法</h4><h4 id="2-1-自监督学习"><a href="#2-1-自监督学习" class="headerlink" title="2.1 自监督学习"></a>2.1 自监督学习</h4><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
+<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
 <p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
 <p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
 <p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
-<h4 id="2-2-数据集准备"><a href="#2-2-数据集准备" class="headerlink" title="2.2 数据集准备"></a>2.2 数据集准备</h4><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
+<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
 <figcaption>论文中列举的SAR数据集</figcaption>    
 
-<h4 id="2-3-MGF方法说明"><a href="#2-3-MGF方法说明" class="headerlink" title="2.3 MGF方法说明"></a>2.3 MGF方法说明</h4><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
+<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
 <figcaption>论文二阶段预训练示意图</figcaption>  
 
 <script type="math/tex; mode=display">
 MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信心。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
 <p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
 <p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
-<h4 id="3-部分实验结果"><a href="#3-部分实验结果" class="headerlink" title="3. 部分实验结果"></a>3. 部分实验结果</h4><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
+<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
 <table>
   <tr>
     <td style="text-align: center;">
@@ -307,6 +322,11 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
         
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 笔记</a>
+              <a href="/tags/%E8%AE%BA%E6%96%87/" <i class="fa fa-tag"></i> 论文</a>
+              <a href="/tags/SAR/" <i class="fa fa-tag"></i> SAR</a>
+          </div>
 
         
 
@@ -376,7 +396,7 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%91%E8%A1%A8%E5%8E%BB%E5%90%91"><span class="nav-number">1.</span> <span class="nav-text">发表去向</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%86%85%E5%AE%B9"><span class="nav-number">2.</span> <span class="nav-text">主要内容</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E6%91%98%E8%A6%81%E6%80%BB%E7%BB%93"><span class="nav-number">2.1.</span> <span class="nav-text">1.论文摘要总结</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-pre-train%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">2.pre-train方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.3.</span> <span class="nav-text">2.1 自监督学习</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-%E6%95%B0%E6%8D%AE%E9%9B%86%E5%87%86%E5%A4%87"><span class="nav-number">2.4.</span> <span class="nav-text">2.2 数据集准备</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-MGF%E6%96%B9%E6%B3%95%E8%AF%B4%E6%98%8E"><span class="nav-number">2.5.</span> <span class="nav-text">2.3 MGF方法说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E9%83%A8%E5%88%86%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C"><span class="nav-number">2.6.</span> <span class="nav-text">3. 部分实验结果</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%91%E8%A1%A8%E5%8E%BB%E5%90%91"><span class="nav-number">1.</span> <span class="nav-text">发表去向</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%86%85%E5%AE%B9"><span class="nav-number">2.</span> <span class="nav-text">主要内容</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E6%91%98%E8%A6%81%E6%80%BB%E7%BB%93"><span class="nav-number">2.1.</span> <span class="nav-text">论文摘要总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#pre-train%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">pre-train方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.2.1.</span> <span class="nav-text">自监督学习</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%9B%86%E5%87%86%E5%A4%87"><span class="nav-number">2.2.2.</span> <span class="nav-text">数据集准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MGF%E6%96%B9%E6%B3%95%E8%AF%B4%E6%98%8E"><span class="nav-number">2.2.3.</span> <span class="nav-text">MGF方法说明</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E5%88%86%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C"><span class="nav-number">2.3.</span> <span class="nav-text">部分实验结果</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -397,13 +417,13 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
