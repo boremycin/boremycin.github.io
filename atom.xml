@@ -6,7 +6,7 @@
   <link href="http://boremycin.github.io/atom.xml" rel="self"/>
   
   <link href="http://boremycin.github.io/"/>
-  <updated>2025-01-14T13:14:13.811Z</updated>
+  <updated>2025-02-14T10:44:22.962Z</updated>
   <id>http://boremycin.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <link href="http://boremycin.github.io/2025/02/14/paper2-One-Pixel-Attack/"/>
+    <id>http://boremycin.github.io/2025/02/14/paper2-One-Pixel-Attack/</id>
+    <published>2025-02-14T10:35:18.000Z</published>
+    <updated>2025-02-14T10:44:22.962Z</updated>
+    
+    <content type="html"><![CDATA[<div style="text-align: center;"> 关于One-Pixel-Attack的论文笔记  </div>  <span id="more"></span><h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p><h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p><h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p><script type="math/tex; mode=display">\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p><script type="math/tex; mode=display">\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p><p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p><p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p><script type="math/tex; mode=display">x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p><h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p><p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p><p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p><p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p><h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>]]></content>
+    
+    
+    <summary type="html">&lt;div style=&quot;text-align: center;&quot;&gt; 
+关于One-Pixel-Attack的论文笔记  
+&lt;/div&gt;</summary>
+    
+    
+    
+    <category term="论文笔记" scheme="http://boremycin.github.io/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/"/>
+    
+    
+    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
+    
+    <category term="对抗样本" scheme="http://boremycin.github.io/tags/%E5%AF%B9%E6%8A%97%E6%A0%B7%E6%9C%AC/"/>
+    
+  </entry>
   
   <entry>
     <title>论文笔记：SARATRX</title>
