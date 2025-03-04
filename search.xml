@@ -53,32 +53,108 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <title>论文笔记：Similarity to Availability</title>
+    <url>/2025/02/21/paper3-s2a/</url>
     <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
+关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
 </div>  
 
 <span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
+<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
+<div style="display: flex; justify-content: space-between;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
+</div>  
+
+<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
+<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
+<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
 <script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
 <script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
+head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
+<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
 <script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</title>
+    <url>/2025/03/04/paper4/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于《Towards Transferable Adversarial Attacks with Centralized Perturbation》的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被AAAI2024接收</p>
+<h1 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h1><h2 id="YCbCr色彩空间"><a href="#YCbCr色彩空间" class="headerlink" title="YCbCr色彩空间"></a>YCbCr色彩空间</h2><p>本论文的主要操作都基于将彩色图像RGB矩阵转换为YCrCb矩阵，并针对不同通道进行处理。YCrCb色彩空间常用于数码视频成像系统，其中的Y通道代表图像的明亮度（luma），Cb和Cb通道则反映图像的色度（chroma）信息。</p>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/00d10b652a6f6818acd38a6894f23312" alt="00d10b652a6f6818acd38a6894f23312">
+  <figcaption>图1. RGB与YCrCb色彩空间展示</figcaption>
+</figure>
+
+<p>由RGB至YCC的色彩空间转换可分为模拟信号转换和数字信号转换，在此只关注后者的转换关系。根据标准ITU-R BT.601，对应的转换公式如下：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a0263dfbd33ff729f9521bdcd4134b8f" alt="a0263dfbd33ff729f9521bdcd4134b8f"></p>
+<h2 id="图像DCT变换"><a href="#图像DCT变换" class="headerlink" title="图像DCT变换"></a>图像DCT变换</h2><p>论文的主要创新点在于将对图像的扰动施加过程转换到频率域中进行，同时作者使用了离散余弦变换（DCT）而非离散傅里叶变换（DFT）来实现此过程。与傅里叶变换相比DCT只使用了实数进行变换，一个N=8的变换矩阵图如下图所示。该矩阵是实矩阵，有正交且不对称的特性。DCT被应用于JPEG压缩编码当中，可图像视觉信息损失较少的有损压缩。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a04fbede927547029c5d35ba0cb0bc19" alt="a04fbede927547029c5d35ba0cb0bc19"></p>
+<p>DCT的变换公式如下所示：</p>
+<script type="math/tex; mode=display">
+s(x,u) = \alpha(u)cos(\frac{(2x+1)u\pi}{2N})</script><script type="math/tex; mode=display">
+\alpha(u) = 
+\begin{cases} 
+\sqrt{1/N} & & \text{if } u = 0 \\
+\sqrt{2/N} & & \text{if } u =1,2,...,N-1 
+\end{cases}</script><p>对于二维离散图像矩阵，由灰度矩阵转换为频率矩阵的转换公式如下：</p>
+<script type="math/tex; mode=display">
+T(u,v) = \sum_{x=0}^{N-1}\sum_{y=0}^{N-1}f(x,y)s(x,y,u,v)</script><script type="math/tex; mode=display">
+s(x,y,u,v) = s_1(x,u) s_2(y,v)</script><h1 id="摘要总结"><a href="#摘要总结" class="headerlink" title="摘要总结"></a>摘要总结</h1><p>当前的主流对抗样本会在图像灰度矩阵上施加全局扰动，往往导致对抗样本对梯度来源模型的过拟合而降低对抗样本的可迁移性。向主要的图像目标区域加入模型相关性弱的扰动是提升对抗有效性的关键，但在空域中限制扰动范围被证明对对抗样本的迁移性提升不足。对于上述情况，论文作者提出了基于频率域的梯度扰动优化对抗样本设计，使产生的对抗扰动可以降低对来源模型的过拟合，提升对抗样本的迁移性能并可以扰动多种模型防御方法，最大限度地保留攻击有效性。    </p>
+<p>作者的主要创新点如下：</p>
+<ol>
+<li>设计了基于DCT的共享频率分解算法，通过频域系数的量化处理消除多余扰动，使频率域的扰动限定在中心频率当中，从而避免对梯度源模型的过拟合。</li>
+<li>实现了量化处理矩阵的并行优化，确保了与每一步模型预测结果的对齐。</li>
+</ol>
+<h1 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h1><h2 id="频率分解（Frequency-Decomposition）"><a href="#频率分解（Frequency-Decomposition）" class="headerlink" title="频率分解（Frequency Decomposition）"></a>频率分解（Frequency Decomposition）</h2><p>假定输入图像为8bit的（3，224，224）图像X，首先将RGB图像转换为YCC图像，然后对每个channel进行DCT频率变换；接着进行block化操作将图像矩阵转化为多个8*8的blocks，将（B，C，W，H）的图像转化为（B，C，W，H/64，8，8）；然后对每一个频率矩阵进行量化操作（quantization），引入量化矩阵Qs来除去多余的频率系数；最后进行blocks的合并，使输入矩阵变为原始维度，然后进行IDCT操作获取分解后的图像X。完成以上流程后即实现对图像的频率分解，对应流程图如下所示。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/3de78e58ed30b6b0cb57d31fa92d8fa5" alt="3de78e58ed30b6b0cb57d31fa92d8fa5"></p>
+<p>对于上述的量化矩阵Qs，以Y通道为例其量化处理过程如下：</p>
+<script type="math/tex; mode=display">
+B_Y = blockify(DCT(Y))</script><script type="math/tex; mode=display">
+B_Y^{'} = B_Y\odot Q_Y</script><p>不同于JPEG压缩过程中的量化矩阵，本文的量化矩阵定义如下：</p>
+<script type="math/tex; mode=display">Q = (q_{ij}) \subseteq \{0，1\}^{m\times m}</script><p>Q矩阵初始化为单位向量<strong>1</strong>，在每一轮的量化过程中不重要的频率参数均被自动清楚，使得扰动主要添加在DNN预测中更加关键的区域。对于扰动矩阵$\delta_t$，通过下式的优化过程可以将其进行中心化产生新的扰动$\delta_t^{‘}$。</p>
+<script type="math/tex; mode=display">
+\delta_t^{'} = \mathcal{K}(\delta_t;Q_t)</script><p>上式中的$\mathcal{K}$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
+<h2 id="优化量化矩阵Qt"><a href="#优化量化矩阵Qt" class="headerlink" title="优化量化矩阵Qt"></a>优化量化矩阵Qt</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/2243d7411336bcb596664f85678d0c12" alt="2243d7411336bcb596664f85678d0c12"></p>
+<p>施加扰动产生对抗样本的整体流程如上图所示。在stage2中完成对Qt的更新过程。更新的主要思想是将该轮次的对抗样本输出到源模型中，通过设计的loss损失函数实现Qt的更新。更新的主要思路是利用源模型输出梯度矩阵的变换程度，矩阵Q在每一轮优化$x_t^{adv}$后应当使得模型输出真实标签置信度降低。对应的损失函数公式如下：  </p>
+<script type="math/tex; mode=display">
+\arg\max_{Q_t}\mathcal{J}(\mathcal{K}(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5a630fd839119e7b1f2c446c0bd1433d" alt="5a630fd839119e7b1f2c446c0bd1433d">  </p>
+<p>在更新Qt的反向传播过程中，优化结果用m*m的矩阵P表示，对于YCC三通道每个通道有不同的P和相应的优化系数$0\leq r\leq 1$，对于Y，Cr，Cb分别对应为（0.9，0.05，0.05）。更新公式如下所示。  </p>
+<script type="math/tex; mode=display">
+Q = R(P;r) = \begin{cases} 
+1, & \text{where }  P_{ij} \geq \rho \\
+0 & \text{otherwise } 
+\end{cases}</script><p>上式中$\rho$为相应通道矩阵的1-r分位数。此外，作者使用了直通估计器（STE）避免了二值化矩阵Qt的非连续性导致的梯度消失。</p>
+<p>结合上述更新过程可以看出，作者在更新量化矩阵部分主要保留了Y通道的信息，而略去了大部分的Cr和Cb通道的图像信息，即认为图像的明亮度信息会对模型准确判别的影响更大，且在不同模型之间具备通用性。 </p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><h2 id="实验准备"><a href="#实验准备" class="headerlink" title="实验准备"></a>实验准备</h2><p>论文使用NIPS2017的Adversarial Learning Challenge数据集，包含1000张ImageNet的图像；训练了ResNet50，VGG-19和Inception-v3作为source model；采用了不同基于梯度的FGSM类攻击方法作为基准攻击方法，包括MI、DI、TI、VMI和SI-NI-FGSM；最后作者还额外设计模型防御和对抗训练等场景验证扰动矩阵的泛化攻击鲁棒性。 </p>
+<h2 id="攻击迁移性结果"><a href="#攻击迁移性结果" class="headerlink" title="攻击迁移性结果"></a>攻击迁移性结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/092c9072871f675b4042166c65e98a90" alt="092c9072871f675b4042166c65e98a90"></p>
+<p>在黑盒场景下对于ResNet、VGG和Dense等架构的模型本论文方法对生成扰动的攻击迁移性提升起到了一定的促进作用，但对于ConvNeXt和ViT架构模型，原始FGSM方法的攻击效果和相应的迁移性提升表现都不理想。</p>
+<h2 id="对防御方法的攻击效果"><a href="#对防御方法的攻击效果" class="headerlink" title="对防御方法的攻击效果"></a>对防御方法的攻击效果</h2><p>对于以JPEG和Bit-depth reduction为代表的滤波器防御方法，本文方法的攻击结果如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/dd6ef8b49a9eae203550c9fa33a6dd00" alt="dd6ef8b49a9eae203550c9fa33a6dd00">  </p>
+<p>对于对抗训练的防御方法，对应结果如下。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/185981e0411bc1727b31dc04eadea665" alt="185981e0411bc1727b31dc04eadea665"> </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本论文提出了基于频率域的迁移攻击增强方法，搭建了完整的频率域攻击和优化流程，并在FGSM为代表的梯度攻击方法上实现了理想的攻击效果，后续可以借鉴该论文的思路进一步探索频率域的攻击手段。</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -144,108 +220,32 @@ r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元�
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：Similarity to Availability</title>
-    <url>/2025/02/21/paper3-s2a/</url>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
     <content><![CDATA[<div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
+关于One-Pixel-Attack的论文笔记  
 </div>  
 
 <span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
-<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
-</div>  
-
-<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
-<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
-<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
 <script type="math/tex; mode=display">
-Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
 <script type="math/tex; mode=display">
-MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
-head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
-<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
 <script type="math/tex; mode=display">
-Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</title>
-    <url>/2025/03/04/paper4/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于《Towards Transferable Adversarial Attacks with Centralized Perturbation》的论文笔记
-</div><br><span id="more"></span></p>
-<h2 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h2><p>论文最终被AAAI2024接收</p>
-<h2 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h2><h3 id="YCbCr色彩空间"><a href="#YCbCr色彩空间" class="headerlink" title="YCbCr色彩空间"></a>YCbCr色彩空间</h3><p>本论文的主要操作都基于将彩色图像RGB矩阵转换为YCrCb矩阵，并针对不同通道进行处理。YCrCb色彩空间常用于数码视频成像系统，其中的Y通道代表图像的明亮度（luma），Cb和Cb通道则反映图像的色度（chroma）信息。</p>
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/00d10b652a6f6818acd38a6894f23312" alt="00d10b652a6f6818acd38a6894f23312">
-  <figcaption>图1. RGB与YCrCb色彩空间展示</figcaption>
-</figure>
-
-<p>由RGB至YCC的色彩空间转换可分为模拟信号转换和数字信号转换，在此只关注后者的转换关系。根据标准ITU-R BT.601，对应的转换公式如下：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a0263dfbd33ff729f9521bdcd4134b8f" alt="a0263dfbd33ff729f9521bdcd4134b8f"></p>
-<h3 id="图像DCT变换"><a href="#图像DCT变换" class="headerlink" title="图像DCT变换"></a>图像DCT变换</h3><p>论文的主要创新点在于将对图像的扰动施加过程转换到频率域中进行，同时作者使用了离散余弦变换（DCT）而非离散傅里叶变换（DFT）来实现此过程。与傅里叶变换相比DCT只使用了实数进行变换，一个N=8的变换矩阵图如下图所示。该矩阵是实矩阵，有正交且不对称的特性。DCT被应用于JPEG压缩编码当中，可图像视觉信息损失较少的有损压缩。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a04fbede927547029c5d35ba0cb0bc19" alt="a04fbede927547029c5d35ba0cb0bc19"></p>
-<p>DCT的变换公式如下所示：</p>
-<script type="math/tex; mode=display">
-s(x,u) = \alpha(u)cos(\frac{(2x+1)u\pi}{2N})</script><script type="math/tex; mode=display">
-\alpha(u) = 
-\begin{cases} 
-\sqrt{1/N} & & \text{if } u = 0 \\
-\sqrt{2/N} & & \text{if } u =1,2,...,N-1 
-\end{cases}</script><p>对于二维离散图像矩阵，由灰度矩阵转换为频率矩阵的转换公式如下：</p>
-<script type="math/tex; mode=display">
-T(u,v) = \sum_{x=0}^{N-1}\sum_{y=0}^{N-1}f(x,y)s(x,y,u,v)</script><script type="math/tex; mode=display">
-s(x,y,u,v) = s_1(x,u) s_2(y,v)</script><h1 id="摘要总结"><a href="#摘要总结" class="headerlink" title="摘要总结"></a>摘要总结</h1><p>当前的主流对抗样本会在图像灰度矩阵上施加全局扰动，往往导致对抗样本对梯度来源模型的过拟合而降低对抗样本的可迁移性。向主要的图像目标区域加入模型相关性弱的扰动是提升对抗有效性的关键，但在空域中限制扰动范围被证明对对抗样本的迁移性提升不足。对于上述情况，论文作者提出了基于频率域的梯度扰动优化对抗样本设计，使产生的对抗扰动可以降低对来源模型的过拟合，提升对抗样本的迁移性能并可以扰动多种模型防御方法，最大限度地保留攻击有效性。    </p>
-<p>作者的主要创新点如下：</p>
-<ol>
-<li>设计了基于DCT的共享频率分解算法，通过频域系数的量化处理消除多余扰动，使频率域的扰动限定在中心频率当中，从而避免对梯度源模型的过拟合。</li>
-<li>实现了量化处理矩阵的并行优化，确保了与每一步模型预测结果的对齐。</li>
-</ol>
-<h1 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h1><h2 id="频率分解（Frequency-Decomposition）"><a href="#频率分解（Frequency-Decomposition）" class="headerlink" title="频率分解（Frequency Decomposition）"></a>频率分解（Frequency Decomposition）</h2><p>假定输入图像为8bit的（3，224，224）图像X，首先将RGB图像转换为YCC图像，然后对每个channel进行DCT频率变换；接着进行block化操作将图像矩阵转化为多个8*8的blocks，将（B，C，W，H）的图像转化为（B，C，W，H/64，8，8）；然后对每一个频率矩阵进行量化操作（quantization），引入量化矩阵Qs来除去多余的频率系数；最后进行blocks的合并，使输入矩阵变为原始维度，然后进行IDCT操作获取分解后的图像X。完成以上流程后即实现对图像的频率分解，对应流程图如下所示。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/3de78e58ed30b6b0cb57d31fa92d8fa5" alt="3de78e58ed30b6b0cb57d31fa92d8fa5"></p>
-<p>对于上述的量化矩阵Qs，以Y通道为例其量化处理过程如下：</p>
-<script type="math/tex; mode=display">
-B_Y = blockify(DCT(Y))</script><script type="math/tex; mode=display">
-B_Y^{'} = B_Y\odot Q_Y</script><p>不同于JPEG压缩过程中的量化矩阵，本文的量化矩阵定义如下：</p>
-<script type="math/tex; mode=display">Q = (q_{ij}) \subseteq \{0，1\}^{m\times m}</script><p>Q矩阵初始化为单位向量<strong>1</strong>，在每一轮的量化过程中不重要的频率参数均被自动清楚，使得扰动主要添加在DNN预测中更加关键的区域。对于扰动矩阵$\delta_t$，通过下式的优化过程可以将其进行中心化产生新的扰动$\delta_t^{‘}$。</p>
-<script type="math/tex; mode=display">
-\delta_t^{'} = \mathcal{K}(\delta_t;Q_t)</script><p>上式中的$\mathcal{K}$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
-<h2 id="优化量化矩阵Qt"><a href="#优化量化矩阵Qt" class="headerlink" title="优化量化矩阵Qt"></a>优化量化矩阵Qt</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/2243d7411336bcb596664f85678d0c12" alt="2243d7411336bcb596664f85678d0c12"></p>
-<p>施加扰动产生对抗样本的整体流程如上图所示。在stage2中完成对Qt的更新过程。更新的主要思想是将该轮次的对抗样本输出到源模型中，通过设计的loss损失函数实现Qt的更新。更新的主要思路是利用源模型输出梯度矩阵的变换程度，矩阵Q在每一轮优化$x_t^{adv}$后应当使得模型输出真实标签置信度降低。对应的损失函数公式如下：  </p>
-<script type="math/tex; mode=display">
-\arg\max_{Q_t}\mathcal{J}(\mathcal{K}(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5a630fd839119e7b1f2c446c0bd1433d" alt="5a630fd839119e7b1f2c446c0bd1433d">  </p>
-<p>在更新Qt的反向传播过程中，优化结果用m*m的矩阵P表示，对于YCC三通道每个通道有不同的P和相应的优化系数$0\leq r\leq 1$，对于Y，Cr，Cb分别对应为（0.9，0.05，0.05）。更新公式如下所示。  </p>
-<script type="math/tex; mode=display">
-Q = R(P;r) = \begin{cases} 
-1, & \text{where }  P_{ij} \geq \rho \\
-0 & \text{otherwise } 
-\end{cases}</script><p>上式中$\rho$为相应通道矩阵的1-r分位数。此外，作者使用了直通估计器（STE）避免了二值化矩阵Qt的非连续性导致的梯度消失。</p>
-<p>结合上述更新过程可以看出，作者在更新量化矩阵部分主要保留了Y通道的信息，而略去了大部分的Cr和Cb通道的图像信息，即认为图像的明亮度信息会对模型准确判别的影响更大，且在不同模型之间具备通用性。 </p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><h2 id="实验准备"><a href="#实验准备" class="headerlink" title="实验准备"></a>实验准备</h2><p>论文使用NIPS2017的Adversarial Learning Challenge数据集，包含1000张ImageNet的图像；训练了ResNet50，VGG-19和Inception-v3作为source model；采用了不同基于梯度的FGSM类攻击方法作为基准攻击方法，包括MI、DI、TI、VMI和SI-NI-FGSM；最后作者还额外设计模型防御和对抗训练等场景验证扰动矩阵的泛化攻击鲁棒性。 </p>
-<h2 id="攻击迁移性结果"><a href="#攻击迁移性结果" class="headerlink" title="攻击迁移性结果"></a>攻击迁移性结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/092c9072871f675b4042166c65e98a90" alt="092c9072871f675b4042166c65e98a90"></p>
-<p>在黑盒场景下对于ResNet、VGG和Dense等架构的模型本论文方法对生成扰动的攻击迁移性提升起到了一定的促进作用，但对于ConvNeXt和ViT架构模型，原始FGSM方法的攻击效果和相应的迁移性提升表现都不理想。</p>
-<h2 id="对防御方法的攻击效果"><a href="#对防御方法的攻击效果" class="headerlink" title="对防御方法的攻击效果"></a>对防御方法的攻击效果</h2><p>对于以JPEG和Bit-depth reduction为代表的滤波器防御方法，本文方法的攻击结果如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/dd6ef8b49a9eae203550c9fa33a6dd00" alt="dd6ef8b49a9eae203550c9fa33a6dd00">  </p>
-<p>对于对抗训练的防御方法，对应结果如下。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/185981e0411bc1727b31dc04eadea665" alt="185981e0411bc1727b31dc04eadea665"> </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本论文提出了基于频率域的迁移攻击增强方法，搭建了完整的频率域攻击和优化流程，并在FGSM为代表的梯度攻击方法上实现了理想的攻击效果，后续可以借鉴该论文的思路进一步探索频率域的攻击手段。</p>
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
