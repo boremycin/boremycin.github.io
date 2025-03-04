@@ -225,11 +225,11 @@ B_Y = blockify(DCT(Y))</script><script type="math/tex; mode=display">
 B_Y^{'} = B_Y\odot Q_Y</script><p>不同于JPEG压缩过程中的量化矩阵，本文的量化矩阵定义如下：</p>
 <script type="math/tex; mode=display">Q = (q_{ij}) \subseteq \{0，1\}^{m\times m}</script><p>Q矩阵初始化为单位向量<strong>1</strong>，在每一轮的量化过程中不重要的频率参数均被自动清楚，使得扰动主要添加在DNN预测中更加关键的区域。对于扰动矩阵$\delta_t$，通过下式的优化过程可以将其进行中心化产生新的扰动$\delta_t^{‘}$。</p>
 <script type="math/tex; mode=display">
-\delta_t^{'} = \Kappa(\delta_t;Q_t)</script><p>上式中的$\Kappa$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
+\delta_t^{'} = \mathcal{K}(\delta_t;Q_t)</script><p>上式中的$\mathcal{K}$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
 <h2 id="优化量化矩阵Qt"><a href="#优化量化矩阵Qt" class="headerlink" title="优化量化矩阵Qt"></a>优化量化矩阵Qt</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/2243d7411336bcb596664f85678d0c12" alt="2243d7411336bcb596664f85678d0c12"></p>
 <p>施加扰动产生对抗样本的整体流程如上图所示。在stage2中完成对Qt的更新过程。更新的主要思想是将该轮次的对抗样本输出到源模型中，通过设计的loss损失函数实现Qt的更新。更新的主要思路是利用源模型输出梯度矩阵的变换程度，矩阵Q在每一轮优化$x_t^{adv}$后应当使得模型输出真实标签置信度降低。对应的损失函数公式如下：  </p>
 <script type="math/tex; mode=display">
-\arg\max_{Q_t}\mathcal{J}(\Kappa(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
+\arg\max_{Q_t}\mathcal{J}(\mathcal{K}(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5a630fd839119e7b1f2c446c0bd1433d" alt="5a630fd839119e7b1f2c446c0bd1433d">  </p>
 <p>在更新Qt的反向传播过程中，优化结果用m*m的矩阵P表示，对于YCC三通道每个通道有不同的P和相应的优化系数$0\leq r\leq 1$，对于Y，Cr，Cb分别对应为（0.9，0.05，0.05）。更新公式如下所示。  </p>
 <script type="math/tex; mode=display">
