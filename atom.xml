@@ -6,7 +6,7 @@
   <link href="http://boremycin.github.io/atom.xml" rel="self"/>
   
   <link href="http://boremycin.github.io/"/>
-  <updated>2025-03-04T04:32:48.686Z</updated>
+  <updated>2025-03-25T07:05:46.193Z</updated>
   <id>http://boremycin.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>论文笔记：GAN和pixel2pixel</title>
+    <link href="http://boremycin.github.io/2025/03/25/paper5-GAN/"/>
+    <id>http://boremycin.github.io/2025/03/25/paper5-GAN/</id>
+    <published>2025-03-25T07:01:18.000Z</published>
+    <updated>2025-03-25T07:05:46.193Z</updated>
+    
+    <content type="html"><![CDATA[<p><div style="text-align: center;"> GAN模型相关的两篇笔记</div><br><span id="more"></span></p><h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p><h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p><h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p><script type="math/tex; mode=display">\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p><script type="math/tex; mode=display">D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p><script type="math/tex; mode=display">C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p><script type="math/tex; mode=display">C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p><script type="math/tex; mode=display">KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p><h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p><h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p><h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p><script type="math/tex; mode=display">L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p><script type="math/tex; mode=display">G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p><p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p><p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p><h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p><p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p><h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p><h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;&lt;div style=&quot;text-align: center;&quot;&gt; 
+GAN模型相关的两篇笔记
+&lt;/div&gt;&lt;br&gt;</summary>
+    
+    
+    
+    <category term="论文笔记" scheme="http://boremycin.github.io/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/"/>
+    
+    
+    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
+    
+  </entry>
   
   <entry>
     <title>论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</title>
@@ -143,9 +168,9 @@
     <category term="笔记" scheme="http://boremycin.github.io/categories/%E7%AC%94%E8%AE%B0/"/>
     
     
-    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
-    
     <category term="建站" scheme="http://boremycin.github.io/tags/%E5%BB%BA%E7%AB%99/"/>
+    
+    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
     
   </entry>
   
