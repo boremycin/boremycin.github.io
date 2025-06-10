@@ -6,7 +6,7 @@
   <link href="http://boremycin.github.io/atom.xml" rel="self"/>
   
   <link href="http://boremycin.github.io/"/>
-  <updated>2025-03-25T07:05:46.193Z</updated>
+  <updated>2025-06-10T05:45:18.582Z</updated>
   <id>http://boremycin.github.io/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>论文笔记:DeCoWa</title>
+    <link href="http://boremycin.github.io/2025/06/10/paper-decowa/"/>
+    <id>http://boremycin.github.io/2025/06/10/paper-decowa/</id>
+    <published>2025-06-10T05:43:14.000Z</published>
+    <updated>2025-06-10T05:45:18.582Z</updated>
+    
+    <content type="html"><![CDATA[<p><div style="text-align: center;"> 关于DeCoWa的论文笔记</div><br><span id="more"></span></p><h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p><h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p><h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p><p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p><h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p><p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p><script type="math/tex; mode=display">g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p><p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p><p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p><script type="math/tex; mode=display">g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p><p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p><h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p><script type="math/tex; mode=display">f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p><p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p><script type="math/tex; mode=display">\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p><script type="math/tex; mode=display">\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p><p>结合MI-FGSM后的非动量梯度计算公式如下:</p><script type="math/tex; mode=display">\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p><script type="math/tex; mode=display">g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p><p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p><h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;&lt;div style=&quot;text-align: center;&quot;&gt; 
+关于DeCoWa的论文笔记
+&lt;/div&gt;&lt;br&gt;</summary>
+    
+    
+    
+    <category term="论文笔记" scheme="http://boremycin.github.io/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/"/>
+    
+    
+    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
+    
+    <category term="对抗样本" scheme="http://boremycin.github.io/tags/%E5%AF%B9%E6%8A%97%E6%A0%B7%E6%9C%AC/"/>
+    
+    <category term="迁移攻击" scheme="http://boremycin.github.io/tags/%E8%BF%81%E7%A7%BB%E6%94%BB%E5%87%BB/"/>
+    
+  </entry>
   
   <entry>
     <title>论文笔记：GAN和pixel2pixel</title>
@@ -168,9 +197,9 @@ GAN模型相关的两篇笔记
     <category term="笔记" scheme="http://boremycin.github.io/categories/%E7%AC%94%E8%AE%B0/"/>
     
     
-    <category term="建站" scheme="http://boremycin.github.io/tags/%E5%BB%BA%E7%AB%99/"/>
-    
     <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="建站" scheme="http://boremycin.github.io/tags/%E5%BB%BA%E7%AB%99/"/>
     
   </entry>
   

@@ -1,6 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于One-Pixel-Attack的论文笔记  
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+<script type="math/tex; mode=display">
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>建站记录</title>
     <url>/2025/01/09/hello-world/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -50,86 +87,8 @@
         <category>笔记</category>
       </categories>
       <tags>
+        <tag>笔记</tag>
         <tag>建站</tag>
-        <tag>笔记</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：Similarity to Availability</title>
-    <url>/2025/02/21/paper3-s2a/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
-<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
-</div>  
-
-<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
-<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
-<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
-<script type="math/tex; mode=display">
-Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
-<script type="math/tex; mode=display">
-MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
-head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
-<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
-<script type="math/tex; mode=display">
-Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
-<script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
@@ -182,6 +141,142 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：Similarity to Availability</title>
+    <url>/2025/02/21/paper3-s2a/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
+<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
+<div style="display: flex; justify-content: space-between;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
+</div>  
+
+<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
+<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
+<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
+<script type="math/tex; mode=display">
+Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
+<script type="math/tex; mode=display">
+MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
+head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
+<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
+<script type="math/tex; mode=display">
+Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记:DeCoWa</title>
+    <url>/2025/06/10/paper-decowa/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于DeCoWa的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
+<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
+<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
+<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
+<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
+<script type="math/tex; mode=display">
+g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
+<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
+<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
+<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
+<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
+<script type="math/tex; mode=display">
+f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
+<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
+<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
+<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+        <tag>迁移攻击</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：GAN和pixel2pixel</title>
+    <url>/2025/03/25/paper5-GAN/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+GAN模型相关的两篇笔记
+</div><br><span id="more"></span></p>
+<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
+<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
+<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
+<script type="math/tex; mode=display">
+\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
+<script type="math/tex; mode=display">
+D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
+<script type="math/tex; mode=display">
+C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
+<script type="math/tex; mode=display">
+C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
+<script type="math/tex; mode=display">
+KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
+<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
+<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
+<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
+<script type="math/tex; mode=display">
+L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
+<script type="math/tex; mode=display">
+G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
+\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
+<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
+<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
+<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
+<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
+<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
+<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
       </tags>
   </entry>
   <entry>
@@ -254,52 +349,6 @@ Q = R(P;r) = \begin{cases}
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>对抗样本</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：GAN和pixel2pixel</title>
-    <url>/2025/03/25/paper5-GAN/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-GAN模型相关的两篇笔记
-</div><br><span id="more"></span></p>
-<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
-<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
-<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
-<script type="math/tex; mode=display">
-\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
-<script type="math/tex; mode=display">
-D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
-<script type="math/tex; mode=display">
-C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
-<script type="math/tex; mode=display">
-C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
-<script type="math/tex; mode=display">
-KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
-<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
-<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
-<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
-<script type="math/tex; mode=display">
-L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
-<script type="math/tex; mode=display">
-G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
-\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
-<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
-<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
-<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
-<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
-<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
-<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
       </tags>
   </entry>
 </search>
