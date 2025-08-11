@@ -22,28 +22,34 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记">
-<meta property="og:type" content="article">
-<meta property="og:title" content="论文笔记：Similarity to Availability">
-<meta property="og:url" content="http://boremycin.github.io/2025/02/21/paper3-s2a/index.html">
+  <meta property="og:type" content="article">
+<meta property="og:title" content="论文笔记:SAR Conditional Random Field Attack">
+<meta property="og:url" content="http://boremycin.github.io/2025/08/11/paper-crfa/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content="关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73">
-<meta property="article:published_time" content="2025-02-21T01:50:35.000Z">
-<meta property="article:modified_time" content="2025-02-21T01:59:44.928Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/d6cb076e2f77d037956b9bdc3f95ca99.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/b6e236c7417822b6175384075f14300f.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png">
+<meta property="article:published_time" content="2025-08-11T12:22:06.000Z">
+<meta property="article:modified_time" content="2025-08-11T12:28:21.256Z">
 <meta property="article:author" content="Boremycin">
 <meta property="article:tag" content="笔记">
 <meta property="article:tag" content="论文">
-<meta property="article:tag" content="SAR">
+<meta property="article:tag" content="对抗样本">
+<meta property="article:tag" content="SAR目标检测">
+<meta property="article:tag" content="条件随机场">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png">
 
-<link rel="canonical" href="http://boremycin.github.io/2025/02/21/paper3-s2a/">
+<link rel="canonical" href="http://boremycin.github.io/2025/08/11/paper-crfa/">
 
 
 <script id="page-configurations">
@@ -56,7 +62,7 @@
   };
 </script>
 
-  <title>论文笔记：Similarity to Availability | Boremycin's Blog</title>
+  <title>论文笔记:SAR Conditional Random Field Attack | Boremycin's Blog</title>
   
 
 
@@ -205,7 +211,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/02/21/paper3-s2a/">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/08/11/paper-crfa/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -218,7 +224,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          论文笔记：Similarity to Availability
+          论文笔记:SAR Conditional Random Field Attack
         </h1>
 
         <div class="post-meta">
@@ -231,7 +237,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-02-21 09:50:35 / 修改时间：09:59:44" itemprop="dateCreated datePublished" datetime="2025-02-21T09:50:35+08:00">2025-02-21</time>
+              <time title="创建时间：2025-08-11 20:22:06 / 修改时间：20:28:21" itemprop="dateCreated datePublished" datetime="2025-08-11T20:22:06+08:00">2025-08-11</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -256,14 +262,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>1.9k</span>
+              <span>3.3k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
+              <span>6 分钟</span>
             </span>
 
         </div>
@@ -276,33 +282,148 @@
 
       
         <div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
 </div>  
-
 <span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
-<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
-</div>  
 
-<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
-<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
-<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
-<script type="math/tex; mode=display">
-Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
-<script type="math/tex; mode=display">
-MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
-head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
-<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
-<script type="math/tex; mode=display">
-Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
+
+
+# 发表去向
+收录于GRSL2024
+
+# 前置知识
+## logistic回归模型
+二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.
+
+$$
+F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}
+$$
+
+$$
+f(x) = F^(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}
+$$
+
+上式中$\mu$为位置参数,$\gamma > 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.
+$$
+P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}
+$$
+
+$$
+P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}
+$$
+
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
+  <figcaption>Logistic分布的概率密度函数和分布函数图像</figcaption>
+</figure>
+
+在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).
+
+这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.
+
+$$
+oddsRatio(p) = \frac{p}{1-p} \tag{5}
+$$
+
+<figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
+    <figcaption>oddsRatio和取对数的log oddsRatio</figcaption>
+</figure>
+
+观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.
+
+$$
+logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}
+$$
+
+$$
+p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}
+$$
+
+从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.
+
+不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.
+
+## 条件随机场(Conditonal Random Field) 
+条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.
+
+$$
+P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}
+$$
+
+$$
+Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}
+$$
+
+对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.
+
+# 创新点总结
+本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.
+
+# 方法介绍
+结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:
+$$
+P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{10}
+$$
+因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.
+
+$$
+\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}
+$$
+
+$$
+\phi_{ij}(y_i,y_j,X) = 
+\begin{cases}
+0 & \ if \  x_i = x_j \\ 
+1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
+\end{cases} \tag{12}
+$$
+
+对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:
+
+$$
+E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}
+$$
+
+论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.
+
+<div style="text-align: center;">
+  <div style="display: inline-flex;">
+    <div style="margin-right: 10px; width: 45%;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d6cb076e2f77d037956b9bdc3f95ca99.png" style="width: 100%; height: 200px; object-fit: cover;">
+      <figcaption>伪代码流程图</figcaption>
+    </div>
+    <div style="width: 45%;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b6e236c7417822b6175384075f14300f.png" style="width: 100%; height: 200px; object-fit: cover;">
+      <figcaption>攻击示意图</figcaption>
+    </div>
+  </div>
+</div>
+
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
+<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
+<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
+<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
+<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
+<ul>
+<li>变量定义时缺少主语或引用不当</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" alt="20250811201213"></p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" alt="20250811201329"></p>
+<ul>
+<li>相关变量缺少定义说明</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" alt="20250811201348"></p>
+<ul>
+<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" alt="65f551d265932555e29c33f64c00f312"></p>
+<ul>
+<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" alt="20250811201752"></p>
 
     </div>
 
@@ -315,7 +436,9 @@ Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img s
           <div class="post-tags">
               <a href="/tags/%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 笔记</a>
               <a href="/tags/%E8%AE%BA%E6%96%87/" <i class="fa fa-tag"></i> 论文</a>
-              <a href="/tags/SAR/" <i class="fa fa-tag"></i> SAR</a>
+              <a href="/tags/%E5%AF%B9%E6%8A%97%E6%A0%B7%E6%9C%AC/" <i class="fa fa-tag"></i> 对抗样本</a>
+              <a href="/tags/SAR%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B/" <i class="fa fa-tag"></i> SAR目标检测</a>
+              <a href="/tags/%E6%9D%A1%E4%BB%B6%E9%9A%8F%E6%9C%BA%E5%9C%BA/" <i class="fa fa-tag"></i> 条件随机场</a>
           </div>
 
         
@@ -324,13 +447,10 @@ Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img s
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2025/02/14/paper2-One-Pixel-Attack/" rel="prev" title="论文笔记：One-Pixel-Attack">
-      <i class="fa fa-chevron-left"></i> 论文笔记：One-Pixel-Attack
+    <a href="/2025/06/10/paper-decowa/" rel="prev" title="论文笔记:DeCoWa">
+      <i class="fa fa-chevron-left"></i> 论文笔记:DeCoWa
     </a></div>
-      <div class="post-nav-item">
-    <a href="/2025/03/04/paper4/" rel="next" title="论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》">
-      论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -389,7 +509,7 @@ Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img s
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E5%8E%BB%E5%90%91"><span class="nav-number">1.</span> <span class="nav-text">论文去向</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%86%85%E5%AE%B9"><span class="nav-number">2.</span> <span class="nav-text">主要内容</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E5%88%9B%E6%96%B0%E7%82%B9"><span class="nav-number">2.1.</span> <span class="nav-text">核心创新点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.</span> <span class="nav-text">主要方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#BFC"><span class="nav-number">2.2.1.</span> <span class="nav-text">BFC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#W-MMA"><span class="nav-number">2.2.2.</span> <span class="nav-text">W-MMA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GFC-Net"><span class="nav-number">2.2.3.</span> <span class="nav-text">GFC-Net</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C"><span class="nav-number">1.</span> <span class="nav-text">实验结果</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E5%9B%9E%E9%A1%BE"><span class="nav-number">2.</span> <span class="nav-text">总结与回顾</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
