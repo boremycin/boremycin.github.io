@@ -22,16 +22,15 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="关于论文CRFA的笔记         前置知识logistic回归模型二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  F(x) &#x3D; P(X \leq x) &#x3D; \frac{1}{1+e^{-(x-\mu)&#x2F;\gamma}} \tag{1} f(x) &#x3D; F(x) &#x3D;">
+  <meta name="description" content="关于论文CRFA的笔记">
 <meta property="og:type" content="article">
 <meta property="og:title" content="论文笔记：SAR Conditional Random Field Attack">
 <meta property="og:url" content="http://boremycin.github.io/2025/08/11/paper-CRF/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content="关于论文CRFA的笔记         前置知识logistic回归模型二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  F(x) &#x3D; P(X \leq x) &#x3D; \frac{1}{1+e^{-(x-\mu)&#x2F;\gamma}} \tag{1} f(x) &#x3D; F(x) &#x3D;">
+<meta property="og:description" content="关于论文CRFA的笔记">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/d6cb076e2f77d037956b9bdc3f95ca99.png">
-<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/b6e236c7417822b6175384075f14300f.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png">
@@ -40,8 +39,8 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png">
-<meta property="article:published_time" content="2025-08-11T12:22:06.000Z">
-<meta property="article:modified_time" content="2025-08-11T13:06:13.949Z">
+<meta property="article:published_time" content="2025-08-11T13:09:12.000Z">
+<meta property="article:modified_time" content="2025-08-11T13:33:32.855Z">
 <meta property="article:author" content="Boremycin">
 <meta property="article:tag" content="笔记">
 <meta property="article:tag" content="论文">
@@ -237,7 +236,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-08-11 20:22:06 / 修改时间：21:06:13" itemprop="dateCreated datePublished" datetime="2025-08-11T20:22:06+08:00">2025-08-11</time>
+              <time title="创建时间：2025-08-11 21:09:12 / 修改时间：21:33:32" itemprop="dateCreated datePublished" datetime="2025-08-11T21:09:12+08:00">2025-08-11</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -281,15 +280,10 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <span id="more"></span>
-<div style="text-align: center;"> 
-
+        <p><div style="text-align: center;"> 
 关于论文CRFA的笔记  
-</div>  
-
-
-
-<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.</p>
+</div><br><span id="more"></span></p>
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
 <script type="math/tex; mode=display">
 F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
 f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
@@ -307,6 +301,7 @@ oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
     <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
     <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
 </figure>
+
 
 <p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
 <script type="math/tex; mode=display">
@@ -330,19 +325,7 @@ P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下
 \end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
 <script type="math/tex; mode=display">
 E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
-<div style="text-align: center;">
-  <div style="display: inline-flex;">
-    <div style="margin-right: 10px; width: 49%;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d6cb076e2f77d037956b9bdc3f95ca99.png" style="width: 100%; height: 400px; object-fit: cover;">
-      <figcaption>伪代码流程图</figcaption>
-    </div>
-    <div style="width: 49%;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b6e236c7417822b6175384075f14300f.png" style="width: 100%; height: 400px; object-fit: cover;">
-      <figcaption>攻击示意图</figcaption>
-    </div>
-  </div>
-</div>
-
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
 <h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
 <p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
@@ -354,39 +337,37 @@ E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi
 <ul>
 <li>变量定义时缺少主语或引用不当</li>
 </ul>
-<div style="text-align: center;">
+<figure>
   <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
+</figure>
 
-<div style="text-align: center;">
+<figure>
   <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
+</figure>
 
 
 <ul>
 <li>相关变量缺少定义说明</li>
 </ul>
-<div style="text-align: center;">
+<figure style="text-align: center;">
   <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
+</figure>
 
 
 <ul>
 <li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
 </ul>
-<div style="text-align: center;">
+<figure style="text-align: center;">
   <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
-
+</figure>
 
 
 <ul>
 <li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
 </ul>
-<div style="text-align: center;">
+<figure style="text-align: center;">
   <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
+</figure>
 
 
     </div>

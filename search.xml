@@ -55,6 +55,157 @@
       </tags>
   </entry>
   <entry>
+    <title>论文笔记:DeCoWa</title>
+    <url>/2025/06/10/paper-decowa/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于DeCoWa的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
+<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
+<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
+<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
+<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
+<script type="math/tex; mode=display">
+g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
+<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
+<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
+<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
+<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
+<script type="math/tex; mode=display">
+f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
+<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
+<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
+<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+        <tag>迁移攻击</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：SAR Conditional Random Field Attack</title>
+    <url>/2025/08/11/paper-CRF/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于论文CRFA的笔记  
+</div><br><span id="more"></span></p>
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
+<script type="math/tex; mode=display">
+F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
+f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
+<script type="math/tex; mode=display">
+P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
+P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
+  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
+</figure>
+
+<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
+<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
+<script type="math/tex; mode=display">
+oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
+    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
+</figure>
+
+
+<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
+<script type="math/tex; mode=display">
+logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
+p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
+<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
+<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
+<script type="math/tex; mode=display">
+P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
+Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
+<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
+<script type="math/tex; mode=display">
+P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
+<script type="math/tex; mode=display">
+\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
+\phi_{ij}(y_i,y_j,X) = 
+\begin{cases}
+0 & \ if \  x_i = x_j \\ 
+1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
+\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
+<script type="math/tex; mode=display">
+E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
+<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
+<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
+<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
+<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
+<ul>
+<li>变量定义时缺少主语或引用不当</li>
+</ul>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>相关变量缺少定义说明</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记：One-Pixel-Attack</title>
     <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
     <content><![CDATA[<div style="text-align: center;"> 
@@ -92,115 +243,36 @@ r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元�
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：SAR Conditional Random Field Attack</title>
-    <url>/2025/08/11/paper-CRF/</url>
-    <content><![CDATA[<span id="more"></span>
-<div style="text-align: center;"> 
-
-关于论文CRFA的笔记  
+    <title>论文笔记：Similarity to Availability</title>
+    <url>/2025/02/21/paper3-s2a/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
 </div>  
 
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
+<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
+<div style="display: flex; justify-content: space-between;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
+</div>  
 
-
-<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.</p>
+<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
+<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
+<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
 <script type="math/tex; mode=display">
-F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
-f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
+Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
 <script type="math/tex; mode=display">
-P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
-P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
-  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
-</figure>
-
-<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
-<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
+MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
+head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
+<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
 <script type="math/tex; mode=display">
-oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
-    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
-    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
-</figure>
-
-<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
-<script type="math/tex; mode=display">
-logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
-p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
-<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
-<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
-Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
-<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
-<script type="math/tex; mode=display">
-\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
-\phi_{ij}(y_i,y_j,X) = 
-\begin{cases}
-0 & \ if \  x_i = x_j \\ 
-1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
-\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
-<script type="math/tex; mode=display">
-E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
-<div style="text-align: center;">
-  <div style="display: inline-flex;">
-    <div style="margin-right: 10px; width: 49%;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d6cb076e2f77d037956b9bdc3f95ca99.png" style="width: 100%; height: 400px; object-fit: cover;">
-      <figcaption>伪代码流程图</figcaption>
-    </div>
-    <div style="width: 49%;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b6e236c7417822b6175384075f14300f.png" style="width: 100%; height: 400px; object-fit: cover;">
-      <figcaption>攻击示意图</figcaption>
-    </div>
-  </div>
-</div>
-
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
-<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
-<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
-<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
-<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
-<ul>
-<li>变量定义时缺少主语或引用不当</li>
-</ul>
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
-
-<ul>
-<li>相关变量缺少定义说明</li>
-</ul>
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
-
-<ul>
-<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
-</ul>
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
-
-
-
-<ul>
-<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
-</ul>
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
-</div>
-
+Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -208,7 +280,7 @@ E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
-        <tag>对抗样本</tag>
+        <tag>SAR</tag>
       </tags>
   </entry>
   <entry>
@@ -284,36 +356,47 @@ Q = R(P;r) = \begin{cases}
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：Similarity to Availability</title>
-    <url>/2025/02/21/paper3-s2a/</url>
+    <title>论文笔记：SARATRX</title>
+    <url>/2025/01/14/paper1-saratrx/</url>
     <content><![CDATA[<div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
+关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
 </div>  
 
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
-<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
-</div>  
+<span id="more"></span>  
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
+<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
+<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
+<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
+<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
+<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
+<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
+<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
+<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
 
-<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
-<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
-<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
+<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
+<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
+
 <script type="math/tex; mode=display">
-Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
-<script type="math/tex; mode=display">
-MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
-head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
-<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
-<script type="math/tex; mode=display">
-Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
+MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
+<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
+<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
+<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
+<table>
+  <tr>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果1</figcaption>
+    </td>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果2</figcaption>
+    </td>
+  </tr>
+</table>  
+
+<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -368,107 +451,6 @@ G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记:DeCoWa</title>
-    <url>/2025/06/10/paper-decowa/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于DeCoWa的论文笔记
-</div><br><span id="more"></span></p>
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
-<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
-<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
-<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
-<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
-<script type="math/tex; mode=display">
-g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
-<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
-<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
-<script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
-<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
-<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
-<script type="math/tex; mode=display">
-f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
-<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
-<script type="math/tex; mode=display">
-\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
-<script type="math/tex; mode=display">
-\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
-<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
-<script type="math/tex; mode=display">
-\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
-<script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
-<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-        <tag>迁移攻击</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：SARATRX</title>
-    <url>/2025/01/14/paper1-saratrx/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
-</div>  
-
-<span id="more"></span>  
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
-<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
-<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
-<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
-<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
-<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
-<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
-<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
-<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
-
-<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
-<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
-
-<script type="math/tex; mode=display">
-MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
-<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
-<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
-<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
-<table>
-  <tr>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果1</figcaption>
-    </td>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果2</figcaption>
-    </td>
-  </tr>
-</table>  
-
-<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
       </tags>
   </entry>
 </search>
