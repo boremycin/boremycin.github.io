@@ -22,18 +22,21 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="There&#39;s nothing behind you.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Boremycin&#39;s Blog">
-<meta property="og:url" content="http://boremycin.github.io/archives/index.html">
+  <meta name="description" content="detectron安装编译时缺少torch依赖">
+<meta property="og:type" content="article">
+<meta property="og:title" content="detectron2安装编译">
+<meta property="og:url" content="http://boremycin.github.io/2025/08/19/code1/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content="There&#39;s nothing behind you.">
+<meta property="og:description" content="detectron安装编译时缺少torch依赖">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-08-19T04:46:23.090Z">
+<meta property="article:modified_time" content="2025-08-19T04:48:57.614Z">
 <meta property="article:author" content="Boremycin">
-<meta property="article:tag" content="CPP,Linux,Python,SAR,Adersarial Attack">
+<meta property="article:tag" content="代码笔记">
+<meta property="article:tag" content="工程开发">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://boremycin.github.io/archives/">
+<link rel="canonical" href="http://boremycin.github.io/2025/08/19/code1/">
 
 
 <script id="page-configurations">
@@ -41,12 +44,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>归档 | Boremycin's Blog</title>
+  <title>detectron2安装编译 | Boremycin's Blog</title>
   
 
 
@@ -188,230 +191,136 @@
         <div class="content-wrap">
           
 
-          <div class="content archive">
+          <div class="content post posts-expand">
             
 
+    
   
   
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <span class="collection-header">嗯..! 目前共计 10 篇日志。 继续努力。</span>
-      </div>
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/08/19/code1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          detectron2安装编译
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-08-19 12:46:23 / 修改时间：12:48:57" itemprop="dateCreated datePublished" datetime="2025-08-19T12:46:23+08:00">2025-08-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2025</span>
-    </div>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-08-19T12:46:23+08:00"
-              content="2025-08-19">
-          08-19
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/08/19/code1/" itemprop="url">
-            <span itemprop="name">detectron2安装编译</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-08-16T22:41:12+08:00"
-              content="2025-08-16">
-          08-16
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/08/16/essay1/" itemprop="url">
-            <span itemprop="name">又站在新世界的门前</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-08-11T21:09:12+08:00"
-              content="2025-08-11">
-          08-11
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/08/11/paper-CRF/" itemprop="url">
-            <span itemprop="name">论文笔记：SAR Conditional Random Field Attack</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-06-10T13:43:14+08:00"
-              content="2025-06-10">
-          06-10
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/06/10/paper-decowa/" itemprop="url">
-            <span itemprop="name">论文笔记:DeCoWa</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-03-25T15:01:18+08:00"
-              content="2025-03-25">
-          03-25
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/03/25/paper5-GAN/" itemprop="url">
-            <span itemprop="name">论文笔记：GAN和pixel2pixel</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-03-04T12:23:15+08:00"
-              content="2025-03-04">
-          03-04
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/03/04/paper4/" itemprop="url">
-            <span itemprop="name">论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-02-21T09:50:35+08:00"
-              content="2025-02-21">
-          02-21
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/02/21/paper3-s2a/" itemprop="url">
-            <span itemprop="name">论文笔记：Similarity to Availability</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-02-14T18:35:18+08:00"
-              content="2025-02-14">
-          02-14
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/02/14/paper2-One-Pixel-Attack/" itemprop="url">
-            <span itemprop="name">论文笔记：One-Pixel-Attack</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-01-14T21:01:25+08:00"
-              content="2025-01-14">
-          01-14
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/01/14/paper1-saratrx/" itemprop="url">
-            <span itemprop="name">论文笔记：SARATRX</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-01-09T21:42:14+08:00"
-              content="2025-01-09">
-          01-09
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/01/09/hello-world/" itemprop="url">
-            <span itemprop="name">建站记录</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
+        <p><div style="text-align: center;"> 
+detectron安装编译时缺少torch依赖
+</div><br><span id="more"></span></p>
+<p>detectron2是facebook开源的目标检测依赖框架, 诸如sparcer-cnn的目标检测模型均依赖于其进行开发. 然而于诸如opencv-python等一版python的cv依赖库不同, detectron2多出来了编译的步骤.官方的指导安装步骤是使用git clong源码后在setup.py所在路径下运行以下命令:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install -e .</span><br></pre></td></tr></table></figure>
+<p>需要额外注意的是detectron2对torch库的版本依赖较为敏感. 我的CUDA version是12.1,使用的是如下torch版本.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121</span><br></pre></td></tr></table></figure>
+<p>然而在后续的编译过程中反复遇到提示无法在虚拟环境中找到torch依赖的报错, 即使我确实已经正确安装了对应版本的torch库. 初步分析, 产生这个问题的原因在于使用<code>pip install -e .</code>时启动了PEP517隔离环境, 即创建了一个<strong>临时的</strong>,<strong>独立的</strong>虚拟环境, 而这个环境正好将外部的已安装torch的conda环境隔离在外, 根据路径下的<code>pyproject.toml</code>配置构建库函数所依赖的工具并加入到临时环境中. 但即使其中声明了对torch的依赖, 也可能因为境内的网络原因导致安装失败. 我所遇到的具体报错如下所示:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"> File <span class="string">&quot;/tmp/pip-build-env-h48lpsdh/overlay/lib/python3.9/site-packages/setuptools/build_meta.py&quot;</span>, line 317, <span class="keyword">in</span> run_setup</span><br><span class="line">      <span class="built_in">exec</span>(code, locals())</span><br><span class="line">      File <span class="string">&quot;&lt;string&gt;&quot;</span>, line 10, <span class="keyword">in</span> &lt;module&gt;</span><br><span class="line">      ModuleNotFoundError: No module named <span class="string">&#x27;torch&#x27;</span></span><br><span class="line">      [end of output]</span><br><span class="line">note: This error originates from a subprocess, and is likely not a problem with pip.</span><br><span class="line">error: subprocess-exited-with-error</span><br></pre></td></tr></table></figure>
+<p>对于这种情况, 有以下几种种常规的处理方法:  </p>
+<ul>
+<li>在pip命令后加入后缀<code>--no-build-isolation</code>, 来关闭上述的隔离功能, 使编译过程在conda环境中进行(conda本身已经对环境进行了隔离)</li>
+<li>直接强制使用setup.py进行编译安装. <code>python setup.py build develop</code>, 然而这种操作已不被pip推荐以避免可能的环境混乱.</li>
+<li>使用pip安装已经完成预编译的detectron2库, 命令为<code>pip install &#39;git+https://github.com/facebookresearch/detectron2.git&#39;</code>.</li>
+</ul>
+<p>然而, 前两种方法对上述报错并不奏效, 第三种方法在我所在的网络环境下几乎不可行 (即使我已经更换了诸如githubfast.com的镜像源或使用GitHub官方加速方法). 最后, 我发现了一种手动编译的方法成功解决的了detectron2的安装编译问题, 在定位到detectron2项目目录下, 构建好conda环境后执行以下两步即可.</p>
+<ol>
+<li><code>FORCE_CUDA=1 python setup.py build_ext --inplace</code></li>
+<li><code>python setup.py develop</code></li>
+</ol>
+<p>第1步首先通过<code>FORCE_CUDA=1</code>强制激活CUDA编译流程, 确保CUDA相关的cpp和.cu被正确编译; 接着运行setup.py, 这是标准的python包构建命令, <code>build_ext</code>是其子命令, 作用是告诉<code>setuptools</code>当前在执行构建拓展的操作. <code>--inplace</code>则是<code>build_ext</code>的子选项, 用于声明拓展文件的放置位置, 默认情况下编译完成的拓展文件会被放置于临时的<code>build/</code>目录下, 而<code>inplace</code>则覆盖该默认行为并将编译好的文件放置于于源文件相同的目录中. </p>
+<p>第2步则是用于构建<code>.egg-info</code>文件, 使pip工具能够正确的识别和管理当前的包, 其文件本身是旧格式的Python包元数据(metadata).</p>
+<p>至此, detectron2的编译安装问题就暂时解决了.</p>
 
     </div>
-  </div>
-  
-  
-  
 
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 代码笔记</a>
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/08/16/essay1/" rel="prev" title="又站在新世界的门前">
+      <i class="fa fa-chevron-left"></i> 又站在新世界的门前
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
   
 
 
