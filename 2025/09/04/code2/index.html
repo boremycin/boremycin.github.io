@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="将服务器上的项目迁移到windows上并打包为docker镜像">
+<meta property="og:type" content="article">
+<meta property="og:title" content="docker应用笔记">
+<meta property="og:url" content="http://boremycin.github.io/2025/09/04/code2/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="将服务器上的项目迁移到windows上并打包为docker镜像">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903205031.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903205837.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903210018.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250904184335.png">
+<meta property="article:published_time" content="2025-09-04T12:44:11.221Z">
+<meta property="article:modified_time" content="2025-09-04T12:45:18.985Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="代码笔记">
+<meta property="article:tag" content="工程开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903205031.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2025/09/04/code2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>docker应用笔记 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/09/04/code2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          docker应用笔记
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-09-04 20:44:11 / 修改时间：20:45:18" itemprop="dateCreated datePublished" datetime="2025-09-04T20:44:11+08:00">2025-09-04</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><div style="text-align: center;"> 
+将服务器上的项目迁移到windows上并打包为docker镜像
+</div><br><span id="more"></span></p>
+<h1 id="Docker应用笔记"><a href="#Docker应用笔记" class="headerlink" title="Docker应用笔记"></a>Docker应用笔记</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>暑期比赛的验收阶段要求将训练和推理环境打包为Docker,借此初步了解了Docker打包的全流程.需要注意的是云服务器或实验室服务器集群的实例本身就已经是某种形式的docker了,所以<strong>无法直接打包服务器中的代码项目</strong>.如果需要打包服务器上的代码,当前比较直接的折中办法是整理好项目的环境依赖,通过conda导出为environment.yml文件(或requirements.txt),将核心代码下载至本地windows环境,并在windows下进行docker的打包.后续的介绍内容均面向windows环境.</p>
+<p>Docker是开源的操作系统虚拟化技术,通过对进程进行封装并与宿主和其他进程之间进行隔离来提高程序的分发和部署效率,被封装的对象被称为<code>容器</code>.相较于传统的虚拟机技术,Docker响应速度更快,对系统资源的调度更高效.同时提供除内核外的完整运行时环境也保证了运行环境之间的一致性.</p>
+<p>在windows环境下,使用Docker主要通过Docker Desktop软件结合WSL,后者为windows提供linux的内核支持.</p>
+<h2 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h2><p>首先下载<a target="_blank" rel="noopener" href="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe">Docker Desktop</a>和<a target="_blank" rel="noopener" href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi">WSL</a>.现在完成后先检查CUP虚拟化是否已开启.通过任务管理器性能中的CPU部分即可查看,一般会默认开启.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903205031.png" alt="20250903205031"></p>
+<p>然后还需要开启Hyper-v,Hyper-v是微软开发的虚拟化技术,允许在单一物理机上运行多个虚拟机,在Docker Desktop中被用来创建和管理轻量化虚拟机支持,是Docker在windows上运行的关键组件.在控制面版中打开程序,在<strong>启动或关闭windows功能</strong>部分可以用来管理Hyper-v.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903205837.png" alt="20250903205837"></p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250903210018.png" alt="20250903210018"></p>
+<p>如果没有对应选型,可以在创建Hyper-V.bat文件,直接写入以下脚本内容后运行.该脚本会遍历系统目录中所有包含Hyper-V名称的.mum文件,保存到临时的txt文件后用dism命令将找到的相关包加入到系统中,即实现Hyper-V的自动安装和启用.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">pushd</span> <span class="string">&quot;%~dp0&quot;</span></span><br><span class="line"><span class="built_in">dir</span> /b %SystemRoot%\servicing\Packages\*Hyper-V*.mum &gt;hyper-v.txt</span><br><span class="line"><span class="keyword">for</span> /f %%i <span class="keyword">in</span> (<span class="string">&#x27;findstr /i . hyper-v.txt 2^&gt;nul&#x27;</span>) <span class="keyword">do</span> dism /online /norestart /add-package:<span class="string">&quot;%SystemRoot%\servicing\Packages\%%i&quot;</span></span><br><span class="line">del hyper-v.txt</span><br><span class="line">Dism /online /enable-feature /featurename:Microsoft-Hyper-V-All /LimitAccess /ALL</span><br></pre></td></tr></table></figure>
+<p>完成上述准备工作,安装好Docker Desktop还需要修改存储路径(默认为C盘),避免由于存储空间不足导致的镜像保存失败.至此,windows环境下的docker准备工作均已完成.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250904184335.png" alt="20250904184335"></p>
+<h2 id="将项目代码打包为镜像"><a href="#将项目代码打包为镜像" class="headerlink" title="将项目代码打包为镜像"></a>将项目代码打包为镜像</h2><h3 id="Dockerfile与-dockerignore"><a href="#Dockerfile与-dockerignore" class="headerlink" title="Dockerfile与.dockerignore"></a>Dockerfile与.dockerignore</h3><p>由于服务器上的conda环境无法直接下载到windows当中,所以需要先导出项目的依赖环境,然后在创建镜像时在Dockerfile中加入环境创建的步骤.conda的环境导出命令如下.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">conda activate your_env_name</span><br><span class="line">conda <span class="built_in">env</span> <span class="built_in">export</span> --no-builds &gt; environment.yml</span><br></pre></td></tr></table></figure><br>该命令会生成一个<code>environment.yml</code>文件,记录当前环境依赖,同时不包含平台相关的build bash.接着需要构建一个<code>Dockerfile</code>文件,基于miniconda的基础镜像进行环境配置,以本次比赛项目为例,<code>Dockerfile</code>文件内容如下.</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 使用 miniconda 基础镜像（内置 conda，比自己安装方便）</span></span><br><span class="line"><span class="keyword">FROM</span> continuumio/miniconda3:latest</span><br><span class="line"><span class="comment"># 2. 设置国内源（换 apt 源）</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye main contrib non-free&quot;</span> &gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free&quot;</span> &gt;&gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-updates main contrib non-free&quot;</span> &gt;&gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; apt-get update \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; apt-get install -y --no-install-recommends \</span></span><br><span class="line"><span class="language-bash">       git \</span></span><br><span class="line"><span class="language-bash">       build-essential \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">rm</span> -rf /var/lib/apt/lists/*</span></span><br><span class="line"><span class="comment"># 3. 设置工作目录</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /app</span></span><br><span class="line"><span class="comment"># 4. 复制 conda 环境文件</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> environment.yml .</span></span><br><span class="line"><span class="comment"># 5. 创建 conda 环境</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> conda <span class="built_in">env</span> create -f environment.yml</span></span><br><span class="line"><span class="comment"># 6. 激活环境 (添加到 PATH)</span></span><br><span class="line"><span class="comment">#   注意：这里要和 environment.yml 里的 name 对应，比如 your_env_name</span></span><br><span class="line"><span class="keyword">ENV</span> PATH /opt/conda/envs/your_env_name/bin:$PATH</span><br><span class="line"><span class="comment"># 7. 复制项目代码</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> . .</span></span><br><span class="line"><span class="comment"># 8. 默认运行脚本</span></span><br><span class="line"><span class="keyword">CMD</span><span class="language-bash"> [<span class="string">&quot;python&quot;</span>, <span class="string">&quot;select2.py&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+<p>如果选择基于requirements.txt构建环境,则需要依赖python-slim的轻量化镜像,对应版本的Dockerfile内容如下.<br><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 使用官方 Python slim 镜像</span></span><br><span class="line"><span class="keyword">FROM</span> python:<span class="number">3.10</span>-slim</span><br><span class="line"><span class="comment"># 2. 设置国内源并安装系统依赖</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free&quot;</span> &gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free&quot;</span> &gt;&gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;deb https://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free&quot;</span> &gt;&gt; /etc/apt/sources.list \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; apt-get update \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; apt-get install -y --no-install-recommends \</span></span><br><span class="line"><span class="language-bash">       git \</span></span><br><span class="line"><span class="language-bash">       build-essential \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; <span class="built_in">rm</span> -rf /var/lib/apt/lists/*</span></span><br><span class="line"><span class="comment"># 3. 设置工作目录</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /app</span></span><br><span class="line"><span class="comment"># 4. 复制依赖文件</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> requirements.txt .</span></span><br><span class="line"><span class="comment"># 5. 升级 pip 并安装 Python 依赖</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> pip install --upgrade pip \</span></span><br><span class="line"><span class="language-bash">    &amp;&amp; pip install --no-cache-dir -r requirements.txt</span></span><br><span class="line"><span class="comment"># 6. 复制项目代码（不包括大数据）</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> . .</span></span><br><span class="line"><span class="comment"># 7. 默认运行脚本</span></span><br><span class="line"><span class="keyword">CMD</span><span class="language-bash"> [<span class="string">&quot;python&quot;</span>, <span class="string">&quot;select2.py&quot;</span>]</span></span><br></pre></td></tr></table></figure><br>如果在windows上拉取的项目文件中仍然存在不希望打包到镜像中的冗余部分,可以类比git使用<code>.dockerignore</code>进行管理,写入希望掠过的文件或文件夹的相对路径即可.</p>
+<h3 id="打包docker镜像"><a href="#打包docker镜像" class="headerlink" title="打包docker镜像"></a>打包docker镜像</h3><p>在windows的命令行中(Docker Desktop自带)定位到项目文件夹,运行<code>docker build</code>命令即可构建镜像.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t img-name:latest .</span><br></pre></td></tr></table></figure><br><code>-t</code>用以给镜像命名,<code>latest</code>是镜像的标签,用来标记不同的版本.<code>.</code>会令docker在当前目录下查找<code>Dockerfile</code>和其他需要复制的文件.镜像创建成功后并不会有显式的存储路径,需要通过docker命令查看所有的本地镜像,命令如下.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker images</span><br></pre></td></tr></table></figure></p>
+<h3 id="测试镜像"><a href="#测试镜像" class="headerlink" title="测试镜像"></a>测试镜像</h3><p>测试镜像使用<code>docker run</code>命令.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -it --name container-name img-name:latest</span><br></pre></td></tr></table></figure><br>其中的<code>-it</code>参数用于创建一个交互模型的运行容器并分配伪终端,<code>--name</code>参数用于指定运行容器的名称.在Docker中镜像(image)只是一个静态的只读模板,包含运行程序需要的所有内容;而容器(container)则是镜像的运行实例,支持<strong>启动</strong>,<strong>停止</strong>和<strong>删除</strong>等操作.在通过<code>run</code>运行docker后,可以通过<code>exit</code>退出,容器状态变为停止,但不会立刻结束.当需要彻底清除容器时,需要单独删除,可以通过命令行后Docker Desktop的可视化交互.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看存在的所有容器</span></span><br><span class="line">docker ps -a</span><br><span class="line"><span class="comment"># 删除指定容器</span></span><br><span class="line">docker <span class="built_in">rm</span> container-name</span><br><span class="line"><span class="comment"># 删除所有已停止的容器</span></span><br><span class="line">docker container prune</span><br></pre></td></tr></table></figure></p>
+<h3 id="导出可分发文件"><a href="#导出可分发文件" class="headerlink" title="导出可分发文件"></a>导出可分发文件</h3><p>docker镜像需要压缩为<code>.tar</code>文件才能被后续分发,对应的导出命令为:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker save -o file-name.tar img-name:latest</span><br></pre></td></tr></table></figure><br>恢复镜像的命令为:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker load -i file-name.tar</span><br></pre></td></tr></table></figure></p>
+<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#查看docker安装</span></span><br><span class="line">docker ps  或者  ps -ef | grep docker</span><br><span class="line"> </span><br><span class="line"><span class="comment">#查看docker服务：</span></span><br><span class="line">systemctl status docke</span><br><span class="line"> </span><br><span class="line"><span class="comment">#设置开启docker服务:</span></span><br><span class="line">systemctl <span class="built_in">enable</span> docker</span><br><span class="line"> </span><br><span class="line"><span class="comment">#启动docker服务：</span></span><br><span class="line">systemctl start docker</span><br><span class="line"> </span><br><span class="line"><span class="comment">#查看mysql镜像</span></span><br><span class="line">docker search mysql</span><br><span class="line"> </span><br><span class="line"><span class="comment">#进入容器：</span></span><br><span class="line">docker <span class="built_in">exec</span> -it xxx bash</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>第一次跑通docker的全流程,在无法直接打包云服务器项目的背景下很难说有多么的简单好用.</p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 代码笔记</a>
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/08/19/code1/" rel="prev" title="detectron2安装编译">
+      <i class="fa fa-chevron-left"></i> detectron2安装编译
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Docker%E5%BA%94%E7%94%A8%E7%AC%94%E8%AE%B0"><span class="nav-number">1.</span> <span class="nav-text">Docker应用笔记</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">1.2.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%86%E9%A1%B9%E7%9B%AE%E4%BB%A3%E7%A0%81%E6%89%93%E5%8C%85%E4%B8%BA%E9%95%9C%E5%83%8F"><span class="nav-number">1.3.</span> <span class="nav-text">将项目代码打包为镜像</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Dockerfile%E4%B8%8E-dockerignore"><span class="nav-number">1.3.1.</span> <span class="nav-text">Dockerfile与.dockerignore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%93%E5%8C%85docker%E9%95%9C%E5%83%8F"><span class="nav-number">1.3.2.</span> <span class="nav-text">打包docker镜像</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%95%9C%E5%83%8F"><span class="nav-number">1.3.3.</span> <span class="nav-text">测试镜像</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%BC%E5%87%BA%E5%8F%AF%E5%88%86%E5%8F%91%E6%96%87%E4%BB%B6"><span class="nav-number">1.3.4.</span> <span class="nav-text">导出可分发文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">1.4.</span> <span class="nav-text">常用命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.5.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">41k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:15</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
