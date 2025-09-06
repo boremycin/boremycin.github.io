@@ -71,35 +71,156 @@ detectron安装编译时缺少torch依赖
       </tags>
   </entry>
   <entry>
+    <title>vsc账号首次远程连接失败的问题与解决</title>
+    <url>/2025/09/06/code3/</url>
+    <content><![CDATA[<p><p style="text-align: center;">在服务器上的新建账号无法顺利使用vsc的ssh连接</p><br><span id="more"></span></p>
+<h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>前不久在实验室的服务器上创建了一个新的多卡账号, 服务器则是已经通过ssh key连接过在<code>known_hosts</code>中保留指纹信息, 但应该不会影响通过用户名和密码的远程连接方式. 但我在登录过程中遇到了xshell可以正常登录, 但vscode始终显示登录失败的问题. 在vscode的终端输出中显示的内容也只是<em>试图写入的管道不存在</em>, 并同时夹杂着冗长的报错信息. </p>
+<p>但是在<code>xshell</code>和<code>xfpt</code>上都是可以正常通过账号密码登录的(而且这两个软件也会默认创建密钥实现后续的服务器直连, 并且也可以将公钥导出到本地的<code>.ssh</code>路径中). </p>
+<h1 id="尝试解决"><a href="#尝试解决" class="headerlink" title="尝试解决"></a>尝试解决</h1><p>最开始我认为这个问题产生的原因是在113服务器(账号所在服务器)上我已经用vsc和ssh key连接过, 但在新的用户目录下还没有复制对应的公钥. 通过<code>xshell</code>的终端可以进行相应的配置. 由于缺少root权限, 所有的命令行都需要加入<code>sudo</code>前缀. 在最后一步使用nano进入文件后, 直接使用<code>ctrl v</code>粘贴本地的公钥, <code>ctrl o</code>保存文件, 在底部出现确认提示后回车, 随后退出即可.  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#在远程服务器上创建ssh文件夹</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#设置权限, 仅目录所有者可以访问读写</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 700 ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#进入路径, 创建用于保存公钥的文件</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">touch</span> ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置文件权限</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 600 ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#使用nano在终端写入</span></span><br><span class="line">nano ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p>但操作完成后连<code>xshell</code>也无法连接了, 但<code>xfpt</code>仍能正常连上. 随后我尝试了指定vsc的ssh-remote优先使用账号密码验证, 在配置文件中加入了<code>PreferredAuthentications password</code>. 然而后续测试的结果仍然是无法连接, 但报错的信息减少了, 最终的最初始的报错信息中找到了问题发生的原因.</p>
+<h1 id="问题根源与解决方案"><a href="#问题根源与解决方案" class="headerlink" title="问题根源与解决方案"></a>问题根源与解决方案</h1><p>vsc在远程连接失败后会打印<strong>超长的</strong>报错日志, 但最关键的最后信息往往在最上面的位置. 在从头分析后发现关键的报错原因如下:<br><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[12:10:51.465] &gt; <span class="built_in">mkdir</span>: cannot create directory <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: Permission denied</span><br><span class="line">&gt; <span class="built_in">chmod</span>: cannot access <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: No such file or directory</span><br><span class="line">&gt; Creating the server install <span class="built_in">dir</span> failed...</span><br></pre></td></tr></table></figure><br>显然, 这是因为使用vscode远程连接服务器时需要在服务器的用户目录下创建<code>.vscode</code>文件夹, 然后登录用户并没有root权限导致这个文件夹创建失败, 随后又打印了大量的额外报错信息并最终提示连接失败. 只需要将该目录的权限归属到用户即可, 相应命令如下:<br><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查看当前工作目录</span></span><br><span class="line"><span class="built_in">pwd</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#查看目录拥有者和群组</span></span><br><span class="line"><span class="built_in">ls</span> -ld /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更改目录拥有者为当前用户</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> zym:zym /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更新读写权限</span></span><br><span class="line"><span class="built_in">chmod</span> 755 /remote-home/zym</span><br></pre></td></tr></table></figure><br>最终该问题完美解决, 而且得益于已经写入了公钥, 也已经完成了免密登录的配置.</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>代码笔记</tag>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：SAR Conditional Random Field Attack</title>
+    <url>/2025/08/11/paper-CRF/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于论文CRFA的笔记  
+</div><br><span id="more"></span></p>
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
+<script type="math/tex; mode=display">
+F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
+f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
+<script type="math/tex; mode=display">
+P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
+P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
+  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
+</figure>
+
+<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
+<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
+<script type="math/tex; mode=display">
+oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
+    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
+</figure>
+
+
+<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
+<script type="math/tex; mode=display">
+logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
+p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
+<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
+<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
+<script type="math/tex; mode=display">
+P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
+Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
+<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
+<script type="math/tex; mode=display">
+P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
+<script type="math/tex; mode=display">
+\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
+\phi_{ij}(y_i,y_j,X) = 
+\begin{cases}
+0 & \ if \  x_i = x_j \\ 
+1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
+\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
+<script type="math/tex; mode=display">
+E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
+<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
+<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
+<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
+<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
+<ul>
+<li>变量定义时缺少主语或引用不当</li>
+</ul>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>相关变量缺少定义说明</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>再站在新世界的门前</title>
     <url>/2025/08/16/essay1/</url>
     <content><![CDATA[<p><p style="text-align: center;">研一正式开始前的一些胡思乱想</p><br><span id="more"></span></p>
-<h1 id="站在新世界的门前"><a href="#站在新世界的门前" class="headerlink" title="站在新世界的门前"></a>站在新世界的门前</h1><p>这是由宋春丹发表在中国新闻周刊的新闻报道,回顾了复旦77级数学系同学的人生轨迹.现将全文摘录,如下:</p>
+<h1 id="站在新世界的门前"><a href="#站在新世界的门前" class="headerlink" title="站在新世界的门前"></a>站在新世界的门前</h1><p>这是由宋春丹发表在中国新闻周刊的新闻报道, 回顾了复旦77级数学系同学的人生轨迹. 现将全文摘录, 如下:</p>
 <div class="note default" style="max-height:500px; overflow:auto;">
   <pre style="white-space: pre-wrap;">
-  1978年3月第一个星期六的下午，复旦数学系180多位新生坐在600号教学楼的阶梯大教室里，聆听校长、著名数学家苏步青的开学讲话.  
+1978年3月第一个星期六的下午，复旦数学系180多位新生坐在600号教学楼的阶梯大教室里，聆听校长、著名数学家苏步青的开学讲话.  
 
-  这是10年来，首次有人通过高考走进大学校门。“你们要把自己小看10年。但是数学上要出成绩，必须在30岁之前。”苏校长说。数学一班的过硬一听不妙。他是1966届高中生，开学时已年满31周岁。全班年纪最大的他是班上三个“老三届”之一，另外两个是29岁的金山和27岁的李源潮。主持开学典礼的数学系副系主任胡立鹏的讲话更不客气。他说，我们的任务就是通过四年的学习，把你们带到数学的大门口。你们自己看看进得去吧？进得去就进去，进不去看着转行。又说：“你们这一届中，只要有一个人进去，我就心满意足了！其他人都是陪读的，当然陪读也有好处，能够经历数学思维的训练，以后改行随便做什么都可以做得很出色。” 数学二班的陈大康听后不以为然，心想：“进得去吧？”而今，他成了华东师范大学中文系教授。李源潮则在多年后有感而发：“你本来想走进这个房间，结果却走进了另一个房间。” 
+这是10年来，首次有人通过高考走进大学校门。“你们要把自己小看10年。但是数学上要出成绩，必须在30岁之前。”苏校长说。数学一班的过硬一听不妙。他是1966届高中生，开学时已年满31周岁。全班年纪最大的他是班上三个“老三届”之一，另外两个是29岁的金山和27岁的李源潮。主持开学典礼的数学系副系主任胡立鹏的讲话更不客气。他说，我们的任务就是通过四年的学习，把你们带到数学的大门口。你们自己看看进得去吧？进得去就进去，进不去看着转行。又说：“你们这一届中，只要有一个人进去，我就心满意足了！其他人都是陪读的，当然陪读也有好处，能够经历数学思维的训练，以后改行随便做什么都可以做得很出色。” 数学二班的陈大康听后不以为然，心想：“进得去吧？”而今，他成了华东师范大学中文系教授。李源潮则在多年后有感而发：“你本来想走进这个房间，结果却走进了另一个房间。” 
 
-  1978年2月28日，是复旦新生三天报到日的第一天。
+1978年2月28日，是复旦新生三天报到日的第一天。
 
-  吴宗敏记得，这天是个阳光明媚的好天气。他本已定好第二天来报到，但按捺不住心痒，第一天就来寝室踩点。他被分到3号楼的223号寝室。寝室向阳，约15平方米，四张上下铺木床，中间是一张长条桌。他到时，已有同学将右侧靠窗的下铺收拾妥当。彼此做了自我介绍，他在左侧靠窗下铺贴上了写有自己名字的纸条，占了一个位置就离开了。第二天，上海市无线电八厂副厂长亲自带队，保卫处处长开着大卡车，工会主席带着十来个工人随行，一路敲锣打鼓把胸戴大红花的吴宗敏送到了学校。他1975年中学毕业后分配到该厂，这次高考，这家100多人的工厂中有包括他在内的4名工人被录取。卡车停在复旦大学3号男生宿舍楼前，工人们拿着他的行李——其实也只有一个小包，簇拥着他上了二楼，七手八脚帮着整理好行李，铺好床铺。
+吴宗敏记得，这天是个阳光明媚的好天气。他本已定好第二天来报到，但按捺不住心痒，第一天就来寝室踩点。他被分到3号楼的223号寝室。寝室向阳，约15平方米，四张上下铺木床，中间是一张长条桌。他到时，已有同学将右侧靠窗的下铺收拾妥当。彼此做了自我介绍，他在左侧靠窗下铺贴上了写有自己名字的纸条，占了一个位置就离开了。第二天，上海市无线电八厂副厂长亲自带队，保卫处处长开着大卡车，工会主席带着十来个工人随行，一路敲锣打鼓把胸戴大红花的吴宗敏送到了学校。他1975年中学毕业后分配到该厂，这次高考，这家100多人的工厂中有包括他在内的4名工人被录取。卡车停在复旦大学3号男生宿舍楼前，工人们拿着他的行李——其实也只有一个小包，簇拥着他上了二楼，七手八脚帮着整理好行李，铺好床铺。
 
-  22岁的张来武从安徽铜陵来到数学二班报到。他已经想不起来寝室的门牌号，只记得寝室地板的质量不错。因为他是寝室中唯一的外地人，每到周末，就只剩下他一个人，他总把寝室的地擦得干干净净。刚来时，他看到一位室友拿着一本全英文的小说在看，大为惊异，因为自己连英文字母还认不全。一楼的132号寝室里，计算数学班的沈文海坐了整整一天的火车，从北京风尘仆仆而至。他是全寝室最后一位入住者，大家自我介绍一番后，便陷入了沉默。寝室年纪最小的男生李刚打开了收音机，跟随广播里的领读大声念起英文：“Yes, it is. Yes, they are.” 
+22岁的张来武从安徽铜陵来到数学二班报到。他已经想不起来寝室的门牌号，只记得寝室地板的质量不错。因为他是寝室中唯一的外地人，每到周末，就只剩下他一个人，他总把寝室的地擦得干干净净。刚来时，他看到一位室友拿着一本全英文的小说在看，大为惊异，因为自己连英文字母还认不全。一楼的132号寝室里，计算数学班的沈文海坐了整整一天的火车，从北京风尘仆仆而至。他是全寝室最后一位入住者，大家自我介绍一番后，便陷入了沉默。寝室年纪最小的男生李刚打开了收音机，跟随广播里的领读大声念起英文：“Yes, it is. Yes, they are.” 
 
 陈晓亮也被分到计算数学班。他很奇怪，因为之前报考的明明是物理系。后来他听说，去杭州的招生老师是数学系主任，他把这个地区所有第一志愿报考复旦的上线考生全部招到了数学系。虽然未能如愿就读物理系，但陈晓亮还是觉得颇为幸运，因为数学系是复旦大学最好的系，考分最高。
 
 数学系77级被媒体称为状元班。数学一班的何宁卡是湖南省高考状元，李克难是湖南省第二名，计算数学班的李乐德是上海市高考状元，姚大卫是洛阳市高考状元。
 
- 4个班中，数学一班平均年龄最小，被称为“小班”。17岁的李克难在小学时跳了两级，汉语拼音还没来得及学会，大学时要补习汉语拼音。15岁的朱一新跳了三级，从崇明农村考入复旦，被媒体称为“最年轻的大学生”。数学二班和计算数学班入校时就各有十多位“老三届”，入学时大都已婚。上学期间时不时传来谁家孩子出生的消息，名字多叫“欢”或“乐”。3月底，一批高考成绩出色但年纪偏大的学生经补招入校，成为走读生。数学一班新招了8人，最大的已36岁；计算数学班新增了7人，全都是30岁。陈晓亮听到大家私下议论，是不是有“走后门”的。他有朋友在上海交通大学，就没有补招的事。但后来发现，班上的走读生都很优秀。其实，这是根据国家的新政补招的。开学后，国家紧急下发了《关于普通高等学校试行招收走读生和增加招生名额的通知》，允许高等学校在完成招生计划的前提下试行招收走读生，并要求注意招收1966届、1967届高中毕业生。
+4个班中，数学一班平均年龄最小，被称为“小班”。17岁的李克难在小学时跳了两级，汉语拼音还没来得及学会，大学时要补习汉语拼音。15岁的朱一新跳了三级，从崇明农村考入复旦，被媒体称为“最年轻的大学生”。数学二班和计算数学班入校时就各有十多位“老三届”，入学时大都已婚。上学期间时不时传来谁家孩子出生的消息，名字多叫“欢”或“乐”。3月底，一批高考成绩出色但年纪偏大的学生经补招入校，成为走读生。数学一班新招了8人，最大的已36岁；计算数学班新增了7人，全都是30岁。陈晓亮听到大家私下议论，是不是有“走后门”的。他有朋友在上海交通大学，就没有补招的事。但后来发现，班上的走读生都很优秀。其实，这是根据国家的新政补招的。开学后，国家紧急下发了《关于普通高等学校试行招收走读生和增加招生名额的通知》，允许高等学校在完成招生计划的前提下试行招收走读生，并要求注意招收1966届、1967届高中毕业生。
 
- 5月27日是复旦校庆，下午是各系参观日。新生们对这一天期待已久。  223寝室结伴参观，到计算机楼时，吴宗敏第一次见到了计算机，体积比一个寝室还大。数学系的展览则门庭冷落。几排桌子上，整齐陈列着刊有该系师生论文的国内外著名学术期刊。新生们尚不能理解其中含金量，只觉得呆板沉闷，转了一圈就匆匆离去。  
+5月27日是复旦校庆，下午是各系参观日。新生们对这一天期待已久。  223寝室结伴参观，到计算机楼时，吴宗敏第一次见到了计算机，体积比一个寝室还大。数学系的展览则门庭冷落。几排桌子上，整齐陈列着刊有该系师生论文的国内外著名学术期刊。新生们尚不能理解其中含金量，只觉得呆板沉闷，转了一圈就匆匆离去。  
 
 开学第一周，考虑到从前工农兵学员入学时水平参差不齐，数学系决定先对新生做一次摸底考试。考场设在学校大礼堂，彼此间至少隔二三个空座，以免抄袭。考试内容为初等数学。分数当天就下来了，沈文海只考了63分。但他的成绩并不算最差的，最高分也不到90，成绩相对较好的多为“老三届”。数学系决定暂停教学计划，腾出四周时间专门补习初等数学。四周后再次测试，全系基本通过。大学课程正式开始。
 
 600号楼是数学系所在地，其中611教室是可以容纳200人的阶梯教室，数学系的公共课大都在这里上。
 
- 77级是仓促考试和开学的，一开始教材供应跟不上，很多课本还是油印的，第二学期才恢复正常。开学后不久，老师告诫他们，以他们现在的水平，千万不能碰哥德巴赫猜想，“这东西害人的”。数学系常收到声称解决了哥德巴赫猜想的“民科”们的来信，就会把信发给学生，考他们能不能看出问题来。
+77级是仓促考试和开学的，一开始教材供应跟不上，很多课本还是油印的，第二学期才恢复正常。开学后不久，老师告诫他们，以他们现在的水平，千万不能碰哥德巴赫猜想，“这东西害人的”。数学系常收到声称解决了哥德巴赫猜想的“民科”们的来信，就会把信发给学生，考他们能不能看出问题来。
 
 数学分析是公认最难的一门基础课，考验逻辑推导能力，很多同学都喜欢这门课，尤其喜欢听何成奇讲这门课。因为他不但讲出了数学之用，还讲出了数学之美，“让你觉得不仅是进入了一个科学殿堂，也是进入了一个艺术殿堂”。数学分析课辅导老师孙芳烈也是数学一班的第一任班主任，是班上同学公认的大学期间对大家帮助最大的一位老师。在同学的记忆中，她有一颗“母仪之心”，宽爱所有的学生，非常认真负责，一心扑在学生身上。
 
@@ -251,58 +372,6 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：SARATRX</title>
-    <url>/2025/01/14/paper1-saratrx/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
-</div>  
-
-<span id="more"></span>  
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
-<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
-<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
-<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
-<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
-<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
-<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
-<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
-<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
-
-<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
-<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
-
-<script type="math/tex; mode=display">
-MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
-<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
-<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
-<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
-<table>
-  <tr>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果1</figcaption>
-    </td>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果2</figcaption>
-    </td>
-  </tr>
-</table>  
-
-<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>建站记录</title>
     <url>/2025/01/09/hello-world/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -357,97 +426,47 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：SAR Conditional Random Field Attack</title>
-    <url>/2025/08/11/paper-CRF/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于论文CRFA的笔记  
-</div><br><span id="more"></span></p>
-<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
+    <title>论文笔记：SARATRX</title>
+    <url>/2025/01/14/paper1-saratrx/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
+</div>  
+
+<span id="more"></span>  
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
+<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
+<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
+<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
+<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
+<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
+<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
+<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
+<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
+
+<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
+<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
+
 <script type="math/tex; mode=display">
-F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
-f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
-<script type="math/tex; mode=display">
-P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
-P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
-  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
-</figure>
+MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
+<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
+<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
+<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
+<table>
+  <tr>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果1</figcaption>
+    </td>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果2</figcaption>
+    </td>
+  </tr>
+</table>  
 
-<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
-<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
-<script type="math/tex; mode=display">
-oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
-    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
-    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
-</figure>
-
-
-<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
-<script type="math/tex; mode=display">
-logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
-p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
-<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
-<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
-Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
-<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
-<script type="math/tex; mode=display">
-\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
-\phi_{ij}(y_i,y_j,X) = 
-\begin{cases}
-0 & \ if \  x_i = x_j \\ 
-1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
-\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
-<script type="math/tex; mode=display">
-E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
-<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
-<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
-<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
-<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
-<ul>
-<li>变量定义时缺少主语或引用不当</li>
-</ul>
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>相关变量缺少定义说明</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
+<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -455,7 +474,7 @@ E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
-        <tag>对抗样本</tag>
+        <tag>SAR</tag>
       </tags>
   </entry>
   <entry>
@@ -497,6 +516,43 @@ Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img s
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于One-Pixel-Attack的论文笔记  
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+<script type="math/tex; mode=display">
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
@@ -561,43 +617,6 @@ Q = R(P;r) = \begin{cases}
 <p>对于对抗训练的防御方法，对应结果如下。  </p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/185981e0411bc1727b31dc04eadea665" alt="185981e0411bc1727b31dc04eadea665"> </p>
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本论文提出了基于频率域的迁移攻击增强方法，搭建了完整的频率域攻击和优化流程，并在FGSM为代表的梯度攻击方法上实现了理想的攻击效果，后续可以借鉴该论文的思路进一步探索频率域的攻击手段。</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
-<script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
 ]]></content>
       <categories>
         <category>论文笔记</category>

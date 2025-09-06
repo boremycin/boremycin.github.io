@@ -22,18 +22,21 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="There&#39;s nothing behind you.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Boremycin&#39;s Blog">
-<meta property="og:url" content="http://boremycin.github.io/archives/2025/01/index.html">
+  <meta name="description" content="在服务器上的新建账号无法顺利使用vsc的ssh连接">
+<meta property="og:type" content="article">
+<meta property="og:title" content="vsc账号首次远程连接失败的问题与解决">
+<meta property="og:url" content="http://boremycin.github.io/2025/09/06/code3/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content="There&#39;s nothing behind you.">
+<meta property="og:description" content="在服务器上的新建账号无法顺利使用vsc的ssh连接">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-06T06:26:30.674Z">
+<meta property="article:modified_time" content="2025-09-06T07:46:28.253Z">
 <meta property="article:author" content="Boremycin">
-<meta property="article:tag" content="CPP,Linux,Python,SAR,Adersarial Attack">
+<meta property="article:tag" content="代码笔记">
+<meta property="article:tag" content="工程开发">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://boremycin.github.io/archives/2025/01/">
+<link rel="canonical" href="http://boremycin.github.io/2025/09/06/code3/">
 
 
 <script id="page-configurations">
@@ -41,12 +44,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>归档 | Boremycin's Blog</title>
+  <title>vsc账号首次远程连接失败的问题与解决 | Boremycin's Blog</title>
   
 
 
@@ -188,70 +191,120 @@
         <div class="content-wrap">
           
 
-          <div class="content archive">
+          <div class="content post posts-expand">
             
 
+    
   
   
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <span class="collection-header">嗯..! 目前共计 12 篇日志。 继续努力。</span>
-      </div>
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/09/06/code3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          vsc账号首次远程连接失败的问题与解决
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-09-06 14:26:30 / 修改时间：15:46:28" itemprop="dateCreated datePublished" datetime="2025-09-06T14:26:30+08:00">2025-09-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2025</span>
-    </div>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-01-14T21:01:25+08:00"
-              content="2025-01-14">
-          01-14
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/01/14/paper1-saratrx/" itemprop="url">
-            <span itemprop="name">论文笔记：SARATRX</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2025-01-09T21:42:14+08:00"
-              content="2025-01-09">
-          01-09
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/01/09/hello-world/" itemprop="url">
-            <span itemprop="name">建站记录</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
+        <p><p style="text-align: center;">在服务器上的新建账号无法顺利使用vsc的ssh连接</p><br><span id="more"></span></p>
+<h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>前不久在实验室的服务器上创建了一个新的多卡账号, 服务器则是已经通过ssh key连接过在<code>known_hosts</code>中保留指纹信息, 但应该不会影响通过用户名和密码的远程连接方式. 但我在登录过程中遇到了xshell可以正常登录, 但vscode始终显示登录失败的问题. 在vscode的终端输出中显示的内容也只是<em>试图写入的管道不存在</em>, 并同时夹杂着冗长的报错信息. </p>
+<p>但是在<code>xshell</code>和<code>xfpt</code>上都是可以正常通过账号密码登录的(而且这两个软件也会默认创建密钥实现后续的服务器直连, 并且也可以将公钥导出到本地的<code>.ssh</code>路径中). </p>
+<h1 id="尝试解决"><a href="#尝试解决" class="headerlink" title="尝试解决"></a>尝试解决</h1><p>最开始我认为这个问题产生的原因是在113服务器(账号所在服务器)上我已经用vsc和ssh key连接过, 但在新的用户目录下还没有复制对应的公钥. 通过<code>xshell</code>的终端可以进行相应的配置. 由于缺少root权限, 所有的命令行都需要加入<code>sudo</code>前缀. 在最后一步使用nano进入文件后, 直接使用<code>ctrl v</code>粘贴本地的公钥, <code>ctrl o</code>保存文件, 在底部出现确认提示后回车, 随后退出即可.  </p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#在远程服务器上创建ssh文件夹</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#设置权限, 仅目录所有者可以访问读写</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 700 ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#进入路径, 创建用于保存公钥的文件</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">touch</span> ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置文件权限</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 600 ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#使用nano在终端写入</span></span><br><span class="line">nano ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p>但操作完成后连<code>xshell</code>也无法连接了, 但<code>xfpt</code>仍能正常连上. 随后我尝试了指定vsc的ssh-remote优先使用账号密码验证, 在配置文件中加入了<code>PreferredAuthentications password</code>. 然而后续测试的结果仍然是无法连接, 但报错的信息减少了, 最终的最初始的报错信息中找到了问题发生的原因.</p>
+<h1 id="问题根源与解决方案"><a href="#问题根源与解决方案" class="headerlink" title="问题根源与解决方案"></a>问题根源与解决方案</h1><p>vsc在远程连接失败后会打印<strong>超长的</strong>报错日志, 但最关键的最后信息往往在最上面的位置. 在从头分析后发现关键的报错原因如下:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[12:10:51.465] &gt; <span class="built_in">mkdir</span>: cannot create directory <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: Permission denied</span><br><span class="line">&gt; <span class="built_in">chmod</span>: cannot access <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: No such file or directory</span><br><span class="line">&gt; Creating the server install <span class="built_in">dir</span> failed...</span><br></pre></td></tr></table></figure><br>显然, 这是因为使用vscode远程连接服务器时需要在服务器的用户目录下创建<code>.vscode</code>文件夹, 然后登录用户并没有root权限导致这个文件夹创建失败, 随后又打印了大量的额外报错信息并最终提示连接失败. 只需要将该目录的权限归属到用户即可, 相应命令如下:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#查看当前工作目录</span></span><br><span class="line"><span class="built_in">pwd</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#查看目录拥有者和群组</span></span><br><span class="line"><span class="built_in">ls</span> -ld /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更改目录拥有者为当前用户</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> zym:zym /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更新读写权限</span></span><br><span class="line"><span class="built_in">chmod</span> 755 /remote-home/zym</span><br></pre></td></tr></table></figure><br>最终该问题完美解决, 而且得益于已经写入了公钥, 也已经完成了免密登录的配置.</p>
 
     </div>
-  </div>
-  
-  
-  
 
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 代码笔记</a>
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/09/04/code2/" rel="prev" title="docker应用笔记">
+      <i class="fa fa-chevron-left"></i> docker应用笔记
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
   
 
 
@@ -304,6 +357,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">问题描述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%9D%E8%AF%95%E8%A7%A3%E5%86%B3"><span class="nav-number">2.</span> <span class="nav-text">尝试解决</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E6%A0%B9%E6%BA%90%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">问题根源与解决方案</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
