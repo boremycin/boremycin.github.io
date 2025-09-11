@@ -71,60 +71,6 @@ detectron安装编译时缺少torch依赖
       </tags>
   </entry>
   <entry>
-    <title>建站记录</title>
-    <url>/2025/01/09/hello-world/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
-</div><br><span id="more"></span></p>
-<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
-<ul>
-<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
-<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
-<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
-<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
-<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
-</ul>
-<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
-<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
-<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
-<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
-<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
-<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
-<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
-<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
-<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
-<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
-<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
-<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
-<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
-<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
-<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
-<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
-            <p>我为什么需要一个博客？ </p>
-          </div>  
-<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
-<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
-<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
-<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>建站</tag>
-        <tag>笔记</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>TPS代码完整复现与分析</title>
     <url>/2025/09/09/code4/</url>
     <content><![CDATA[<p><p style="text-align: center;">
@@ -231,6 +177,83 @@ L = \begin{bmatrix}
       <tags>
         <tag>代码笔记</tag>
         <tag>算法复现</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vsc账号首次远程连接失败的问题与解决</title>
+    <url>/2025/09/06/code3/</url>
+    <content><![CDATA[<p><p style="text-align: center;">在服务器上的新建账号无法顺利使用vsc的ssh连接</p><br><span id="more"></span></p>
+<h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>前不久在实验室的服务器上创建了一个新的多卡账号, 服务器则是已经通过ssh key连接过在<code>known_hosts</code>中保留指纹信息, 但应该不会影响通过用户名和密码的远程连接方式. 但我在登录过程中遇到了xshell可以正常登录, 但vscode始终显示登录失败的问题. 在vscode的终端输出中显示的内容也只是<em>试图写入的管道不存在</em>, 并同时夹杂着冗长的报错信息. </p>
+<p>但是在<code>xshell</code>和<code>xfpt</code>上都是可以正常通过账号密码登录的(而且这两个软件也会默认创建密钥实现后续的服务器直连, 并且也可以将公钥导出到本地的<code>.ssh</code>路径中). </p>
+<h1 id="尝试解决"><a href="#尝试解决" class="headerlink" title="尝试解决"></a>尝试解决</h1><p>最开始我认为这个问题产生的原因是在113服务器(账号所在服务器)上我已经用vsc和ssh key连接过, 但在新的用户目录下还没有复制对应的公钥. 通过<code>xshell</code>的终端可以进行相应的配置. 由于缺少root权限, 所有的命令行都需要加入<code>sudo</code>前缀. 在最后一步使用nano进入文件后, 直接使用<code>ctrl v</code>粘贴本地的公钥, <code>ctrl o</code>保存文件, 在底部出现确认提示后回车, 随后退出即可.  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#在远程服务器上创建ssh文件夹</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#设置权限, 仅目录所有者可以访问读写</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 700 ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#进入路径, 创建用于保存公钥的文件</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">touch</span> ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置文件权限</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 600 ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#使用nano在终端写入</span></span><br><span class="line">nano ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<p>但操作完成后连<code>xshell</code>也无法连接了, 但<code>xfpt</code>仍能正常连上. 随后我尝试了指定vsc的ssh-remote优先使用账号密码验证, 在配置文件中加入了<code>PreferredAuthentications password</code>. 然而后续测试的结果仍然是无法连接, 但报错的信息减少了, 最终的最初始的报错信息中找到了问题发生的原因.</p>
+<h1 id="问题根源与解决方案"><a href="#问题根源与解决方案" class="headerlink" title="问题根源与解决方案"></a>问题根源与解决方案</h1><p>vsc在远程连接失败后会打印<strong>超长的</strong>报错日志, 但最关键的信息往往在靠前的位置. 在从头分析后发现关键的报错原因如下:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[12:10:51.465] &gt; <span class="built_in">mkdir</span>: cannot create directory <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: Permission denied</span><br><span class="line">&gt; <span class="built_in">chmod</span>: cannot access <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: No such file or directory</span><br><span class="line">&gt; Creating the server install <span class="built_in">dir</span> failed...</span><br></pre></td></tr></table></figure>
+<p>显然, 这是因为使用vscode远程连接服务器时需要在服务器的用户目录下创建<code>.vscode</code>文件夹, 然后登录用户并没有root权限导致这个文件夹创建失败, 随后又打印了大量的额外报错信息并最终提示连接失败. 只需要将该目录的权限归属到用户即可, 相应命令如下:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查看当前工作目录</span></span><br><span class="line"><span class="built_in">pwd</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#查看目录拥有者和群组</span></span><br><span class="line"><span class="built_in">ls</span> -ld /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更改目录拥有者为当前用户</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> zym:zym /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更新读写权限</span></span><br><span class="line"><span class="built_in">chmod</span> 755 /remote-home/zym</span><br></pre></td></tr></table></figure>
+<p>最终该问题完美解决, 而且得益于已经写入了公钥, 也已经完成了免密登录的配置.</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>代码笔记</tag>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>建站记录</title>
+    <url>/2025/01/09/hello-world/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
+</div><br><span id="more"></span></p>
+<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
+<ul>
+<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
+<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
+<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
+<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
+<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
+<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
+<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
+<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
+<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
+<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
+<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
+<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
+<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
+<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
+<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
+<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
+<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
+<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
+<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
+<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
+            <p>我为什么需要一个博客？ </p>
+          </div>  
+<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
+<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
+<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
+<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>建站</tag>
+        <tag>笔记</tag>
       </tags>
   </entry>
   <entry>
@@ -385,26 +408,55 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
       </tags>
   </entry>
   <entry>
-    <title>vsc账号首次远程连接失败的问题与解决</title>
-    <url>/2025/09/06/code3/</url>
-    <content><![CDATA[<p><p style="text-align: center;">在服务器上的新建账号无法顺利使用vsc的ssh连接</p><br><span id="more"></span></p>
-<h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>前不久在实验室的服务器上创建了一个新的多卡账号, 服务器则是已经通过ssh key连接过在<code>known_hosts</code>中保留指纹信息, 但应该不会影响通过用户名和密码的远程连接方式. 但我在登录过程中遇到了xshell可以正常登录, 但vscode始终显示登录失败的问题. 在vscode的终端输出中显示的内容也只是<em>试图写入的管道不存在</em>, 并同时夹杂着冗长的报错信息. </p>
-<p>但是在<code>xshell</code>和<code>xfpt</code>上都是可以正常通过账号密码登录的(而且这两个软件也会默认创建密钥实现后续的服务器直连, 并且也可以将公钥导出到本地的<code>.ssh</code>路径中). </p>
-<h1 id="尝试解决"><a href="#尝试解决" class="headerlink" title="尝试解决"></a>尝试解决</h1><p>最开始我认为这个问题产生的原因是在113服务器(账号所在服务器)上我已经用vsc和ssh key连接过, 但在新的用户目录下还没有复制对应的公钥. 通过<code>xshell</code>的终端可以进行相应的配置. 由于缺少root权限, 所有的命令行都需要加入<code>sudo</code>前缀. 在最后一步使用nano进入文件后, 直接使用<code>ctrl v</code>粘贴本地的公钥, <code>ctrl o</code>保存文件, 在底部出现确认提示后回车, 随后退出即可.  </p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#在远程服务器上创建ssh文件夹</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#设置权限, 仅目录所有者可以访问读写</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 700 ~/.ssh </span><br><span class="line"></span><br><span class="line"><span class="comment">#进入路径, 创建用于保存公钥的文件</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">touch</span> ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置文件权限</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chmod</span> 600 ~/.ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment">#使用nano在终端写入</span></span><br><span class="line">nano ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
-<p>但操作完成后连<code>xshell</code>也无法连接了, 但<code>xfpt</code>仍能正常连上. 随后我尝试了指定vsc的ssh-remote优先使用账号密码验证, 在配置文件中加入了<code>PreferredAuthentications password</code>. 然而后续测试的结果仍然是无法连接, 但报错的信息减少了, 最终的最初始的报错信息中找到了问题发生的原因.</p>
-<h1 id="问题根源与解决方案"><a href="#问题根源与解决方案" class="headerlink" title="问题根源与解决方案"></a>问题根源与解决方案</h1><p>vsc在远程连接失败后会打印<strong>超长的</strong>报错日志, 但最关键的信息往往在靠前的位置. 在从头分析后发现关键的报错原因如下:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[12:10:51.465] &gt; <span class="built_in">mkdir</span>: cannot create directory <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: Permission denied</span><br><span class="line">&gt; <span class="built_in">chmod</span>: cannot access <span class="string">&#x27;/remote-home/zym/.vscode-server&#x27;</span>: No such file or directory</span><br><span class="line">&gt; Creating the server install <span class="built_in">dir</span> failed...</span><br></pre></td></tr></table></figure>
-<p>显然, 这是因为使用vscode远程连接服务器时需要在服务器的用户目录下创建<code>.vscode</code>文件夹, 然后登录用户并没有root权限导致这个文件夹创建失败, 随后又打印了大量的额外报错信息并最终提示连接失败. 只需要将该目录的权限归属到用户即可, 相应命令如下:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查看当前工作目录</span></span><br><span class="line"><span class="built_in">pwd</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#查看目录拥有者和群组</span></span><br><span class="line"><span class="built_in">ls</span> -ld /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更改目录拥有者为当前用户</span></span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> zym:zym /remote-home/zym</span><br><span class="line"></span><br><span class="line"><span class="comment">#更新读写权限</span></span><br><span class="line"><span class="built_in">chmod</span> 755 /remote-home/zym</span><br></pre></td></tr></table></figure>
-<p>最终该问题完美解决, 而且得益于已经写入了公钥, 也已经完成了免密登录的配置.</p>
+    <title>论文笔记：SARATRX</title>
+    <url>/2025/01/14/paper1-saratrx/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
+</div>  
+
+<span id="more"></span>  
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
+<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
+<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
+<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
+<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
+<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
+<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
+<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
+<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
+
+<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
+<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
+
+<script type="math/tex; mode=display">
+MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
+<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
+<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
+<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
+<table>
+  <tr>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果1</figcaption>
+    </td>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果2</figcaption>
+    </td>
+  </tr>
+</table>  
+
+<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
 ]]></content>
       <categories>
-        <category>笔记</category>
+        <category>论文笔记</category>
       </categories>
       <tags>
-        <tag>代码笔记</tag>
-        <tag>工程开发</tag>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>SAR</tag>
       </tags>
   </entry>
   <entry>
@@ -442,47 +494,6 @@ r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元�
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>对抗样本</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：Similarity to Availability</title>
-    <url>/2025/02/21/paper3-s2a/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
-<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
-</div>  
-
-<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
-<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
-<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
-<script type="math/tex; mode=display">
-Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
-<script type="math/tex; mode=display">
-MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
-head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
-<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
-<script type="math/tex; mode=display">
-Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
       </tags>
   </entry>
   <entry>
@@ -617,93 +628,36 @@ Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img s
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：GAN和pixel2pixel</title>
-    <url>/2025/03/25/paper5-GAN/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-GAN模型相关的两篇笔记
-</div><br><span id="more"></span></p>
-<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
-<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
-<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
-<script type="math/tex; mode=display">
-\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
-<script type="math/tex; mode=display">
-D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
-<script type="math/tex; mode=display">
-C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
-<script type="math/tex; mode=display">
-C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
-<script type="math/tex; mode=display">
-KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
-<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
-<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
-<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
-<script type="math/tex; mode=display">
-L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
-<script type="math/tex; mode=display">
-G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
-\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
-<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
-<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
-<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
-<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
-<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
-<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：SARATRX</title>
-    <url>/2025/01/14/paper1-saratrx/</url>
+    <title>论文笔记：Similarity to Availability</title>
+    <url>/2025/02/21/paper3-s2a/</url>
     <content><![CDATA[<div style="text-align: center;"> 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
+关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
 </div>  
 
-<span id="more"></span>  
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
-<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
-<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
-<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
-<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
-<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
-<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
-<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
-<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>该论文被TAES2025收录 </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="核心创新点"><a href="#核心创新点" class="headerlink" title="核心创新点"></a>核心创新点</h2><p>本论文针对SAMPLE仿真实测数据集，基于当前SAR图像仿真数据（以CAD方法仿真获得）与实测数据相比质量不高，仿真与实测数据的统计分布具有明显差异这一问题，提出了改进GAN网络的GFC-Net网络，使该网络可以学习实测数据的全局信息和背景信息并以此提升输入的仿真数据的质量，在提升仿真图像与实测图像相似度的同时进一步提升了仿真图像的有效性，可以视为仿真图像的图像质量提升插件。  </p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>作者借鉴GAN网络的思想设计了生成器（Generator）和鉴别器（Discriminator），对于生成器部分采用了UNet架构进行图像生成并将其中的卷积模块更换为Transformer模块并改进为W-MMA（window multihead mix-attention），使UNet可以更好地捕捉到全局信息。针对SAR实测图像背景信息提出了BFC（background feature compensation）模块；对于判别器则采用了PatchGAN网络和二进制判别器来获取最终的判别损失。网络的架构示意图如下。   </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6994907c74197863081df7dab3d8a562" alt="6994907c74197863081df7dab3d8a562">   </p>
+<h3 id="BFC"><a href="#BFC" class="headerlink" title="BFC"></a>BFC</h3><p>在图像生成过程中，BFC模块的主要操作是将图像切割为多个blocks并在blocks之间建立跳跃连接（skip connections），以更好地区分出图像中的背景和目标。这些连接可以在仿真图像到实测图像的转换过程中转换low-level的纹理信息，同时仿真图像的原有语义信息，使转换后的图像不易失真。作者采用了swin transformer blocks（STBs）和UNet架构作为信息提取模块，以实现转换后的图像有更接近实测数据的背景纹理，UNet的主要优点在于使用更少的参数和训练数据便可以产生更高质量的分割掩膜。</p>
+<div style="display: flex; justify-content: space-between;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/b5ee202f2a4c05c376989546c1508d87" alt="Image 1" style="max-width: 48%; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/79c3f91316bb983b49a4f8f60b60cfc9" alt="Image 2" style="max-width: 48%; height: auto;">
+</div>  
 
-<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
-<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
-
+<h3 id="W-MMA"><a href="#W-MMA" class="headerlink" title="W-MMA"></a>W-MMA</h3><p>尽管SAR实测数据和仿真数据在统计分布上有所不同，但二者存在结构特征的高度相似（例如图像中目标所在位置，和背景的语义关系），而注意力机制可以更好地学习到这些特征。W-MMA模块则是通过Transformer架构提高生成器对相关信息的学习效果。  </p>
+<p>W-MMA将C*H*W的特征图分割为M*M的小窗，然后在小窗上分别进行操作。一方面，计算两对应窗之间的交叉注意力值，另一方面将两对应窗进行拼接成2*M*M的特征窗图并计算其自注意力值。相应的结果会被拼接并投射为C*H*W矩阵格式。  </p>
+<p>对于输入的特征图$f_1$和$f_2$，M-WWA将其分割为各N个窗后首先计算$f_1$中各窗的自注意力值，计算公式如下： </p>
 <script type="math/tex; mode=display">
-MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
-<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
-<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
-<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
-<table>
-  <tr>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果1</figcaption>
-    </td>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果2</figcaption>
-    </td>
-  </tr>
-</table>  
-
-<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
+Self-Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}} + B)V</script><p>接着计算$f_1$和$f_2$对应小窗的交叉注意力值，计算方法与上式相似但$W_Q$矩阵选自$f_1$而$W_K$与$W_V$矩阵选自$f_2$。此外，为进行多头操作，多头注意力函数会同时进行交叉注意力计算来获取不同位置和表征子空间的信息，对应计算公式如下：</p>
+<script type="math/tex; mode=display">
+MultiHead(Q,K,V) = Concat(head_1,...,head_n)W^0</script><script type="math/tex; mode=display">
+head_i = Attention(QW_i^Q,KW_i^K,VW_i^V)</script><p>以上两注意力结果分别包含了特征图本身的特征信息和不同特征图同位置的对应信息，分别记为$O_1$和$O_2$，将二者拼接并重新映射到输入特征图维度，即可获得W-MMA模块的最终结果。在W-MMA模块中，实测图像的特征作为q来计算与之最接近的仿真图像特征。将W-MMA替换W-MSA即获得新的CSTB（cross STB）模块，用于最终的GAN生成器中，相应结构如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4ec5d7dd68eebdeb3761912aeb9f9e83" alt="4ec5d7dd68eebdeb3761912aeb9f9e83"></p>
+<h3 id="GFC-Net"><a href="#GFC-Net" class="headerlink" title="GFC-Net"></a>GFC-Net</h3><p>GFC-Net的具体网络架构如下图所示。对于其中的判别器，PatchGAN的作用为在patch尺度对图像进行惩罚判别，尝试却分N*N的图像patch是来自实测数据还是仿真数据，而二进制判别器更关注全局尺度。综合两者的判别器损失函数如下：</p>
+<script type="math/tex; mode=display">
+Loss_D = \lambda Loss_{patchGAN} + (1 - \lambda) Loss_{binary}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6742160bc472a198df6abeade970ee73" alt="6742160bc472a198df6abeade970ee73">  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该方法提出了使用改进的GAN网络提升仿真数据质量，使之在下游任务中有更好的表现，更加贴近于真实数据。对于结合SAR仿真数据的对抗样本设计也可以从此角度出发，通过引入类似的translator提升基于仿真数据的对抗样本对由真实数据训练得到的目标网络的攻击性能。</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -784,6 +738,52 @@ Q = R(P;r) = \begin{cases}
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：GAN和pixel2pixel</title>
+    <url>/2025/03/25/paper5-GAN/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+GAN模型相关的两篇笔记
+</div><br><span id="more"></span></p>
+<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
+<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
+<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
+<script type="math/tex; mode=display">
+\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
+<script type="math/tex; mode=display">
+D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
+<script type="math/tex; mode=display">
+C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
+<script type="math/tex; mode=display">
+C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
+<script type="math/tex; mode=display">
+KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
+<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
+<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
+<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
+<script type="math/tex; mode=display">
+L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
+<script type="math/tex; mode=display">
+G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
+\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
+<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
+<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
+<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
+<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
+<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
+<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
       </tags>
   </entry>
 </search>
