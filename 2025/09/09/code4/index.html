@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="TPS图像扭曲算法的代码完整复现与对所有代码的详细分析.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TPS代码完整复现与分析">
+<meta property="og:url" content="http://boremycin.github.io/2025/09/09/code4/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="TPS图像扭曲算法的代码完整复现与对所有代码的详细分析.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250910194751.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911121354.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911144856.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911190710.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911190941.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911192313.png">
+<meta property="article:published_time" content="2025-09-09T08:22:14.619Z">
+<meta property="article:modified_time" content="2025-09-11T12:22:46.813Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="代码笔记">
+<meta property="article:tag" content="算法复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250910194751.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2025/09/09/code4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>TPS代码完整复现与分析 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/09/09/code4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TPS代码完整复现与分析
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-09-09 16:22:14" itemprop="dateCreated datePublished" datetime="2025-09-09T16:22:14+08:00">2025-09-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-09-11 20:22:46" itemprop="dateModified" datetime="2025-09-11T20:22:46+08:00">2025-09-11</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>14k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>25 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+TPS图像扭曲算法的代码完整复现与对所有代码的详细分析.
+</p><br><span id="more"></span></p>
+<h1 id="算法背景"><a href="#算法背景" class="headerlink" title="算法背景"></a>算法背景</h1><p>TPS(Thin Plate Spline)薄板样条插值是图像插值方法的一种, 是常用的2D平面插值方法. 该形变算法输入两组成对的坐标源点和目标变化点, 其核心思想是在尽量满足所有成对变化点匹配的情况下是使图像的形变量最小(类比于将一个平直薄板进行弯折来对齐特定点坐标, 同时使薄板的弯折程度尽可能降低). TPS算法可以应用于几乎所有的生物姿态形变, 同时在人面部图像变化中也有相关应用.</p>
+<figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/111.gif>
+    <figcaption style="text-align: center;">TSP形变示意图</figcaption>
+</figure>
+
+<p>TPS可以大致分为两部分, 分别是<strong>形变参数求解</strong>和<strong>图像坐标变换填充</strong>. 对于第一部分, 算法需要求解一个差值函数. 假设有N对坐标点作为控制点(src和dst, 每组中的坐标一一对应), 希望求解出一个函数可以满足上述的所有变换. 函数中选择了径向基函数来完成上述过程, 通过给定的控制点求解该函数的参数.</p>
+<p>径向基函数(Radial Basis Function, RBF)是一种以<strong>点间距离</strong>为自变量的标量函数, 形式如下式(1). 下式(2)为对应的线性组合形式. 对于式(2), $c_j$为控制坐标对的第j个中心, $w_j$为线性权重, $\phi$为选定的径向基函数, $p(x)$为增加的低阶多项式. </p>
+<script type="math/tex; mode=display">
+\phi(r) \ , \ r = \|x-c\|  \tag{1}</script><script type="math/tex; mode=display">
+f(x) = \sum_{j=1}^Nw_i \phi(\|x-c\|) + p(x) \tag{2}</script><p>在TPS算法中,径向基函数选择的是如下式的双调和方程. 该函数天然满足如式(4)的方程, 该径向基函数是双调和函数的基础解. </p>
+<script type="math/tex; mode=display">
+U(r) = r^2 ln(r) \tag{3}</script><script type="math/tex; mode=display">
+\Delta^2 U = (\frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2})^2 \propto \delta_{(0,0)} \tag{4}</script><p>上文提到, TPS算法希望在模拟弯曲的过程中整体形变量最小, 可以用弯曲能量的概念进行约束. 弯曲能量可以被定义为函数二阶导数的平方对二维实数域的积分, 形式如下. 优化的目标是使该能量积分最小.</p>
+<script type="math/tex; mode=display">
+I[f(x,y)] = \int \int (f_{xx}^2 + 2 f_{xy}^2 + f_{yy}^2)dxdy \tag{5}</script><p>对于形变函数$f$, 由于2D平面的坐标变化可以理解为X方向和Y方向各自的独立变换, 因此TPS算法利用两个独立的形变函数(被称为样条函数)计算各个方向上坐标的位移. 样条函数的定义如下:</p>
+<script type="math/tex; mode=display">
+f_{x'}(x,y) = a_1 + a_x x + a_yy + \sum_{i=1}^N w_iU(\|(x_i,y_i) - (x,y)\|)</script><script type="math/tex; mode=display">
+f_{y'}(x,y) = a_1 + a_x x + a_yy + \sum_{i=1}^N w_iU(\|(x_i,y_i) - (x,y)\|) \tag{6}</script><p>需要注意的是函数求解的结果不是2D平面下的绝对坐标, 而是基于初始点坐标的相对位移. 上式中的系数$a_i$用于线性空间拟合, 系数$w_i$用于对<strong>每个</strong>控制点进行约束, 约束对象是源点和目标点之间的位移标量, 通过函数$U$获取, 结合RBF函数的定义, 该函数作为一种Gaussian Kernel来用于衡量输入量之间的相似性.</p>
+<figure>
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250910194751.png" style = "width: auto; height: 500px">
+    <figcaption style="text-align: center;">U(x)函数图像</figcaption>
+</figure>
+
+<h1 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h1><p>根据上文分析可知, 算法的输入部分是需要进行TPS形变和目标图像和成对的源点-目标点坐标对. 需要注意的是算法输入的是归一化的相对坐标(即假定图像的长宽均为1, 坐标以[0-1]之间的连续数进行表示), 且由于算法在输出形变图像时会对所有采样坐标都进行形变, 为了放置图像的边缘部分出现不合理的扭曲, 造成黑边等效果, 需要在输入时加入anchor(即位置在图像边缘或者中心, 源点和目标点保持一致)来进行改善. 此外, 算法输出图像的大小可以通过参数进行控制, 默认为原图尺寸. </p>
+<figure>
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911121354.png" style = "width: auto; height: 500px">
+    <figcaption style="text-align: center;">不理想形变示意图</figcaption>
+</figure>
+
+<p>首先是插值方程的参数求解, 由于x, y方向的偏移量是分别计算的, 因此需要求出两组对应各个方向的插值参数. 对于式(6)的求解可以转化为如下的linear system表达形式, 通过<code>np.linalg.solve</code>进行参数求解.</p>
+<script type="math/tex; mode=display">
+L = \begin{bmatrix}
+    K & P \\
+    P^T & O
+\end{bmatrix} \times
+\begin{bmatrix}
+    w \\
+    a
+\end{bmatrix}
+= 
+\begin{bmatrix}
+    v \\
+    0
+\end{bmatrix} \tag{7}</script><p>结合式(6), K包含所有坐标组合的RBF函数$U(x,y)$, P则是输入源点坐标的齐次形式, w与a是对应的系数向量(也是求解目标), v是输入的位移向量(即目标点与源点之间的差值, 求解后的函数输出也是差值). 对于w与$P^T$的部分, 其对应的展开表达如下. </p>
+<script type="math/tex; mode=display">
+\sum_{i=1}^n w_i = 0, \ \ \sum_{i=1}^n w_i c_i = 0 \tag{8}</script><p>上式子中n为选取的控制点的个数, $c_i$为源点坐标. 式(8)的作用是使双调和函数的能量有限且解位移, 是附加的正交约束. 上述矩阵的展开形式如下图所示. </p>
+<figure>
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911131808.png" style = "width:auto; height: 450px">
+</figure>
+
+<p>代码中对于参数<code>theta</code>的求解主要通过<code>theta = tps_theta_from_points(c_src, c_dst, reduced=True)</code>中的<code>tps_theta_from_points</code>函数, 以输入n个控制点为例, 其中的reduced参数作用是仅保留n-1个w参数, 再通过 $\sum w = 0$ 的约束求解被略去的w, 来保证算法的鲁棒性. 具体代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tps_theta_from_points</span>(<span class="params">c_src, c_dst, reduced=<span class="literal">False</span></span>):</span><br><span class="line">    delta = c_src - c_dst</span><br><span class="line">    </span><br><span class="line">    cx = np.column_stack((c_dst, delta[:, <span class="number">0</span>])) <span class="comment"># shape: (n, 3)</span></span><br><span class="line">    cy = np.column_stack((c_dst, delta[:, <span class="number">1</span>]))</span><br><span class="line">        </span><br><span class="line">    theta_dx = TPS.fit(cx, reduced=reduced)</span><br><span class="line">    theta_dy = TPS.fit(cy, reduced=reduced)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> np.stack((theta_dx, theta_dy), -<span class="number">1</span>) </span><br><span class="line">    <span class="comment"># the shape of this return is (n+3-1,2), contains results for x and y</span></span><br></pre></td></tr></table></figure>
+<p>上式中的<code>cx</code>和<code>cy</code>分别是源点和各自方向上的差值组合获得的, 通过<code>fit</code>函数获得对应方向的参数, 并将x, y方向的参数拼接, 这样对特定位置的变量, 都有类似$w_i(x), \  w_i(y)$的参数分量. 上述的<code>fit</code>函数依赖两个子函数, 相应实现如下.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@staticmethod</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">d</span>(<span class="params">a, b</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    Tring to calculate the L2 Loss. </span></span><br><span class="line"><span class="string">    Assume the number of the markpoints is N. The shape of a and b is supposed to be (N,2).</span></span><br><span class="line"><span class="string">    a[xxx] make it (N,1,2), and for b that&#x27;s (1,N,2)</span></span><br><span class="line"><span class="string">    The shape in square function is (N,N,2) </span></span><br><span class="line"><span class="string">    The return shape is (N,N)</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    <span class="keyword">return</span> np.sqrt(np.square(a[:, <span class="literal">None</span>, :<span class="number">2</span>] - b[<span class="literal">None</span>, :, :<span class="number">2</span>]).<span class="built_in">sum</span>(-<span class="number">1</span>))</span><br><span class="line">    <span class="comment"># shape of a:[n,1,2], shape of b:[1,n,2]. a and b is actually the same one.</span></span><br><span class="line">    <span class="comment"># the result is the sqrt of the (x1-x2)^2+(y1-y2)^2, with the shape of (n,n)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">@staticmethod</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">u</span>(<span class="params">r</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    The result of U function</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">    <span class="keyword">return</span> r**<span class="number">2</span> * np.log(r + <span class="number">1e-6</span>)</span><br></pre></td></tr></table></figure>
+<p>分析以上代码可知, 函数<code>u</code>为算法中的径向基函数, 函数<code>d</code>以遍历的方式为输入的一维向量构建二维的L2距离范数矩阵. 在参数求解中输入的a与b均为矩阵c ($c_x$ 或 $c_y$), 对矩阵a进行<code>a[:, None, :2]</code>, None会在所在位置增加维度, 原始的a为(n, 3), 扩充后为(n, 1, 2); 矩阵b则变为(1, n, 2), 保留最后维度的前两位即保留源点坐标(x, y). 矩阵相减时利用np的广播机制, 矩阵a广播为(n, n, 2), 先考虑后两个维度, 由(1, 2)广播为(n, 2)实质是当前的坐标重复n次, 再与矩阵b在这个维度上相减时, b则是n个<strong>不同的</strong>坐标, 而b在第一个维度的广播则是考虑到a的第一维度, 将上述过程遍历到a的每一对坐标当中. 简单的示意图如下. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911144856.png" alt="20250911144856"></p>
+<p>最后再通过作差, 平方和开方的操作, 即获得了(n, n)的标量矩阵, 用于RBF函数的输入矩阵.介绍完<code>u</code>和<code>d</code>函数后, 完整的参数求解函数的代码如下.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@staticmethod</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fit</span>(<span class="params">c, lambd=<span class="number">1e-2</span>, reduced=<span class="literal">False</span></span>): <span class="comment"># the input of the fit is lile [x,y,error]        </span></span><br><span class="line">    n = c.shape[<span class="number">0</span>] <span class="comment"># number of the locations </span></span><br><span class="line"></span><br><span class="line">    U = TPS.u(TPS.d(c, c))</span><br><span class="line">    K = U + np.eye(n, dtype=np.float32)*lambd</span><br><span class="line">    <span class="comment"># lambd is a trade-off parameter to make the deformation smoother</span></span><br><span class="line"></span><br><span class="line">    P = np.ones((n, <span class="number">3</span>), dtype=np.float32)</span><br><span class="line">    P[:, <span class="number">1</span>:] = c[:, :<span class="number">2</span>] <span class="comment"># here keep the (x,y) of the destination markpoints</span></span><br><span class="line"></span><br><span class="line">    v = np.zeros(n+<span class="number">3</span>, dtype=np.float32)</span><br><span class="line">    v[:n] = c[:, -<span class="number">1</span>] <span class="comment"># The delta x or y from c</span></span><br><span class="line">    <span class="comment"># shape of v is (n+3,)</span></span><br><span class="line"></span><br><span class="line">    A = np.zeros((n+<span class="number">3</span>, n+<span class="number">3</span>), dtype=np.float32)</span><br><span class="line">    A[:n, :n] = K</span><br><span class="line">    A[:n, -<span class="number">3</span>:] = P</span><br><span class="line">    A[-<span class="number">3</span>:, :n] = P.T</span><br><span class="line"></span><br><span class="line">    theta = np.linalg.solve(A, v) <span class="comment"># p has structure w,a</span></span><br><span class="line">    <span class="keyword">return</span> theta[<span class="number">1</span>:] <span class="keyword">if</span> reduced <span class="keyword">else</span> theta</span><br><span class="line">    <span class="comment"># reduced的作用是对w进行约束, w之和需要为0, 因此用n-1个w就可以知道被reduced的w值</span></span><br></pre></td></tr></table></figure>
+<p>代码中的<code>U</code>为原始的矩阵K定义, 而加入的类单位矩阵的功能是使矩阵更好求解, 减少奇异值问题. 反映到图像变换结果上就是允许差值结果与目标点间出现偏差, 使图像变化更加平滑稳健. 变量<code>P</code>则是构建关于源点的齐次化坐标矩阵. 变量<code>v</code>保留了坐标差值部分用于参数求解. 最终通过矩阵<code>K</code>和<code>P</code>填充矩阵<code>A</code>, 通过np.linalg.solve(A, v)即可求解出参数矩阵, 舍弃 $w_0$ 后即获得输出的参数.  </p>
+<p>回到函数<code>tps_theta_from_points</code>, 分别对x, y方向求解参数后进行拼接, 即为函数的范围值, shape为(n+3-1, 2).至此参数求解部分结束. 第二部分是对所有的原图坐标进行差值变化, 求出相对变化值后叠加在原坐标上获取输出坐标(将原坐标像素映射到输出坐标上即实现图像的扭曲). 算法通过<code>grid = tps_grid(theta, c_dst, dshape)</code>输出各个位置上的相对坐标, 函数的具体代码如下.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tps_grid</span>(<span class="params">theta, c_dst, dshape</span>):    </span><br><span class="line">    ugrid = uniform_grid(dshape)</span><br><span class="line"></span><br><span class="line">    reduced = c_dst.shape[<span class="number">0</span>] + <span class="number">2</span> == theta.shape[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">    dx = TPS.z(ugrid.reshape((-<span class="number">1</span>, <span class="number">2</span>)), c_dst, theta[:, <span class="number">0</span>]).reshape(dshape[:<span class="number">2</span>])</span><br><span class="line">    dy = TPS.z(ugrid.reshape((-<span class="number">1</span>, <span class="number">2</span>)), c_dst, theta[:, <span class="number">1</span>]).reshape(dshape[:<span class="number">2</span>])<span class="comment"># the input&#x27;s shape is (x,2), which is sent to function z</span></span><br><span class="line">    dgrid = np.stack((dx, dy), -<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    grid = dgrid + ugrid <span class="comment"># converted grid + original grid, to obtain the absolute coordinates</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> grid <span class="comment"># H&#x27;xW&#x27;x2 grid[i,j] in range [0..1]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">uniform_grid</span>(<span class="params">shape</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;Uniform grid coordinates.</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Params</span></span><br><span class="line"><span class="string">    ------</span></span><br><span class="line"><span class="string">    shape : tuple</span></span><br><span class="line"><span class="string">        HxW defining the number of height and width dimension of the grid</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Returns</span></span><br><span class="line"><span class="string">    -------</span></span><br><span class="line"><span class="string">    points: HxWx2 tensor</span></span><br><span class="line"><span class="string">        Grid coordinates over [0,1] normalized image range.</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line"></span><br><span class="line">    H,W = shape[:<span class="number">2</span>]    <span class="comment"># shape is like (512,512), tuple type</span></span><br><span class="line">    c = np.empty((H, W, <span class="number">2</span>)) <span class="comment"># shape of c is (512,512,2)</span></span><br><span class="line">    c[..., <span class="number">0</span>] = np.linspace(<span class="number">0</span>, <span class="number">1</span>, W, dtype=np.float32)</span><br><span class="line">    <span class="comment"># from the viewpoint of second 512, fill the distribution of [0-1], and repeat 512 times for the fiest axis</span></span><br><span class="line">    c[..., <span class="number">1</span>] = np.expand_dims(np.linspace(<span class="number">0</span>, <span class="number">1</span>, H, dtype=np.float32), -<span class="number">1</span>) <span class="comment"># fullfill the [0-1] according to the first 512 axis, and for inner 512, just repeat </span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> c</span><br><span class="line"></span><br><span class="line"><span class="meta"> @staticmethod</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">z</span>(<span class="params">x, c, theta</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    x :ugrid.reshape((-1, 2)), shape is (xxx,2)</span></span><br><span class="line"><span class="string">    c: c_dst, shape is (n,2)</span></span><br><span class="line"><span class="string">    theta: theta[:, 1], shape is (n+3-1,)</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    x = np.atleast_2d(x)</span><br><span class="line">    U = TPS.u(TPS.d(x, c))</span><br><span class="line">    w, a = theta[:-<span class="number">3</span>], theta[-<span class="number">3</span>:] <span class="comment"># separate the w and a in the theta vector</span></span><br><span class="line">    reduced = theta.shape[<span class="number">0</span>] == c.shape[<span class="number">0</span>] + <span class="number">2</span></span><br><span class="line">    <span class="keyword">if</span> reduced:</span><br><span class="line">        w = np.concatenate((-np.<span class="built_in">sum</span>(w, keepdims=<span class="literal">True</span>), w)) <span class="comment"># make w unabridged through the constrain of sum equalling zero</span></span><br><span class="line">    b = np.dot(U, w) <span class="comment">#shape of U: take 512*512 for example ,(262214,6)</span></span><br><span class="line">    <span class="keyword">return</span> a[<span class="number">0</span>] + a[<span class="number">1</span>]*x[:, <span class="number">0</span>] + a[<span class="number">2</span>]*x[:, <span class="number">1</span>] + b <span class="comment"># the shape of output result is (262144,)</span></span><br></pre></td></tr></table></figure>
+<p>不妨设输出的图像大小设定为(512, 512), 在<code>ugrid = uniform_grid(dshape)</code>中, 输入的dshape是类似(512, 512)的tuple数组, 然后创建(512, 512, 2)的空矩阵, -1维可以理解为[x, y]位置上对应的归一化坐标. 代码的核心语句中<code>c[..., 0] = np.linspace(0, 1, W, dtype=np.float32)</code>会首先创建(512, )的[0-1]的均匀分布采样矩阵, 然后广播至c的第一个整体矩阵, 将一个横向的512向量纵向重复了512次, 生成的可视化结果如下.</p>
+<figure>
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911160535.png" style="width: auto; height: 350px">
+</figure>
+
+<p>对于<code>np.expand_dims(np.linspace(0, 1, H, dtype=np.float32), -1)</code>, 其中的在-1维度的expand_dims操作则将原来的(H, )的[0-1]采样向量转换为了(H, 1)的纵向向量, 在广播中则横向复制了512次, 可视化结果如下.</p>
+<figure>
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911163017.png" style="width: auto; height: 350px">
+</figure>
+
+<p>最终函数范围的是(512, 512, 2)的grid矩阵(实质作用是用于存储坐标). reduced作用同上, 默认为<code>Ture</code>. 对于函数z, 输入ugrid时进行reshape操作, 等同于将(512, 512, 2)排布的坐标矩阵转换为(512*512, 2)排布的类似一维形式的坐标对列表. 函数<code>z</code>的功能即为通过已经训练的theta函数将全图的坐标进行插值转换.<br><code>U = TPS.u(TPS.d(x, c))</code>计算所有坐标点和给定的源点之间的RBF函数距离, 然后分离<code>theta</code>中的w类和a类, 对于w类根据和为零的约束条件求解出被忽略的$w_0$, 接着根据位移表达式, 组合线性变换部分和非线性变换部分, 获得所有坐标在单一方向(x或y)上的<em>相对位移</em>. </p>
+<p>直接通过z计算得到的结果还是类一维坐标向量的形式, 因此需要通过<code>.reshape(dshape[:2])</code>将之转换为(H, W)的形式, x和y在最后一维拼接获得(H, W, 2)的相对偏移矩阵<code>dgrid</code>, 与初始的<code>ugrid</code>相加即获得最终的目标坐标矩阵<code>grid</code>. 最后, 将归一化的坐标转换为<code>cv2.remap</code>函数可接受的采样图格式, 通过以下<code>tps_grid_to_remap</code>将归一化坐标转换为给定坐标尺寸下的绝对坐标即可, 输出的shape仍为两个(H, W)的矩阵.  </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">tps_grid_to_remap</span>(<span class="params">grid, sshape</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;Convert a dense grid to OpenCV&#x27;s remap compatible maps.</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Params</span></span><br><span class="line"><span class="string">    ------</span></span><br><span class="line"><span class="string">    grid : HxWx2 array</span></span><br><span class="line"><span class="string">        Normalized flow field coordinates as computed by compute_densegrid.</span></span><br><span class="line"><span class="string">    sshape : tuple</span></span><br><span class="line"><span class="string">        Height and width of source image in pixels.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Returns</span></span><br><span class="line"><span class="string">    -------</span></span><br><span class="line"><span class="string">    mapx : HxW array</span></span><br><span class="line"><span class="string">    mapy : HxW array</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line"></span><br><span class="line">    mx = (grid[:, :, <span class="number">0</span>] * sshape[<span class="number">1</span>]).astype(np.float32) <span class="comment"># convert normalized x-coordinates [0,1] to source pixel x-indices (width)</span></span><br><span class="line">    my = (grid[:, :, <span class="number">1</span>] * sshape[<span class="number">0</span>]).astype(np.float32)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> mx, my</span><br></pre></td></tr></table></figure>
+<p>最后通过<code>cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)</code>, 即实现了扰动图像的产生. 当选取的坐标对合适, anchor加入较多的情况下可以产生变化细微而逼真的形变图像, 结果如下图所示, 分别展示梵高画像和SAR车辆图像的形变对比图. </p>
+<figure>
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911190710.png" style="width: auto; height: 400px; display: block; margin: 0 auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911190941.png" style="width: auto; height: 320px; display: block; margin: 10px auto 0 auto;">
+    <figcaption style="text-align: center;">TPS形变结果对比图</figcaption>
+</figure>
+
+<p>当给定的控制点只是简单的单一方向移动时(以网格图像的横向移动为例), TPS算法对图像的形变效果如下图所示. </p>
+<figure>
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250911192313.png" style="width:auto; height:320px">
+</figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>TPS是相当经典而强大的图像warping算法, 后续会简要分析以此为核心的DeCoWa对抗算法和潜在的可能应用方向. </p>
+<h1 id="参考文章与完整代码"><a href="#参考文章与完整代码" class="headerlink" title="参考文章与完整代码"></a>参考文章与完整代码</h1><ol>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/g11d111/article/details/128641313">Thin Plate Spline: TPS理论和代码详解</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/227857813">薄板样条插值(Thin Plate Spline)</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/2cc189dfbcc5#fn3">Thin Plate Spline</a></li>
+<li><a target="_blank" rel="noopener" href="https://shape.polymtl.ca/lombaert/thinplates/">Manual Registration with Thin Plates</a></li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">import</span> matplotlib <span class="keyword">as</span> mpl</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TPS</span>:       </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">fit</span>(<span class="params">c, lambd=<span class="number">1e-2</span>, reduced=<span class="literal">False</span></span>): <span class="comment"># the input of the fit is lile [x,y,error]        </span></span><br><span class="line">        n = c.shape[<span class="number">0</span>] <span class="comment"># number of the locations </span></span><br><span class="line"></span><br><span class="line">        U = TPS.u(TPS.d(c, c))</span><br><span class="line">        K = U + np.eye(n, dtype=np.float32)*lambd</span><br><span class="line">        <span class="comment"># lambd is a trade-off parameter to make the deformation smoother</span></span><br><span class="line"></span><br><span class="line">        P = np.ones((n, <span class="number">3</span>), dtype=np.float32)</span><br><span class="line">        P[:, <span class="number">1</span>:] = c[:, :<span class="number">2</span>] <span class="comment"># here keep the (x,y) of the destination markpoints</span></span><br><span class="line"></span><br><span class="line">        v = np.zeros(n+<span class="number">3</span>, dtype=np.float32)</span><br><span class="line">        v[:n] = c[:, -<span class="number">1</span>] <span class="comment"># The delta x or y from c</span></span><br><span class="line">        <span class="comment"># shape of v is (n+3,)</span></span><br><span class="line"></span><br><span class="line">        A = np.zeros((n+<span class="number">3</span>, n+<span class="number">3</span>), dtype=np.float32)</span><br><span class="line">        A[:n, :n] = K</span><br><span class="line">        A[:n, -<span class="number">3</span>:] = P</span><br><span class="line">        A[-<span class="number">3</span>:, :n] = P.T</span><br><span class="line"></span><br><span class="line">        theta = np.linalg.solve(A, v) <span class="comment"># p has structure w,a</span></span><br><span class="line">        <span class="keyword">return</span> theta[<span class="number">1</span>:] <span class="keyword">if</span> reduced <span class="keyword">else</span> theta</span><br><span class="line">        <span class="comment"># reduced的作用是对w进行约束, w之和需要为0, 因此用n-1个w就可以知道被reduced的w值</span></span><br><span class="line">        </span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">d</span>(<span class="params">a, b</span>):</span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">        Tring to calculate the L2 Loss. </span></span><br><span class="line"><span class="string">        Assume the number of the markpoints is N. The shape of a and b is supposed to be (N,2).</span></span><br><span class="line"><span class="string">        a[xxx] make it (N,1,2), and for b that&#x27;s (1,N,2)</span></span><br><span class="line"><span class="string">        The shape in square function is (N,N,2) </span></span><br><span class="line"><span class="string">        The return shape is (N,N)</span></span><br><span class="line"><span class="string">        &#x27;&#x27;&#x27;</span></span><br><span class="line">        <span class="keyword">return</span> np.sqrt(np.square(a[:, <span class="literal">None</span>, :<span class="number">2</span>] - b[<span class="literal">None</span>, :, :<span class="number">2</span>]).<span class="built_in">sum</span>(-<span class="number">1</span>))</span><br><span class="line">        <span class="comment"># shape of a:[n,1,2], shape of b:[1,n,2]. a and b is actually the same one.</span></span><br><span class="line">        <span class="comment"># the result is the sqrt of the (x1-x2)^2+(y1-y2)^2, with the shape of (n,n)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">u</span>(<span class="params">r</span>):</span><br><span class="line">        <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">        The result of U function</span></span><br><span class="line"><span class="string">        &#x27;&#x27;&#x27;</span></span><br><span class="line">        <span class="keyword">return</span> r**<span class="number">2</span> * np.log(r + <span class="number">1e-6</span>)</span><br><span class="line">    <span class="comment"># function z is supposed to convert the coordinates of the whole img</span></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">z</span>(<span class="params">x, c, theta</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">        x :ugrid.reshape((-1, 2)), shape is (xxx,2)</span></span><br><span class="line"><span class="string">        c: c_dst, shape is (n,2)</span></span><br><span class="line"><span class="string">        theta: theta[:, 1], shape is (n+3-1,)</span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        x = np.atleast_2d(x)</span><br><span class="line">        U = TPS.u(TPS.d(x, c)) <span class="comment"># traverse all the RBF results between img points and source points</span></span><br><span class="line">        w, a = theta[:-<span class="number">3</span>], theta[-<span class="number">3</span>:] <span class="comment"># separate the w and a in the theta vector</span></span><br><span class="line">        reduced = theta.shape[<span class="number">0</span>] == c.shape[<span class="number">0</span>] + <span class="number">2</span></span><br><span class="line">        <span class="keyword">if</span> reduced:</span><br><span class="line">            w = np.concatenate((-np.<span class="built_in">sum</span>(w, keepdims=<span class="literal">True</span>), w)) <span class="comment"># make w unabridged through the constrain of sum equalling zero</span></span><br><span class="line">        b = np.dot(U, w) <span class="comment">#shape of U: take 512*512 for example ,(262214,6)</span></span><br><span class="line">        <span class="keyword">return</span> a[<span class="number">0</span>] + a[<span class="number">1</span>]*x[:, <span class="number">0</span>] + a[<span class="number">2</span>]*x[:, <span class="number">1</span>] + b <span class="comment"># the shape of output result is (262144,)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">uniform_grid</span>(<span class="params">shape</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;Uniform grid coordinates.</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Params</span></span><br><span class="line"><span class="string">    ------</span></span><br><span class="line"><span class="string">    shape : tuple</span></span><br><span class="line"><span class="string">        HxW defining the number of height and width dimension of the grid</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Returns</span></span><br><span class="line"><span class="string">    -------</span></span><br><span class="line"><span class="string">    points: HxWx2 tensor</span></span><br><span class="line"><span class="string">        Grid coordinates over [0,1] normalized image range.</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line"></span><br><span class="line">    H,W = shape[:<span class="number">2</span>]    <span class="comment"># shape is like (512,512), tuple type</span></span><br><span class="line">    c = np.empty((H, W, <span class="number">2</span>)) <span class="comment"># shape of c is (512,512,2)</span></span><br><span class="line">    c[..., <span class="number">0</span>] = np.linspace(<span class="number">0</span>, <span class="number">1</span>, W, dtype=np.float32)</span><br><span class="line">    <span class="comment"># from the viewpoint of second 512, fill the distribution of [0-1], and repeat 512 times for the fiest axis</span></span><br><span class="line">    c[..., <span class="number">1</span>] = np.expand_dims(np.linspace(<span class="number">0</span>, <span class="number">1</span>, H, dtype=np.float32), -<span class="number">1</span>) <span class="comment"># fullfill the [0-1] according to the first 512 axis, and for inner 512, just repeat </span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> c</span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tps_theta_from_points</span>(<span class="params">c_src, c_dst, reduced=<span class="literal">False</span></span>):</span><br><span class="line">    delta = c_src - c_dst</span><br><span class="line">    </span><br><span class="line">    cx = np.column_stack((c_dst, delta[:, <span class="number">0</span>]))</span><br><span class="line">    cy = np.column_stack((c_dst, delta[:, <span class="number">1</span>]))</span><br><span class="line">        </span><br><span class="line">    theta_dx = TPS.fit(cx, reduced=reduced)</span><br><span class="line">    theta_dy = TPS.fit(cy, reduced=reduced)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> np.stack((theta_dx, theta_dy), -<span class="number">1</span>) <span class="comment"># the shape of this return is (n+3-1,2), contains results for x and y</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tps_grid</span>(<span class="params">theta, c_dst, dshape</span>):    </span><br><span class="line">    ugrid = uniform_grid(dshape)</span><br><span class="line"></span><br><span class="line">    reduced = c_dst.shape[<span class="number">0</span>] + <span class="number">2</span> == theta.shape[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">    dx = TPS.z(ugrid.reshape((-<span class="number">1</span>, <span class="number">2</span>)), c_dst, theta[:, <span class="number">0</span>]).reshape(dshape[:<span class="number">2</span>])</span><br><span class="line">    dy = TPS.z(ugrid.reshape((-<span class="number">1</span>, <span class="number">2</span>)), c_dst, theta[:, <span class="number">1</span>]).reshape(dshape[:<span class="number">2</span>])<span class="comment"># the input&#x27;s shape is (x,2), which is sent to function z</span></span><br><span class="line">    dgrid = np.stack((dx, dy), -<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    grid = dgrid + ugrid <span class="comment"># converted grid + original grid, to obtain the absolute coordinates</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> grid <span class="comment"># H&#x27;xW&#x27;x2 grid[i,j] in range [0..1]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">tps_grid_to_remap</span>(<span class="params">grid, sshape</span>):</span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;Convert a dense grid to OpenCV&#x27;s remap compatible maps.</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Params</span></span><br><span class="line"><span class="string">    ------</span></span><br><span class="line"><span class="string">    grid : HxWx2 array</span></span><br><span class="line"><span class="string">        Normalized flow field coordinates as computed by compute_densegrid.</span></span><br><span class="line"><span class="string">    sshape : tuple</span></span><br><span class="line"><span class="string">        Height and width of source image in pixels.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Returns</span></span><br><span class="line"><span class="string">    -------</span></span><br><span class="line"><span class="string">    mapx : HxW array</span></span><br><span class="line"><span class="string">    mapy : HxW array</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line"></span><br><span class="line">    mx = (grid[:, :, <span class="number">0</span>] * sshape[<span class="number">1</span>]).astype(np.float32) <span class="comment"># convert normalized x-coordinates [0,1] to source pixel x-indices (width)</span></span><br><span class="line">    my = (grid[:, :, <span class="number">1</span>] * sshape[<span class="number">0</span>]).astype(np.float32)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> mx, my</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show_warped</span>(<span class="params">img, warped</span>):</span><br><span class="line">    fig, axs = plt.subplots(<span class="number">1</span>, <span class="number">2</span>, figsize=(<span class="number">20</span>,<span class="number">10</span>))</span><br><span class="line">    axs[<span class="number">0</span>].axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line">    axs[<span class="number">1</span>].axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line">    axs[<span class="number">0</span>].imshow(img[...,::-<span class="number">1</span>], origin=<span class="string">&#x27;upper&#x27;</span>)</span><br><span class="line">    axs[<span class="number">0</span>].scatter(c_src[:, <span class="number">0</span>]*img.shape[<span class="number">1</span>], c_src[:, <span class="number">1</span>]*img.shape[<span class="number">0</span>], marker=<span class="string">&#x27;+&#x27;</span>, color=<span class="string">&#x27;black&#x27;</span>)</span><br><span class="line">    axs[<span class="number">1</span>].imshow(warped[...,::-<span class="number">1</span>], origin=<span class="string">&#x27;upper&#x27;</span>)</span><br><span class="line">    axs[<span class="number">1</span>].scatter(c_dst[:, <span class="number">0</span>]*warped.shape[<span class="number">1</span>], c_dst[:, <span class="number">1</span>]*warped.shape[<span class="number">0</span>], marker=<span class="string">&#x27;+&#x27;</span>, color=<span class="string">&#x27;black&#x27;</span>)</span><br><span class="line">    plt.show()</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">warp_image_cv</span>(<span class="params">img, c_src, c_dst, dshape=<span class="literal">None</span></span>):</span><br><span class="line">    dshape = dshape <span class="keyword">or</span> img.shape</span><br><span class="line">    theta = tps_theta_from_points(c_src, c_dst, reduced=<span class="literal">True</span>) <span class="comment"># shape: (n+3-1,2)</span></span><br><span class="line">    grid = tps_grid(theta, c_dst, dshape) <span class="comment"># utilize the theta to get the absolute converted coordinates of the whole image </span></span><br><span class="line">    mapx, mapy = tps_grid_to_remap(grid, img.shape) <span class="comment"># img.shape isn&#x27;t constrained to the giving default (512,512)</span></span><br><span class="line">    <span class="keyword">return</span> cv2.remap(img, mapx, mapy, cv2.INTER_CUBIC)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    img_vangogh = cv2.imread(<span class="string">&quot;./image.png&quot;</span>)</span><br><span class="line">    img_btr = cv2.imread(<span class="string">&quot;./BTR70.jpeg&quot;</span>)</span><br><span class="line">    <span class="comment"># c_src = np.array([</span></span><br><span class="line">    <span class="comment">#     [0.0, 0.0],</span></span><br><span class="line">    <span class="comment">#     [1., 0],</span></span><br><span class="line">    <span class="comment">#     [1, 1],</span></span><br><span class="line">    <span class="comment">#     [0, 1],</span></span><br><span class="line">    <span class="comment">#     [0.3, 0.3],</span></span><br><span class="line">    <span class="comment">#     [0.7, 0.7],</span></span><br><span class="line">    <span class="comment"># ])</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># c_dst = np.array([</span></span><br><span class="line">    <span class="comment">#     [0., 0],</span></span><br><span class="line">    <span class="comment">#     [1., 0],    </span></span><br><span class="line">    <span class="comment">#     [1, 1],</span></span><br><span class="line">    <span class="comment">#     [0, 1],</span></span><br><span class="line">    <span class="comment">#     [0.4, 0.4],</span></span><br><span class="line">    <span class="comment">#     [0.6, 0.6],</span></span><br><span class="line">    <span class="comment"># ])</span></span><br><span class="line"></span><br><span class="line">    c_src = np.array([</span><br><span class="line">    <span class="comment"># 边界（固定不动）</span></span><br><span class="line">        [<span class="number">0.0</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">1.0</span>], [<span class="number">0.0</span>, <span class="number">1.0</span>],</span><br><span class="line">        [<span class="number">0.5</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">0.5</span>], [<span class="number">0.5</span>, <span class="number">1.0</span>], [<span class="number">0.0</span>, <span class="number">0.5</span>],</span><br><span class="line">        <span class="comment"># 内部（允许轻微形变）</span></span><br><span class="line">        [<span class="number">0.30</span>, <span class="number">0.30</span>], [<span class="number">0.70</span>, <span class="number">0.70</span>], [<span class="number">0.30</span>, <span class="number">0.70</span>], [<span class="number">0.70</span>, <span class="number">0.30</span>]</span><br><span class="line">    ], dtype=np.float32)</span><br><span class="line"></span><br><span class="line">    c_dst = np.array([</span><br><span class="line">        <span class="comment"># 边界保持不变</span></span><br><span class="line">        [<span class="number">0.0</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">1.0</span>], [<span class="number">0.0</span>, <span class="number">1.0</span>],</span><br><span class="line">        [<span class="number">0.5</span>, <span class="number">0.0</span>], [<span class="number">1.0</span>, <span class="number">0.5</span>], [<span class="number">0.5</span>, <span class="number">1.0</span>], [<span class="number">0.0</span>, <span class="number">0.5</span>],</span><br><span class="line">        <span class="comment"># 内部点做小幅调整</span></span><br><span class="line">        [<span class="number">0.32</span>, <span class="number">0.28</span>], [<span class="number">0.68</span>, <span class="number">0.72</span>], [<span class="number">0.28</span>, <span class="number">0.72</span>], [<span class="number">0.72</span>, <span class="number">0.28</span>]</span><br><span class="line">    ], dtype=np.float32)</span><br><span class="line">        </span><br><span class="line"></span><br><span class="line">    warped = warp_image_cv(img_btr, c_src, c_dst, dshape=(<span class="number">128</span>, <span class="number">128</span>))</span><br><span class="line">    show_warped(img_btr, warped)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 代码笔记</a>
+              <a href="/tags/%E7%AE%97%E6%B3%95%E5%A4%8D%E7%8E%B0/" <i class="fa fa-tag"></i> 算法复现</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/09/06/code3/" rel="prev" title="vsc账号首次远程连接失败的问题与解决">
+      <i class="fa fa-chevron-left"></i> vsc账号首次远程连接失败的问题与解决
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">算法背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">源码解析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0%E4%B8%8E%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81"><span class="nav-number">4.</span> <span class="nav-text">参考文章与完整代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">56k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:42</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
