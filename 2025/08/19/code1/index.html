@@ -30,7 +30,7 @@
 <meta property="og:description" content="detectron安装编译时缺少torch依赖">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-08-19T04:46:23.090Z">
-<meta property="article:modified_time" content="2025-08-19T04:48:57.614Z">
+<meta property="article:modified_time" content="2025-09-16T03:49:26.056Z">
 <meta property="article:author" content="Boremycin">
 <meta property="article:tag" content="代码笔记">
 <meta property="article:tag" content="工程开发">
@@ -222,10 +222,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2025-08-19 12:46:23 / 修改时间：12:48:57" itemprop="dateCreated datePublished" datetime="2025-08-19T12:46:23+08:00">2025-08-19</time>
+              <time title="创建时间：2025-08-19 12:46:23" itemprop="dateCreated datePublished" datetime="2025-08-19T12:46:23+08:00">2025-08-19</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-09-16 11:49:26" itemprop="dateModified" datetime="2025-09-16T11:49:26+08:00">2025-09-16</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -271,7 +277,7 @@
         <p><div style="text-align: center;"> 
 detectron安装编译时缺少torch依赖
 </div><br><span id="more"></span></p>
-<p>detectron2是facebook开源的目标检测依赖框架, 诸如sparcer-cnn的目标检测模型均依赖于其进行开发. 然而于诸如opencv-python等一版python的cv依赖库不同, detectron2多出来了编译的步骤.官方的指导安装步骤是使用git clong源码后在setup.py所在路径下运行以下命令:</p>
+<p>detectron2是facebook开源的目标检测依赖框架, 诸如sparcer-cnn的目标检测模型均依赖于其进行开发. 然而于诸如opencv-python等一般的python的cv依赖库不同, detectron2多出来了编译的步骤.官方的指导安装步骤是使用git clong源码后在setup.py所在路径下运行以下命令:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install -e .</span><br></pre></td></tr></table></figure>
 <p>需要额外注意的是detectron2对torch库的版本依赖较为敏感. 我的CUDA version是12.1,使用的是如下torch版本.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121</span><br></pre></td></tr></table></figure>
@@ -389,7 +395,7 @@ detectron安装编译时缺少torch依赖
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-count">14</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -446,12 +452,12 @@ detectron安装编译时缺少torch依赖
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">51k</span>
+    <span title="站点总字数">57k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">1:32</span>
+    <span title="站点阅读时长">1:44</span>
 </div>
   <div class="powered-by">
     <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
