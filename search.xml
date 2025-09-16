@@ -59,6 +59,60 @@ detectron安装编译时缺少torch依赖
       </tags>
   </entry>
   <entry>
+    <title>建站记录</title>
+    <url>/2025/01/09/hello-world/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
+</div><br><span id="more"></span></p>
+<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
+<ul>
+<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
+<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
+<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
+<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
+<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
+<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
+<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
+<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
+<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
+<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
+<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
+<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
+<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
+<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
+<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
+<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
+<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
+<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
+<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
+<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
+            <p>我为什么需要一个博客？ </p>
+          </div>  
+<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
+<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
+<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
+<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>建站</tag>
+        <tag>笔记</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>docker应用笔记</title>
     <url>/2025/09/04/code2/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -204,43 +258,97 @@ L = \begin{bmatrix}
       </tags>
   </entry>
   <entry>
-    <title>论文笔记:DeCoWa</title>
-    <url>/2025/06/10/paper-decowa/</url>
+    <title>论文笔记：SAR Conditional Random Field Attack</title>
+    <url>/2025/08/11/paper-CRF/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
-关于DeCoWa的论文笔记
+关于论文CRFA的笔记  
 </div><br><span id="more"></span></p>
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
-<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
-<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
-<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
-<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
 <script type="math/tex; mode=display">
-g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
-<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
-<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
+F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
+f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
 <script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
-<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
-<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
+P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
+P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
+  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
+</figure>
+
+<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
+<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
 <script type="math/tex; mode=display">
-f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
-<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
+oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
+    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
+</figure>
+
+
+<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
 <script type="math/tex; mode=display">
-\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
+logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
+p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
+<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
+<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
 <script type="math/tex; mode=display">
-\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
-<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
+P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
+Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
+<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
 <script type="math/tex; mode=display">
-\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
+P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
 <script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
-<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
+\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
+\phi_{ij}(y_i,y_j,X) = 
+\begin{cases}
+0 & \ if \  x_i = x_j \\ 
+1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
+\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
+<script type="math/tex; mode=display">
+E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
+<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
+<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
+<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
+<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
+<ul>
+<li>变量定义时缺少主语或引用不当</li>
+</ul>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>相关变量缺少定义说明</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -249,7 +357,6 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>对抗样本</tag>
-        <tag>迁移攻击</tag>
       </tags>
   </entry>
   <entry>
@@ -384,6 +491,55 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
       </tags>
   </entry>
   <entry>
+    <title>论文笔记:DeCoWa</title>
+    <url>/2025/06/10/paper-decowa/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于DeCoWa的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
+<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
+<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
+<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
+<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
+<script type="math/tex; mode=display">
+g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
+<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
+<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
+<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
+<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
+<script type="math/tex; mode=display">
+f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
+<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
+<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
+<script type="math/tex; mode=display">
+g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
+<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+        <tag>迁移攻击</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记：SARATRX</title>
     <url>/2025/01/14/paper1-saratrx/</url>
     <content><![CDATA[<div style="text-align: center;"> 
@@ -433,199 +589,6 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>SAR</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>建站记录</title>
-    <url>/2025/01/09/hello-world/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
-</div><br><span id="more"></span></p>
-<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
-<ul>
-<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
-<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
-<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
-<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
-<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
-</ul>
-<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
-<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
-<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
-<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
-<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
-<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
-<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
-<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
-<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
-<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
-<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
-<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
-<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
-<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
-<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
-<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
-            <p>我为什么需要一个博客？ </p>
-          </div>  
-<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
-<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
-<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
-<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>建站</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：SAR Conditional Random Field Attack</title>
-    <url>/2025/08/11/paper-CRF/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于论文CRFA的笔记  
-</div><br><span id="more"></span></p>
-<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
-<script type="math/tex; mode=display">
-F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
-f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
-<script type="math/tex; mode=display">
-P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
-P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
-  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
-</figure>
-
-<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
-<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
-<script type="math/tex; mode=display">
-oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
-    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
-    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
-</figure>
-
-
-<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
-<script type="math/tex; mode=display">
-logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
-p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
-<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
-<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
-Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
-<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
-<script type="math/tex; mode=display">
-\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
-\phi_{ij}(y_i,y_j,X) = 
-\begin{cases}
-0 & \ if \  x_i = x_j \\ 
-1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
-\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
-<script type="math/tex; mode=display">
-E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
-<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
-<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
-<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
-<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
-<ul>
-<li>变量定义时缺少主语或引用不当</li>
-</ul>
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>相关变量缺少定义说明</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
-<script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
@@ -742,42 +705,32 @@ Q = R(P;r) = \begin{cases}
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：GAN和pixel2pixel</title>
-    <url>/2025/03/25/paper5-GAN/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-GAN模型相关的两篇笔记
-</div><br><span id="more"></span></p>
-<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
-<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
-<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于One-Pixel-Attack的论文笔记  
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
 <script type="math/tex; mode=display">
-\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
 <script type="math/tex; mode=display">
-D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
 <script type="math/tex; mode=display">
-C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
-<script type="math/tex; mode=display">
-C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
-<script type="math/tex; mode=display">
-KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
-<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
-<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
-<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
-<script type="math/tex; mode=display">
-L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
-<script type="math/tex; mode=display">
-G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
-\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
-<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
-<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
-<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
-<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
-<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
-<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -785,6 +738,7 @@ G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
+        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
@@ -886,7 +840,10 @@ h_i \\
 \theta_D = \theta_D + \beta \nabla_{\theta_G} \mathcal{L}^{meta} \tag{8}</script><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250916153051.png" alt="20250916153051"></p>
 <p>在上述场景中还存在另外的较为显著的限制, 即在各个任务的$D_s$中物理图像和数字图像不完全成对或由于获取难度的限制用于训练的物理图像的数量会显著少于真实图像. 为解决对应问题, 论文引入了额外的Cycle GAN作为数字图像到物理图像的域转换器, 应用流程如上图所示. 根据Cycle GAN的定义, 其模型中会包含两个生成器G和两个判别器D, 其结构的特征的通过循环迭代的方式来避免严格成对的训练数据的依赖, 相应的损失函数的表达形式如下:</p>
 <script type="math/tex; mode=display">
-\mathcal{L}_{CycleGAN} = \mathbb{E}[logD_p(x_p)] + \mathbb{E}[log(1-D_p(G_{d \rightarrow p}(x_d))] + \mathbb{E}[logD_d(x_d)] + \mathbb{E}[log(1-D_d(G_{p \rightarrow d}(x_p))] + \mathbb{E}[\|G_{p \rightarrow d}(G_{d \rightarrow p}(x_d)) - x_d\|_1] + \mathbb{E}[\|G_{d \rightarrow p}(G_{p \rightarrow d}(x_p)) - x_p\|_1] \tag{9}</script><p>对于该额外框架内的应用在文中没有非常清晰的说明, 可以理解为对不同任务下的$D_s$的数据补齐, 最后, 全文的算法框架如下图所示:</p>
+\mathcal{L}_{CycleGAN} = \mathbb{E}[logD_p(x_p)] + \mathbb{E}[log(1-D_p(G_{d \rightarrow p}(x_d))]  \\
++ \mathbb{E}[logD_d(x_d)] + \mathbb{E}[log(1-D_d(G_{p \rightarrow d}(x_p))]  \\
++ \mathbb{E}[\|G_{p \rightarrow d}(G_{d \rightarrow p}(x_d)) - x_d\|_1]  \\ 
++ \mathbb{E}[\|G_{d \rightarrow p}(G_{p \rightarrow d}(x_p)) - x_p\|_1] \tag{9}</script><p>对于该额外框架内的应用在文中没有非常清晰的说明, 可以理解为对不同任务下的$D_s$的数据补齐, 最后, 全文的算法框架如下图所示:</p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250916153135.png" alt="20250916153135"></p>
 <h2 id="实验设计与验证结果"><a href="#实验设计与验证结果" class="headerlink" title="实验设计与验证结果"></a>实验设计与验证结果</h2><p>本文在实验部分设计了四个对照实验, 使用的数据集为ImageNet和GTSRB(German Traffic Sign Recognition Benchmark)</p>
 <p>实验1为在白盒场景下攻击所有数据可获取的数据集和目标模型, 相应的实验结果如下.</p>
@@ -897,6 +854,52 @@ h_i \\
 <p>实验2,3分别为在已知模型和未知数据以及未知模型和已知数据上进行了相应测试, 此处不再赘述. 实验4为未知模型和未知数据上的测试, 对应结果如下图所示.</p>
 <p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250916161852.png" alt="20250916161852"></p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Meta-GAN融合了GAN网络和物理攻击场景, 同时加入了meta learning的相应概念, 其中利用多个GAN模型分别进行对抗样本生成和不同分布下的图像域转换的思路也可以融合到SAR图像的仿真-实测的图像域转换场景中. </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：GAN和pixel2pixel</title>
+    <url>/2025/03/25/paper5-GAN/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+GAN模型相关的两篇笔记
+</div><br><span id="more"></span></p>
+<h1 id="GAN系列论文"><a href="#GAN系列论文" class="headerlink" title="GAN系列论文"></a>GAN系列论文</h1><h2 id="Generative-Adversarial-Nets"><a href="#Generative-Adversarial-Nets" class="headerlink" title="Generative Adversarial Nets"></a>Generative Adversarial Nets</h2><h3 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h3><p>Ian Goodfellow发表在NIPS2014的首篇GAN生成模型论文</p>
+<h3 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h3><p>GAN网络有生成网络G和判别网络D组成。与依赖Markov链的图像生成方法不同，GAN网络以MLP为主干，通过G拟合目标数据集分布空间的概率密度函数参数，通过D判别生成图像是否可以被认为原始空间中的图像，以此达到理想的图像生成效果。与以往的VAEs（variational autoencoders）模型不同，GAN从可见单元中提取差分信息，因此无法对离散分布数据建模；VAE从隐藏单元中提取差分信息，因此不能处理离散隐变量。此外，GAN模型的训练过程不同于以往分类模型的损失函数最小值优化问题，而是一种<strong>minimax game</strong>，即对生成器G进行最小值优化，对判别器D进行最大值优化，且优化过程可以设定为同时进行。对数学结果进行分析可知，模型会在优化方程的鞍点处（saddle point）停止。 </p>
+<h3 id="模型数学推导与算法流程"><a href="#模型数学推导与算法流程" class="headerlink" title="模型数学推导与算法流程"></a>模型数学推导与算法流程</h3><p>生成器G在模型中相当于对数据集分布的概率密度函数进行参数拟合，当真实数据分布满足$\mathbf{z}\sim p_z$，G则代表待优化的概率密度函数$p_g$，对应的优化目标为数据的概率分布$p_{data}$。判别器D的构造为MLP，输出代表概率的单一标量，其作用为判定输出图像<strong>x</strong>来自$p_{data}$而非$p_g$的概率。在训练过程中，同时对D进行maximum训练，使来自训练集的真实图像和来自G的生成图像与其对应标签的预测概率最大；对G进行minimum训练，使$log(1-D(G(z)))$的值最小。最终，模型训练时的损失函数(正文中成为价值函数，value function)表达式如下。  </p>
+<script type="math/tex; mode=display">
+\min_{G}\max_{D}V(D,G) = \mathbb{E}_{x \sim p_{data}(x)}[logD(x)] + \mathbb{E}_{z \sim p_{z}(z)}[log(1 - D(G(z)))]</script><p>对于作者所提出的value function，将其表达简化为$f(x) = a\log(x) + b\ log(1-x)$,当取极值时x的取值为a/a+b，带入value function表达式后最终的优化结果如下。  </p>
+<script type="math/tex; mode=display">
+D_{G}^{*} = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},\ when\ G\ fixed</script><p>至此可以完成对D的优化，将优化后的D表达式带入value function，可以得出对G的minimum优化表达式，如下所示。  </p>
+<script type="math/tex; mode=display">
+C(G) = \max_{D}V(G,D) = \mathbb{E_{x \sim p_{data}(x)}}[log\frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \mathbb{E_{x \sim p_{g}}}[log\frac{p_{g}(x)}{p_{data}(x) + p_g(x)}]</script><p>当$p_{data} = p_{g}$时上式有对应最小值解，对应结果如下。  </p>
+<script type="math/tex; mode=display">
+C(G) =  -log(4) + KL(p_{data} \parallel \frac{p_{data} + p_g}{2}) + KL(p_{g} \parallel \frac{p_{data} + p_g}{2})</script><p>上式中的KL为KL散度，用于描述两个概率分布（如Q(x)和P(x)）的相似程度。KL散度是非对称的，也不满足三角不等式，不是严格一样上的距离度量。离散分布对应表达形式如下。若为连续变量改为积分形式即可。</p>
+<script type="math/tex; mode=display">
+KL(Q \parallel P) = \sum_i Q(i)log(\frac{Q(i)}{P(i)})</script><p>最终模型的算法流程如下所示。 </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/276141da0f7a87ff85d1993cdd71af11" alt="276141da0f7a87ff85d1993cdd71af11"></p>
+<h2 id="pixel2pixel"><a href="#pixel2pixel" class="headerlink" title="pixel2pixel"></a>pixel2pixel</h2><h3 id="发表去向-1"><a href="#发表去向-1" class="headerlink" title="发表去向"></a>发表去向</h3><p>收录于CVPR2017</p>
+<h3 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h3><p>pixel2pixel方法对于在生成器G和判别器D上都对以往的GAN网络进行了改进。对于G，作者主要进行了网络改进，将MLP架构更换为引入了skip connection的UNet架构；对于D，作者在现有的cGAN（condition GAN）研究基础上，探究了向判别器损失函数加入额外条件项对生成效果的改进作用。  </p>
+<h3 id="主要方法-1"><a href="#主要方法-1" class="headerlink" title="主要方法"></a>主要方法</h3><h4 id="生成器G"><a href="#生成器G" class="headerlink" title="生成器G"></a>生成器G</h4><p>以往GAN网络中的生成器在噪声向量z和标签图像y中形成map映射，即$G:z \rightarrow y$，而cGAN在生成来源中加入了被观察图像x和随机噪声向量z，即$G: \{x,z\} \rightarrow y$。对于cGAN的对应value function如下。优化目标同样是对G取min，对D取max。  </p>
+<script type="math/tex; mode=display">
+L_{cGAN} = \mathbb{E}_{x,y}[logD(x,y)] + \mathbb{E}_{x,z}[log(1 - D(x,G(x,z)))]</script><p>已有的研究表明向优化目标中加入传统的损失函数（如L2范数），不会对D的判别功能造成影响，但可以使生成结果在加入损失函数的物理意义角度更加接近真实标签。作者通过实验得出使用L1范数相较于L2范数可以降低生成图像的模糊效果。对应的目标函数形式如下。</p>
+<script type="math/tex; mode=display">
+G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script><script type="math/tex; mode=display">
+\mathcal{L}_{L1}(G) = \mathbb{E}_{x,y,z}[\|{y - G(x,z)}\|_1]</script><p>对于映射输入中的图像x和随机噪声z，二者都是必要的。缺少随机噪声z后生成器G会出现过拟合的情况，生成结果会是确定性的（deterministic）而无法对训练数据以外图像分布实现理想的拟合效果。但在作者的实验中，加入噪声的策略没有显示出明显的作用——G在训练过程中会忽略加入的噪声z。因此作者提出以dropout的形式加入噪声，即在G的隐藏层中应用dropout，以随机丢弃部分神经元的方法影响G的输出分布，从而间接引入噪声。与直接向x中叠加z相比，这种噪声是一种隐式噪声且作用于网络内部。  </p>
+<p>此外，作者发现模型的生成结果往往缺少随机性（针对相同输入x的对应输出也高度相同），而并未在论文中明确造成这种现象的原因。</p>
+<p>对于生成器G的架构选择，以往的cGAN方法以Encoder-Decoder架构为主，但在例如image colorization等任务中，输出图像和输出图像会共享较多的语义信息（如目标位置，轮廓或图像的纹理特征等）。因此作者采用了加入了skip connection的UNet架构来避免原有架构中的bottle-neck结构造成的信息损失。相应的结构示意图如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/014a9cfdbe75df7a28ca330232a1ea4f" alt="014a9cfdbe75df7a28ca330232a1ea4f"></p>
+<h4 id="判别器D"><a href="#判别器D" class="headerlink" title="判别器D"></a>判别器D</h4><p>实验结果表明cGAN中引入的L2 loss（以及L1 loss）会在输出结果中捕捉到更多低频信息，但同时引入更明显的模糊效果（高频信息损失）。为提高高频信息的正确性，作者提出了一种PatchGAN的判别器D架构，从输出图像对的$N \times N$patch角度进行fake-real判别，并以卷积的方式遍历整个图像，将所有结果的平均值作为D的最终输出。后续实验发现参数N可以远小于原有的图像尺寸，在减少模型参数，加快运算速度的同时仍可以实现理想的生成效果。相应消融实验结果如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/88c558f32b552c0505b7f28c44e0a2ea" alt="88c558f32b552c0505b7f28c44e0a2ea"></p>
+<p>PatchGAN架构判别器D会将输出图像视作Markov random field，假设patch尺度下的不同pixel存在独立性。因此，该判别器可以实现图像纹理或风格的判定。</p>
+<h3 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h3><p>作者从多个角度进行了完备且充分的实验验证pixel2pixel-GAN的转换有效性，并探究了不同的参数设置和不同的任务场景对模型生成结果的影响，在此不再赘述。仅展示不同损失函数的引入对模型输出的结果影响，对应实验结果如下。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/8cad28bfdf3e84477708bad4f514fb27" alt="8cad28bfdf3e84477708bad4f514fb27"></p>
+<h2 id="系列总结"><a href="#系列总结" class="headerlink" title="系列总结"></a>系列总结</h2><p>从GAN到pixel2pixel，生成网络的性能和应用场景都得到了极大的拓展。结合当前的SAR仿真-实测对抗攻击场景，可以从G的损失函数引入角度出发进行攻击角度的设置和优化，例如原有方法从图像对相似的角度引入了L1范数，而攻击场景可以将对应的约束对象替换为图像对在待攻击目标模型或者替代模型中的梯度一致性，通过此类约束，在后续应用基于梯度信息的攻击时可以生成更有效的对抗扰动。  </p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
