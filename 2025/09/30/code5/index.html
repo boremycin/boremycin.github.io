@@ -22,31 +22,46 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="There&#39;s nothing behind you.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Boremycin&#39;s Blog">
-<meta property="og:url" content="http://boremycin.github.io/page/2/index.html">
+  <meta name="description" content="如何优雅地在一个物理桌面空间中使用两台(win)电脑.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="局域网多设备协同与文件迁移">
+<meta property="og:url" content="http://boremycin.github.io/2025/09/30/code5/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content="There&#39;s nothing behind you.">
+<meta property="og:description" content="如何优雅地在一个物理桌面空间中使用两台(win)电脑.">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/5e3f241a6880a876040a6b1b04915f00.jpg">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930110818.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115522.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115802.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930120003.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930125858.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930133344.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140150.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140921.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141521.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141643.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141654.png">
+<meta property="article:published_time" content="2025-09-30T02:14:47.375Z">
+<meta property="article:modified_time" content="2025-09-30T06:20:30.744Z">
 <meta property="article:author" content="Boremycin">
-<meta property="article:tag" content="CPP,Linux,Python,SAR,Adersarial Attack">
+<meta property="article:tag" content="工程开发">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/5e3f241a6880a876040a6b1b04915f00.jpg">
 
-<link rel="canonical" href="http://boremycin.github.io/page/2/">
+<link rel="canonical" href="http://boremycin.github.io/2025/09/30/code5/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>Boremycin's Blog</title>
+  <title>局域网多设备协同与文件迁移 | Boremycin's Blog</title>
   
 
 
@@ -188,13 +203,14 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/03/04/paper4/">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/09/30/code5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -206,10 +222,9 @@
       <meta itemprop="name" content="Boremycin's Blog">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/03/04/paper4/" class="post-title-link" itemprop="url">论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          局域网多设备协同与文件迁移
+        </h1>
 
         <div class="post-meta">
           <span class="post-time">
@@ -221,7 +236,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2025-03-04 12:23:15 / 修改时间：12:32:48" itemprop="dateCreated datePublished" datetime="2025-03-04T12:23:15+08:00">2025-03-04</time>
+              <time title="创建时间：2025-09-30 10:14:47 / 修改时间：14:20:30" itemprop="dateCreated datePublished" datetime="2025-09-30T10:14:47+08:00">2025-09-30</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -229,296 +244,24 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
                 </span>
             </span>
 
-          <br>
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
             <span class="post-meta-item" title="本文字数">
               <span class="post-meta-item-icon">
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.9k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><div style="text-align: center;"> 
-关于《Towards Transferable Adversarial Attacks with Centralized Perturbation》的论文笔记
-</div><br>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/03/04/paper4/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/02/21/paper3-s2a/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Boremycin">
-      <meta itemprop="description" content="There's nothing behind you.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Boremycin's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/02/21/paper3-s2a/" class="post-title-link" itemprop="url">论文笔记：Similarity to Availability</a>
-        </h2>
-
-        <div class="post-meta">
-          <span class="post-time">
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2025-02-21 09:50:35 / 修改时间：09:59:44" itemprop="dateCreated datePublished" datetime="2025-02-21T09:50:35+08:00">2025-02-21</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.9k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <div style="text-align: center;"> 
-关于《Similarity to Availability: Synthetic Data Assisted SAR Target Recognition via Global Feature Compensation》的论文笔记
-</div>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/02/21/paper3-s2a/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/02/14/paper2-One-Pixel-Attack/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Boremycin">
-      <meta itemprop="description" content="There's nothing behind you.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Boremycin's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/02/14/paper2-One-Pixel-Attack/" class="post-title-link" itemprop="url">论文笔记：One-Pixel-Attack</a>
-        </h2>
-
-        <div class="post-meta">
-          <span class="post-time">
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2025-02-14 18:35:18 / 修改时间：18:44:22" itemprop="dateCreated datePublished" datetime="2025-02-14T18:35:18+08:00">2025-02-14</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.6k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/02/14/paper2-One-Pixel-Attack/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/01/14/paper1-saratrx/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Boremycin">
-      <meta itemprop="description" content="There's nothing behind you.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Boremycin's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/01/14/paper1-saratrx/" class="post-title-link" itemprop="url">论文笔记：SARATRX</a>
-        </h2>
-
-        <div class="post-meta">
-          <span class="post-time">
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2025-01-14 21:01:25 / 修改时间：21:14:13" itemprop="dateCreated datePublished" datetime="2025-01-14T21:01:25+08:00">2025-01-14</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2k</span>
+              <span>2.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -537,135 +280,67 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <div style="text-align: center;"> 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
-</div>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/01/14/paper1-saratrx/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
+        <p><p style="text-align: center;">
+如何优雅地在一个物理桌面空间中使用两台(win)电脑.
+</p><br><span id="more"></span></p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>新学期开学后老师为我配备了新的主机(花了8k大洋买了i7-14700 + 3050 8G + &lt;500w整机电源的主机…), 然而我的重要的学习资料, 工作软件和代码文件等都已经高度依赖本科时期的笔记本, 且自己是严重的多屏用户, 工位桌面往往需要3块(及以上)的屏幕. 有了新主机后为了更优雅地使用两台独立的win电脑, 同时尽可能的便利文件备份与屏幕协同, 我探索了下面的各类方案, 且在使用体验上目前来看还算不错, 故与诸君分享之.</p>
+<h1 id="配置与布局"><a href="#配置与布局" class="headerlink" title="配置与布局"></a>配置与布局</h1><p>两台电脑均为win系统, 通过一个路由器的两根网线组成LAN的局域网连接, 在物理布局上为主机配置一个单独显示器, 桌面中间放置多hdmi通道的显示器, 和笔记本和主机各连接一个hdmi信道, 左侧放置笔记本, 最终的桌面布局如下.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5e3f241a6880a876040a6b1b04915f00.jpg" alt="5e3f241a6880a876040a6b1b04915f00"></p>
+<h1 id="Act-as-One"><a href="#Act-as-One" class="headerlink" title="Act as One"></a>Act as One</h1><p>在部分场景下我还是会希望将笔记本作为唯一的主机并使另外两个屏幕作为拓展屏使用. 对于中间的屏幕, 只需要调整hdmi的通道; 如果想拓展连接到另一个主机的屏幕, 只需要借助ToDesk软件即可(这个软件在多设备协同方面真的非常完善). 将另一台设备加入到本地的ToDesk设备列表后, 使用基础连接中的拓展屏功能即可, 另一台屏幕就会作为通过网络连接进行映射的副屏, 在校园网环境下的延迟很低, 基本可以实现流畅使用. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930110818.png" alt="20250930110818"></p>
+<h1 id="Make-Two-Act-as-One"><a href="#Make-Two-Act-as-One" class="headerlink" title="Make Two Act as One"></a>Make Two Act as One</h1><p>也有部分场景, 我希望两台电脑都保持开机并同时使用两个系统, 在同一个物理桌面中实现的关键在于两点: 1. 使用同一套键鼠在近乎无延迟的情况下操作两台电脑, 同时可以共享复制板; 2. 两台电脑的文件可以互相自由的访问, 实现局域网下的文件共同管理和操作. 幸运的是, 针对以上两个问题都有成熟且便捷的解决方案. </p>
+<h2 id="一套键鼠-多个设备"><a href="#一套键鼠-多个设备" class="headerlink" title="一套键鼠, 多个设备"></a>一套键鼠, 多个设备</h2><p>微软针对上述场景开发了名为<a target="_blank" rel="noopener" href="https://www.microsoft.com/en-us/download/details.aspx?id=35460">无界鼠标</a>(Mouse without Borders)的成熟软件, 在两个设备上同时下载后进行简单配置即可实现同一套键鼠的跨屏操作. 下载完成后首先会出现选择当前设备为主设备或从设备的选项界面(实测后续connect成功后可以流畅双向控制), 界面如下所示:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115522.png" alt="20250930115522"></p>
+<p>如果选择yes作为主设备, 会跳出填写界面用于写入从设备的信息; 选择no后则会自动显示对应信息. 输入完成后跳转出如下界面, 简要介绍了mwb软件的功能:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115802.png" alt="20250930115802"></p>
+<p>连接完成后会出下如下界面, 可以进一步通过拖拽来映射屏幕间的排序关系并管理其他高级功能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930120003.png" alt="20250930120003"></p>
+<h2 id="局域网下的文件共享"><a href="#局域网下的文件共享" class="headerlink" title="局域网下的文件共享"></a>局域网下的文件共享</h2><p>首先是文件的访问与共享, 在局域网环境下通过win的网络磁盘映射即可轻松实现. 首先找到例如桌面的目标文件夹, 右键文件夹-&gt;属性-&gt;共享, 由于局域网中可能有其他同学的多台设备, 出于安全考虑, 将<code>同时共享的用户数量</code>限制为1台, 设置权限为读取. 此外还需要在shell中通过<code>ipconfig</code>命令查找当前设备的ipv4地址用于另一台设备的连接. 在另一台设备中使用<code>win + R</code>调出运行框, 输入<code>\\IP</code>来打开对应设备文件夹, 其中的ip即为上述的ipv4地址. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930125858.png" alt="20250930125858"></p>
+<p>完成以上操作后即可成功打开相应的文件夹并进行文件的跨设备管理. 此外, win11还提供了通过网络凭证进行局域网文件共享的方法, 在文件管理器的网络栏中选择目标设备(在初始化win电脑时建议起个名字, 会比默认编号更方便查找), 系统会提示输入网络凭证. 需要注意的是, 这里的凭证一般指本地凭证, 而非登入时所用的微软账号. 如果还没有创建本地凭证, 需要以管理员的方式打开cmd(在搜索栏中搜索cmd, 并选择管理员身份打开), 通过以下命令即可快速创建本机的网络凭证的用户名和密码, 其中的<code>xxxx</code>为设定的用户名, <code>yyyyyy</code>为对应密码. 连接成功后可以打开的仍仅为上述设置已共享的文件夹.</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">net</span> user xxxx yyyyyy /add</span><br></pre></td></tr></table></figure>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930133344.png" alt="20250930133344"></p>
+<h2 id="局域网下的文件同步"><a href="#局域网下的文件同步" class="headerlink" title="局域网下的文件同步"></a>局域网下的文件同步</h2><p>在完成文件共享后, 对于部分常用文件夹(如paper, blog等), 仍然希望可以自动化地进行同步. 这里微软也给出了成熟优雅的软件解决方案(win means WIN!). 使用<code>SyncToy</code>软件可以快速实现局域网下的文件夹同步, 虽然微软已不再提供官方下载渠道(且该软件已超10年没有更新, 可见其功能之完备), 但互联网上有许多下载资源. 需要注意的是该软件依赖<code>.NET3.5</code>框架, win11系统可能需要单独设置打开: 首先打开<code>控制面板</code>, 选择<code>程序</code>中的<code>启用或关闭Windows功能</code>, 最后勾选.NET3.5即可. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140150.png" alt="20250930140150"></p>
+<p>在两台设备上的SyncToy均下载完成后, 启动软件并将本地文件夹和通过网络进行定位的目标文件夹创建为新的文件夹对(Folder Pair), 点击<code>Run</code>后就会自动进行配对和同步. 此外软件提供了三种文件同步的模式, 分别为镜像同步(即双向完全同步), 单向同步和增量同步(不进行删除操作), 一般选择镜像同步即可.  </p>
+<p> <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140921.png" alt="20250930140921"></p>
+<p>至此, 文件夹的同步仍需要每次手动运行SyncToy软件, 如需更加自动化的设置, 则需要借助win系统提供的<code>任务计划程序</code>. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141521.png" alt="20250930141521"></p>
+<p>打开后创建基本任务, 触发器设定为<code>每天</code>. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141643.png" alt="20250930141643"></p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141654.png" alt="20250930141654"></p>
+<p>设定<code>操作</code>为<code>启动程序</code>, 并加入SyncToy的exe可执行文件路径, 并在<code>添加参数</code>项中加入<code>-R</code>(会同步所有的Folder Pair), 至此即完成了自动化的设备文件夹同步.</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>经过上述的折腾, 笔者目前已经是可以流程地同时使用两台设备了, 看起来后期的操作便利性值得前期的时间投入成本. </p>
+
     </div>
 
     
     
     
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/01/09/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Boremycin">
-      <meta itemprop="description" content="There's nothing behind you.">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Boremycin's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2025/01/09/hello-world/" class="post-title-link" itemprop="url">建站记录</a>
-        </h2>
-
-        <div class="post-meta">
-          <span class="post-time">
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2025-01-09 21:42:14" itemprop="dateCreated datePublished" datetime="2025-01-09T21:42:14+08:00">2025-01-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2025-01-13 15:54:59" itemprop="dateModified" datetime="2025-01-13T15:54:59+08:00">2025-01-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>4.1k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>7 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><div style="text-align: center;"> 
-这里简要记录我如何使用<a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>开源框架和<a target="_blank" rel="noopener" href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a target="_blank" rel="noopener" href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
-</div><br>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/01/09/hello-world/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
       <footer class="post-footer">
-        <div class="post-eof"></div>
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/09/16/paper8/" rel="prev" title="论文笔记：AI-GAN和Meta-GAN">
+      <i class="fa fa-chevron-left"></i> 论文笔记：AI-GAN和Meta-GAN
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
       </footer>
+    
   </article>
   
   
   
-
-
-  
-  <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
-  </nav>
 
 
 
@@ -717,6 +392,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E5%B8%83%E5%B1%80"><span class="nav-number">2.</span> <span class="nav-text">配置与布局</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Act-as-One"><span class="nav-number">3.</span> <span class="nav-text">Act as One</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Make-Two-Act-as-One"><span class="nav-number">4.</span> <span class="nav-text">Make Two Act as One</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E5%A5%97%E9%94%AE%E9%BC%A0-%E5%A4%9A%E4%B8%AA%E8%AE%BE%E5%A4%87"><span class="nav-number">4.1.</span> <span class="nav-text">一套键鼠, 多个设备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E5%9F%9F%E7%BD%91%E4%B8%8B%E7%9A%84%E6%96%87%E4%BB%B6%E5%85%B1%E4%BA%AB"><span class="nav-number">4.2.</span> <span class="nav-text">局域网下的文件共享</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E5%9F%9F%E7%BD%91%E4%B8%8B%E7%9A%84%E6%96%87%E4%BB%B6%E5%90%8C%E6%AD%A5"><span class="nav-number">4.3.</span> <span class="nav-text">局域网下的文件同步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
