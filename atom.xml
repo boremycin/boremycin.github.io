@@ -6,7 +6,7 @@
   <link href="http://boremycin.github.io/atom.xml" rel="self"/>
   
   <link href="http://boremycin.github.io/"/>
-  <updated>2025-11-19T12:53:50.635Z</updated>
+  <updated>2025-11-24T11:06:28.612Z</updated>
   <id>http://boremycin.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>PyTorch多卡训练初探</title>
+    <link href="http://boremycin.github.io/2025/11/24/code6/"/>
+    <id>http://boremycin.github.io/2025/11/24/code6/</id>
+    <published>2025-11-24T11:05:17.876Z</published>
+    <updated>2025-11-24T11:06:28.612Z</updated>
+    
+    <content type="html"><![CDATA[<p><p style="text-align: center;">在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. </p><br><span id="more"></span></p><p>PyTorch DDP(Distributed Data Parallel)包括了三个核心概念, 分别为<code>rank</code>, <code>local_rank</code>和<code>node_rank</code>. </p><ul><li>rank: 即Gobal Rank, 为物理GPU的编号</li><li>local_rank: 当前节点的进程编号. 每个节点GPU都从0开始编号</li><li>node_rank: 当前节点的编号, 在多节点训练时使用</li></ul><p>需要注意的是, <code>local_rank</code>是<code>torchrun</code>自动传入的环境变量, 可以通过以下方式获取:</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">local_rank = <span class="built_in">int</span>(os.environ.get(<span class="string">&#x27;LOCAL_RANK&#x27;</span>, <span class="number">0</span>))</span><br></pre></td></tr></table></figure><p>此外pytorch的DDP中还有一些需要初始化的参数, 包括<code>world_size</code>, 为全局进程总数, 是所有节点上所有GPU进程的总数量; <code>nproc_per_node</code>是单节点进程数, 表示单个物理机上启动的训练进程的数量, <code>master_addr</code>是主节点IP地址, 用于初始化分布式进程组的rank=0进程所在机器的IP地址; <code>master_port</code>为主节点端口号, 用于初始化分布式进程组的协调进程所监听的TCP端口号, 与<code>master_addr</code>共同指定了协调服务的位置; <code>backend</code>为通信后端, 用于指定进程间通信所用协议, 常用nccl来进行GPU之间的高速通信. </p><p>结合<code>torchrun</code>启动分布式训练的命令行如下:</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CUDA_VISIBLE_DEVICES=1,2 torchrun --nproc_per_node=2 train.py</span><br></pre></td></tr></table></figure><p>启动后首先需要对模型进行DDP场景下的加载, 对应代码如下:</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 启用 SyncBatchNorm</span></span><br><span class="line">    model = nn.SyncBatchNorm.convert_sync_batchnorm(model) </span><br><span class="line">    model = model.to(config.device) </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 使用 DistributedDataParallel 封装模型</span></span><br><span class="line">    model = nn.parallel.DistributedDataParallel(</span><br><span class="line">        model,</span><br><span class="line">        device_ids=[<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>])],</span><br><span class="line">        output_device=<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]) </span><br><span class="line">    )</span><br></pre></td></tr></table></figure><p>以上代码中的<code>nn.SyncBatchNorm.convert_sync_batchnorm(model)</code>的核心作用是跨所有GPU聚合批次的统计信息, 用于共享GPU之间不同数据的计算结果. <code>nn.parallel.DistributedDataParallel(...)</code>在每个进程/GPU 上拥有一个完整的模型副本, 独立进行前向和反向传播. 在反向传播完成后, 它会自动协调(使用 All-Reduce 操作)所有副本的梯度, 并同步更新模型参数, 确保所有 GPU 上的模型保持一致. </p><p>此外, 在进行分布式训练时需要对数据的加载进行对应处理, 使不同GPU读取到不同的训练或测试数据, 对应的代码实现如下:</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) <span class="comment"># 创建分布式数据采样器</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    train_sampler = <span class="literal">None</span> </span><br><span class="line"><span class="comment"># train_loader = DataLoader(train_dataset, sampler=train_sampler, ...)</span></span><br></pre></td></tr></table></figure><p>以上代码中的<code>torch.utils.data.distributed.DistributedSampler</code>为分布式采样器, 根据当前的rank和world_size自动将整个数据集逻辑地分割成world_size个不重叠的子集, 从而保证每个GPU在每个epoch中都能获取唯一且互不重叠的数据批次. </p><p>在训练进行中, 同样需要对数据采集器进行必要的同步操作, 对应代码如下:</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 在每个 epoch 开始时调用</span></span><br><span class="line">    train_loader.sampler.set_epoch(epoch)</span><br></pre></td></tr></table></figure><p>以上代码中的epoch为当前轮次的编号, 该函数的核心功能是重新打乱数据, 确保每个epoch的数据划分都是随机且均匀的.</p><p>对于模型的运行与训练结果保存, 在模型训练层面, DDP模式下训练循环和单卡类似, 在梯度反向传播中DDP机制会自动在所有进程之间同步梯度, 无需额外干预和对代码的修改. 对于训练权重的保存, DDP模式只在rank=0的进程上执行保存操作. </p><p>通过以上操作即可实现多卡的模型训练与保存. </p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;&lt;p style=&quot;text-align: center;&quot;&gt;
+在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. 
+&lt;/p&gt;&lt;br&gt;</summary>
+    
+    
+    
+    <category term="笔记" scheme="http://boremycin.github.io/categories/%E7%AC%94%E8%AE%B0/"/>
+    
+    
+    <category term="工程开发" scheme="http://boremycin.github.io/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+  </entry>
   
   <entry>
     <title>论文笔记：LoRa-PGD Attack</title>
