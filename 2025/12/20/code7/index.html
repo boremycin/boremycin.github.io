@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="dataset similarity measure调研与简单复现">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据集分布相似度量化">
+<meta property="og:url" content="http://boremycin.github.io/2025/12/20/code7/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="dataset similarity measure调研与简单复现">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1_cifar.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2_cifar.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3_cifar.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4_cifar10.png">
+<meta property="article:published_time" content="2025-12-20T07:19:54.563Z">
+<meta property="article:modified_time" content="2025-12-20T07:22:08.834Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="review">
+<meta property="article:tag" content="代码复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2025/12/20/code7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>数据集分布相似度量化 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2025/12/20/code7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          数据集分布相似度量化
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2025-12-20 15:19:54 / 修改时间：15:22:08" itemprop="dateCreated datePublished" datetime="2025-12-20T15:19:54+08:00">2025-12-20</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>23 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+dataset similarity measure调研与简单复现
+</p><br><span id="more"></span></p>
+<h1 id="基于metafeature的距离与相似度度量"><a href="#基于metafeature的距离与相似度度量" class="headerlink" title="基于metafeature的距离与相似度度量"></a>基于metafeature的距离与相似度度量</h1><p>Feuer et al.[1]提出使用meta-learning来有效初始化Sequential Model-Based Bayesian Optimization(SMBO)过程. 所设定的前提是在待度量的数据集集合中的每个数据集$D^{(i)}$都可以用K个metafeature描述, 即 $m^i = (m^i_1, m^i_2, … \ ,m_k^i)$. 作者进而提出两种距离度量方法, 一种是直接度量metafeature集的距离作为数据集之间的距离:</p>
+<script type="math/tex; mode=display">
+D_{Fq}(D^{(i)}, D^{(j)}) = \| m^i - m^j \|_q \tag{1}</script><p>第二种度量方法通过negative Spearman correlation度量不同超参数设定的模型性能并将其作为metafeature集合, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+D_{Fc}(D^{(i)}, D^{(j)}) = 1 - \mathcal{Cor}([g^{D^{(i)}}(\theta_1), g^{D^{(i)}}(\theta_2), ... , g^{D^{(i)}}(\theta_n)],[g^{D^{(j)}}(\theta_1), g^{D^{(j)}}(\theta_2), ... , g^{D^{(j)}}(\theta_n)]) \tag{2}</script><p>上式中$g^{D^{(i)}}(\cdot)$代表含参目标函数. 当需要在多个数据集中匹配最相似的数据集时, 由于参数无法固定下来, 因此需要借助mapping function在metafeature对$(m^i, m^j)$和$D_{Fc}(D^{(i)}, D^{(j)})$之间进行回归. 常用的metafeature可以归为以下几个大类:</p>
+<ul>
+<li>用于描述或者量化数据集的简单特征</li>
+<li>PCA metafeatures</li>
+<li>数据集的熵值</li>
+<li>统计特征, 包括数据集的峰度(kurtosis)或者标签的分布宽度(dispersion of label distribution)</li>
+<li>landmarking metafeatures(通过快速的ML算法获得, 如linear separability)</li>
+</ul>
+<p>上述中的峰度kurtosis是指用于描述概率分布曲线在平均值处峰值高低以及尾部厚度的统计量, 用于衡量数据特征的离散程度和异常值的存在情况. 对应数学表达如下:</p>
+<script type="math/tex; mode=display">
+K = \frac{\mu_4}{\sigma^4} = \frac{E[X - \mu]^4}{(E[(X-\mu)^2])^2} \tag{3}</script><p>上式中X为特征变量, $\mu$是均值, $E$是期望算子, $\sigma$是标准差, $\mu_4$是4阶中心矩. </p>
+<p>标签分布宽度则描述了类别分布的平衡程度或离散程度, 可以用类别概率标准差衡量, 对应数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+\sigma_{labels} = \sqrt{\frac{1}{C}\sum_{i=1}^C(p_i - \frac{1}{C})^2} \tag{4}</script><p>上式中C是类别总数, $p_i$是第i类的样本比例. </p>
+<p>此外, 式(2)中所用的Spearman相关系数为范围在[-1,1]间的统计值, 用于度量两组排序(ranks)结果的相关强度, 该系数可以用于衡量数据和模型的契合程度, 对于n对原始分数对$(X_i, Y_i)$, 将其转换为ranks$R[X_i], R[Y_i]$, 令$R[X_i], R[Y_i] = (R_i, S_i)$, 对应的相关系数计算如下:</p>
+<script type="math/tex; mode=display">
+r_s = \rho[R[X], R[Y]] = \frac{cov[R[X], R[Y]]}{\sigma_{R[X]} \cdot \sigma_{R[Y]}} = \frac{\frac{1}{n} \sum_{i=1}^n R_i S_i - \bar{R}\bar{S}}{\sigma_{R[X]} \cdot \sigma_{R[Y]}}      \tag{5}</script><p>上式中的rank不是矩阵的秩, 给定$\{X_1, X_2, …, X_n \}$, 对其进行排序后rank的定义为$R(X_i)$为在排序序列中$X_i$的位置. 当不存在并列的情况时, 表达式可简化为:</p>
+<script type="math/tex; mode=display">
+r_s = 1 - \frac{6 \sum_{i=1}^{n}d_i^2}{n(n^2-1)}\tag{6}</script><p>以SAMPLE数据集以及光学的CIFAR10为例, 通过以下代码可以初步计算real和synth子数据集和光学CIFAR10数据集的峰度和标签分布差异.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ImageClassificationDataset</span>(<span class="title class_ inherited__">Dataset</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, root_dir, transform=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="variable language_">self</span>.root_dir = root_dir</span><br><span class="line">        <span class="variable language_">self</span>.transform = transform</span><br><span class="line">        <span class="variable language_">self</span>.classes = <span class="built_in">sorted</span>(os.listdir(root_dir))</span><br><span class="line">        <span class="variable language_">self</span>.class_to_idx = &#123;cls: idx <span class="keyword">for</span> idx, cls <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="variable language_">self</span>.classes)&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.samples = []</span><br><span class="line">        <span class="keyword">for</span> class_name <span class="keyword">in</span> <span class="variable language_">self</span>.classes:</span><br><span class="line">            class_dir = os.path.join(root_dir, class_name)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> os.path.isdir(class_dir):</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            <span class="keyword">for</span> file_name <span class="keyword">in</span> os.listdir(class_dir):</span><br><span class="line">                file_path = os.path.join(class_dir, file_name)</span><br><span class="line">                <span class="variable language_">self</span>.samples.append((file_path, <span class="variable language_">self</span>.class_to_idx[class_name]))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__len__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(<span class="variable language_">self</span>.samples)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getitem__</span>(<span class="params">self, idx</span>):</span><br><span class="line">        img_path, label = <span class="variable language_">self</span>.samples[idx]</span><br><span class="line">        image = Image.<span class="built_in">open</span>(img_path).convert(<span class="string">&#x27;RGB&#x27;</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.transform:</span><br><span class="line">            image = <span class="variable language_">self</span>.transform(image)</span><br><span class="line">            </span><br><span class="line">        <span class="keyword">return</span> image, label</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>) <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    </span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data, label_data</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">calculate_kurtosis</span>(<span class="params">tensor</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    tensor: shape [n_samples, n_features]</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    mean = torch.mean(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    std = torch.std(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    </span><br><span class="line">    standardized = (tensor - mean) / (std + <span class="number">1e-8</span>)</span><br><span class="line">    fourth_moment = torch.mean(standardized ** <span class="number">4</span>, dim=<span class="number">0</span>)</span><br><span class="line">    kurtosis = fourth_moment - <span class="number">3</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> kurtosis</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_label_distribution</span>(<span class="params">labels</span>):</span><br><span class="line">    unique_labels = torch.unique(labels)</span><br><span class="line">    num_unique_labels = <span class="built_in">len</span>(unique_labels)</span><br><span class="line">    label_counts = torch.bincount(labels)</span><br><span class="line"></span><br><span class="line">    distribution_std = torch.std(label_counts.<span class="built_in">float</span>())</span><br><span class="line">    </span><br><span class="line">    probabilities = label_counts.<span class="built_in">float</span>() / torch.<span class="built_in">sum</span>(label_counts)</span><br><span class="line">    entropy = -torch.<span class="built_in">sum</span>(probabilities * torch.log(probabilities + <span class="number">1e-8</span>))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;num_unique_labels&#x27;</span>: num_unique_labels,</span><br><span class="line">        <span class="string">&#x27;label_counts&#x27;</span>: label_counts,</span><br><span class="line">        <span class="string">&#x27;distribution_std&#x27;</span>: distribution_std,</span><br><span class="line">        <span class="string">&#x27;entropy&#x27;</span>: entropy,</span><br><span class="line">        <span class="string">&#x27;probabilities&#x27;</span>: probabilities</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_dataset</span>(<span class="params">dataset_path, img_size=<span class="number">224</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    </span><br><span class="line">    pixel_data, label_data = extract_features_from_images(dataset, batch_size)  <span class="comment"># 提取特征和标签</span></span><br><span class="line">    </span><br><span class="line">    sample_indices = torch.randperm(pixel_data.shape[<span class="number">1</span>])[:<span class="number">10000</span>]  <span class="comment"># 计算峰度 (采样部分像素以减少计算量)</span></span><br><span class="line">    sampled_pixels = pixel_data[:, sample_indices]</span><br><span class="line">    kurtosis_values = calculate_kurtosis(sampled_pixels)</span><br><span class="line"></span><br><span class="line">    label_stats = analyze_label_distribution(label_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;kurtosis_mean&#x27;</span>: torch.mean(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;kurtosis_std&#x27;</span>: torch.std(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;label_distribution_std&#x27;</span>: label_stats[<span class="string">&#x27;distribution_std&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;label_entropy&#x27;</span>: label_stats[<span class="string">&#x27;entropy&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;num_classes&#x27;</span>: <span class="built_in">len</span>(dataset.classes),</span><br><span class="line">        <span class="string">&#x27;total_samples&#x27;</span>: <span class="built_in">len</span>(dataset)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    synth_dataset_path = <span class="string">&quot;./synth&quot;</span>  </span><br><span class="line">    real_dataset_path = <span class="string">&quot;./real&quot;</span>  </span><br><span class="line">    cifar10_dataset_path = <span class="string">&#x27;./cifar10&#x27;</span>  </span><br><span class="line">    synth_stats = analyze_dataset(synth_dataset_path)</span><br><span class="line">    real_stats = analyze_dataset(real_dataset_path)</span><br><span class="line">    cifar10_stats = analyze_dataset(cifar10_dataset_path)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;result&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Synth&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Real&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;CIFAR10&#x27;</span>:&lt;<span class="number">15</span>&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;-&quot;</span> * <span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;kurtosis_mean&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_std&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_entropy&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>特征结果如下所示<br><figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">result               Synth           Real            CIFAR10        </span></span><br><span class="line"><span class="section">-------------------------------------------------------------</span></span><br><span class="line">kurtosis<span class="emphasis">_mean        1.1260          0.9982          -0.7343        </span></span><br><span class="line"><span class="emphasis">label_std            30.2811         30.2811         0.0000</span></span><br><span class="line"><span class="emphasis">label_</span>entropy        2.2800          2.2800          2.3026</span><br></pre></td></tr></table></figure></p>
+<h1 id="Gromov-Wasserstein距离"><a href="#Gromov-Wasserstein距离" class="headerlink" title="Gromov-Wasserstein距离"></a>Gromov-Wasserstein距离</h1><p>文献[2]提出基于Gromov-Wasserstein metric来度量数据集之间的相关程度, 对应数学表达如下所示:</p>
+<script type="math/tex; mode=display">
+d_{GW}(\mathcal{X}, \mathcal{Y}) = \inf_{\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})}   \int_{\mathcal{X}^2 \times \mathcal{Y}^2} |d_{\mathcal{X}}(x, x') -d_{\mathcal{Y}}(y, y')|^q \cdot d\pi(x,y)d\pi(x',y') \tag{7}</script><p>上式实际度量了两个概率空间$\mathcal{X}$和$\mathcal{Y}$之间的距离, 其中的$\mathcal{X}$和$\mathcal{Y}$不仅包含距离结构$d_{\mathcal{X}}$, $d_{\mathcal{Y}}$, 还带有概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$. $\pi$为最优传输理论中的联合概率测度, 对应的$\Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$是所有满足边缘约束的耦合集合. 当用于度量给定的数据集$\mathcal{X}=\{x_1, …, x_n \}$和$\mathcal{Y}=\{y_1, …, y_m\}$时, 对于度量空间$(\mathcal{X}, d_{\mathcal{X}})$的定义,  $d_{\mathcal{X}}:\mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}_+$可以表示为如下形式:</p>
+<script type="math/tex; mode=display">
+d_{\mathcal{X}}(x_i, x_j) =  \| \phi(x_i) - \phi(x_j) \|_2 \tag{8}</script><p>其中的$\phi(\cdot)$为特征提取器. 对于概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$, 在有限数据集上使用经验分布:</p>
+<script type="math/tex; mode=display">
+\mu_{\mathcal{X}} = \frac{1}{n}\sum_{i=1}^n \delta_{x_i}, \quad \mu_{\mathcal{Y}} = \frac{1}{m}\sum_{j=1}^m \delta_{y_j} \tag{9}</script><p>其中的$\delta$为狄拉克测度, 可以简单理解为每个$x_i$在数据集中的比例. 联合概率测度$\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$则表示一个软匹配关系, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+\pi_{ij} \geq 0, \quad  \sum_j \pi_{ij} = \frac{1}{n}, \quad \sum_i \pi_{ij} = \frac{1}{m} \tag{10}</script><p>GW距离并非衡量数据集中的点是否接近, 而是两个数据集的内部集合结构是否一致. 同上, 借助POT库(python optimal transport)可以实现GW的计算与可视化, 同样分别比较real-synth和real-cifar10, 代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> scipy <span class="keyword">as</span> sp</span><br><span class="line"><span class="keyword">import</span> ot</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> TSNE</span><br><span class="line"><span class="keyword">from</span> method1 <span class="keyword">import</span> ImageClassificationDataset <span class="comment">#同上</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, </span><br><span class="line">                          shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>)  <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data.numpy(), label_data.numpy() </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">load_dataset_features</span>(<span class="params">dataset_path, img_size=<span class="number">32</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    features, labels = extract_features_from_images(dataset, batch_size)</span><br><span class="line">    <span class="keyword">return</span> features, labels</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">compute_and_visualize_gw_with_features</span>(<span class="params">real_path, synth_path, feature_method=<span class="string">&#x27;pixel&#x27;</span>, img_size=<span class="number">128</span></span>):</span><br><span class="line">    real_features, real_labels = load_dataset_features(real_path, img_size)</span><br><span class="line">    synth_features, synth_labels = load_dataset_features(synth_path, img_size)</span><br><span class="line">    </span><br><span class="line">    C1 = sp.spatial.distance.cdist(real_features, real_features)</span><br><span class="line">    C2 = sp.spatial.distance.cdist(synth_features, synth_features)</span><br><span class="line">    C1 /= C1.<span class="built_in">max</span>()</span><br><span class="line">    C2 /= C2.<span class="built_in">max</span>()</span><br><span class="line">    </span><br><span class="line">    n_real, n_synth = <span class="built_in">len</span>(real_features), <span class="built_in">len</span>(synth_features)</span><br><span class="line">    p = ot.unif(n_real)</span><br><span class="line">    q = ot.unif(n_synth)</span><br><span class="line">    </span><br><span class="line">    gw, log = ot.gromov.gromov_wasserstein(</span><br><span class="line">        C1, C2, p, q, <span class="string">&quot;square_loss&quot;</span>, verbose=<span class="literal">True</span>, log=<span class="literal">True</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">6</span>))</span><br><span class="line">    plt.imshow(gw, cmap=<span class="string">&#x27;Blues&#x27;</span>)</span><br><span class="line">    plt.title(<span class="string">f&#x27;GW Transport Matrix (<span class="subst">&#123;feature_method&#125;</span>)\nGW Distance: <span class="subst">&#123;log[<span class="string">&quot;gw_dist&quot;</span>]:<span class="number">.6</span>f&#125;</span>&#x27;</span>)</span><br><span class="line">    plt.colorbar()</span><br><span class="line">    plt.show()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;distance&#x27;</span>: log[<span class="string">&quot;gw_dist&quot;</span>],</span><br><span class="line">        <span class="string">&#x27;transport_plan&#x27;</span>: gw,</span><br><span class="line">        <span class="string">&#x27;real_features&#x27;</span>: real_features,</span><br><span class="line">        <span class="string">&#x27;synth_features&#x27;</span>: synth_features</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    results = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./synth&quot;</span>)</span><br><span class="line">    results2 = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./cifar10&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;Gromov-Wasserstein Distance Results:&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results2[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>在分析实验结果之前, 首先对图像统计特征进行可视化. 将特征提取器设定为对图形简单一维展平, 获取特征集合的特征值分布图像和不同维度的方差分布, 结果从上至下分别为real-synth和real-cifar10, 下同. 对应可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着, 使用PCA对图像进行降维可视化, 分别按数据集和按类别进行着色区分, 可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>最终, 用t-SNE对展平的一维特征进行可视化处理, 对应结果如下所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着使用GW距离进行数据集相似度统计, 首先可以对代价矩阵(即由$d_{\mathcal{X}}$或$d_{\mathcal{Y}}$构成的元数据点两两之间距离匹配矩阵)进行可视化, 对应结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4_cifar10.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>运行算法可得, 最终不同数据集对之间的GW距离结果如下:</p>
+<figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">==================================================</span><br><span class="line">Gromov-Wasserstein Distance Results:</span><br><span class="line">==================================================</span><br><span class="line">GW distance: 0.003756</span><br><span class="line">GW distance: 0.011917</span><br></pre></td></tr></table></figure>
+<h1 id="Deep-Dataset-Dissimliarity-Measures-DeDiMs"><a href="#Deep-Dataset-Dissimliarity-Measures-DeDiMs" class="headerlink" title="Deep Dataset Dissimliarity Measures(DeDiMs)"></a>Deep Dataset Dissimliarity Measures(DeDiMs)</h1><p>文献[3]提出了一种融合数据和标签分布以及半监督深度学习的数据分布匹配评估方法, 主要通过设计4个特殊的距离函数实现, 给定两个数据集$D^a$和$D^b$, 对应步骤如下:</p>
+<ol>
+<li>对数据集进行随机采样, 在系数$\tau$的约束下获得两个对应的子集, 称为$D^{a,\tau}$和$D^{b,\tau}$</li>
+<li>通过特征提取器(feature extractor)获得子数据集对应的特征向量集$H^{a,\tau}$和$H^{b,\tau}$</li>
+</ol>
+<p>完成上述两个步骤后, 首先需要计算 Minkowski-based distance set, 对应的过程如下:</p>
+<ol>
+<li>选取Manhattan距离或欧式距离(q-norm取1或2)计算距离$d_i=min_k |h_i - h_k |_q$, $h_i$为从$H^{a, \tau}$中采集C个样本构成, $h_k$是$H^{b, \tau}$中与之最接近的向量, 通过该步骤获取一个距离列表$d_{l_q}(D^a,D^b, \tau, C) = \{ \hat{d_1}, …,\hat{d_C}\}$</li>
+<li>类似步骤1, 计算$D^a$的组内距离, 获得参考距离列表(reference distance list)$d_{l_q}(D^a,D^a, \tau, C) = \{ \check{d_1}, …,\check{d_C}\}$</li>
+<li>计算上述两个距离列表的差值绝对值, 同时计算各个距离列表与自身均值的离散分布以及Wilcoxon test的p-value</li>
+</ol>
+<p>上述方法可以视为基于比较密度方程(comparing density function)的数据集相似度评估算法, 计算过程同时评估的数据集内和不同数据集之间的距离差异, 可以更好地反映数据集之间的分布差异并提升半监督深度学习(semi-supervised deep learning ,SSDL)的性能.</p>
+<p>此外, 上述的Minkowski distance, 也被称为Minkowski metric, 是一种正则化向量空间, 可以视为曼哈顿距离和欧式距离的推广. 对于两个向量集合$X = (x_1, x_2, …, x_n)$和$Y = (y_1, y_2, …, y_n)$, 对应计算公式如下:</p>
+<script type="math/tex; mode=display">
+D(X,Y)=(\sum_{i=1}^n |x_i - y_i|^{p})^{\frac{1}{p}} \tag{11}</script><p>该距离的设计启发来自Minkowski不等式, 通常p被设定为1或2, 分别对应曼哈顿距离和欧式距离. 闵氏距离可以理解为两个向量集合之间的能量平均. 对于Wilcoxson test, 有两种常见的检验定义, 分别为Wilcoxon Signed-Rank Test(符号秩检验)和Wilcoxon Rank-Sum Test(秩和检验), 前者基于成对样本, 后者则适用于独立样本, 没有一一对应关系. 此处采用的是Wilcoxon符号检验.  </p>
+<p>Wilcoxon符号秩检验是一种非参数假设检验方法, 用于比较两个配对样本是否有显著差异. 这里的秩是指数据绝对值大小所带来的排名. 对于两组距离列表, 首先计算每对数据的差值$D_i = x_i - y_i$, 当$D_i = 0$时会将该数据从分析中提出并对样本总数-1; 接着计算绝对值的秩, 对所有非零差值绝对值进行排序并从小至大赋予秩次$R_i$.</p>
+<script type="math/tex; mode=display">
+R_i = Rank(|D_i|) \tag{12}</script><p>此外需要定义相应的符号函数$sgn(\cdot)$以规定差值的方向, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+sgn(D_i) = 
+
+\begin{cases}
++1 \quad if D_i > 0 \\
+-1 \quad if D_i < 0
+\end{cases}
+\tag{13}</script><p>最终将符号秩总和作为检验结果:</p>
+<script type="math/tex; mode=display">
+W_{sum} = \sum_{i=1}^n sgn(D_i)\cdot R_i \tag{14}</script><p>对于上述假设检验或其他任意假设检验, 还可以用p值刻画分布的内涵. 其统一的定义为:</p>
+<script type="math/tex; mode=display">
+p = \mathbb{P}_{H_0}(T(X) \sim T(x_{obs})) \tag{15}</script><p>其中X为随机样本, $x_{obs}$为观测样本, $T(\cdot)$为检验统计量, $\mathbb{P}_{H_0}$为在原假设$H_0$成立条件下的概率. 对于Wilcoxon检验, 原假设为差值的中值为0, 即数据分布呈现中心对称.</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]: Initializing Bayesian Hyperparameter Optimization via Meta-Learning, AAAI</p>
+<p>[2]: Modern approaches to discrete curvature, Book</p>
+<p>[3]: Dataset Similarity to Assess Semisupervised Learning Under Distribution Mismatch Between the Labeled and Unlabeled Datasets, IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE</p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/review/" <i class="fa fa-tag"></i> review</a>
+              <a href="/tags/%E4%BB%A3%E7%A0%81%E5%A4%8D%E7%8E%B0/" <i class="fa fa-tag"></i> 代码复现</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/11/24/code6/" rel="prev" title="PyTorch多卡训练初探">
+      <i class="fa fa-chevron-left"></i> PyTorch多卡训练初探
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8Emetafeature%E7%9A%84%E8%B7%9D%E7%A6%BB%E4%B8%8E%E7%9B%B8%E4%BC%BC%E5%BA%A6%E5%BA%A6%E9%87%8F"><span class="nav-number">1.</span> <span class="nav-text">基于metafeature的距离与相似度度量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Gromov-Wasserstein%E8%B7%9D%E7%A6%BB"><span class="nav-number">2.</span> <span class="nav-text">Gromov-Wasserstein距离</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Deep-Dataset-Dissimliarity-Measures-DeDiMs"><span class="nav-number">3.</span> <span class="nav-text">Deep Dataset Dissimliarity Measures(DeDiMs)</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-number">4.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">96k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:54</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

@@ -204,144 +204,6 @@ L = \begin{bmatrix}
       </tags>
   </entry>
   <entry>
-    <title>PyTorch多卡训练初探</title>
-    <url>/2025/11/24/code6/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. 
-</p><br><span id="more"></span></p>
-<p>PyTorch DDP(Distributed Data Parallel)包括了三个核心概念, 分别为<code>rank</code>, <code>local_rank</code>和<code>node_rank</code>. </p>
-<ul>
-<li>rank: 即Gobal Rank, 为物理GPU的编号</li>
-<li>local_rank: 当前节点的进程编号. 每个节点GPU都从0开始编号</li>
-<li>node_rank: 当前节点的编号, 在多节点训练时使用</li>
-</ul>
-<p>需要注意的是, <code>local_rank</code>是<code>torchrun</code>自动传入的环境变量, 可以通过以下方式获取:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">local_rank = <span class="built_in">int</span>(os.environ.get(<span class="string">&#x27;LOCAL_RANK&#x27;</span>, <span class="number">0</span>))</span><br></pre></td></tr></table></figure>
-<p>此外pytorch的DDP中还有一些需要初始化的参数, 包括<code>world_size</code>, 为全局进程总数, 是所有节点上所有GPU进程的总数量; <code>nproc_per_node</code>是单节点进程数, 表示单个物理机上启动的训练进程的数量, <code>master_addr</code>是主节点IP地址, 用于初始化分布式进程组的rank=0进程所在机器的IP地址; <code>master_port</code>为主节点端口号, 用于初始化分布式进程组的协调进程所监听的TCP端口号, 与<code>master_addr</code>共同指定了协调服务的位置; <code>backend</code>为通信后端, 用于指定进程间通信所用协议, 常用nccl来进行GPU之间的高速通信. </p>
-<p>结合<code>torchrun</code>启动分布式训练的命令行如下:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">CUDA_VISIBLE_DEVICES=1,2 torchrun --nproc_per_node=2 train.py</span><br></pre></td></tr></table></figure>
-<p>启动后首先需要对模型进行DDP场景下的加载, 对应代码如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 启用 SyncBatchNorm</span></span><br><span class="line">    model = nn.SyncBatchNorm.convert_sync_batchnorm(model) </span><br><span class="line">    model = model.to(config.device) </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 使用 DistributedDataParallel 封装模型</span></span><br><span class="line">    model = nn.parallel.DistributedDataParallel(</span><br><span class="line">        model,</span><br><span class="line">        device_ids=[<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>])],</span><br><span class="line">        output_device=<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]) </span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
-<p>以上代码中的<code>nn.SyncBatchNorm.convert_sync_batchnorm(model)</code>的核心作用是跨所有GPU聚合批次的统计信息, 用于共享GPU之间不同数据的计算结果. <code>nn.parallel.DistributedDataParallel(...)</code>在每个进程/GPU 上拥有一个完整的模型副本, 独立进行前向和反向传播. 在反向传播完成后, 它会自动协调(使用 All-Reduce 操作)所有副本的梯度, 并同步更新模型参数, 确保所有 GPU 上的模型保持一致. </p>
-<p>此外, 在进行分布式训练时需要对数据的加载进行对应处理, 使不同GPU读取到不同的训练或测试数据, 对应的代码实现如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) <span class="comment"># 创建分布式数据采样器</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    train_sampler = <span class="literal">None</span> </span><br><span class="line"><span class="comment"># train_loader = DataLoader(train_dataset, sampler=train_sampler, ...)</span></span><br></pre></td></tr></table></figure>
-<p>以上代码中的<code>torch.utils.data.distributed.DistributedSampler</code>为分布式采样器, 根据当前的rank和world_size自动将整个数据集逻辑地分割成world_size个不重叠的子集, 从而保证每个GPU在每个epoch中都能获取唯一且互不重叠的数据批次. </p>
-<p>在训练进行中, 同样需要对数据采集器进行必要的同步操作, 对应代码如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 在每个 epoch 开始时调用</span></span><br><span class="line">    train_loader.sampler.set_epoch(epoch)</span><br></pre></td></tr></table></figure>
-<p>以上代码中的epoch为当前轮次的编号, 该函数的核心功能是重新打乱数据, 确保每个epoch的数据划分都是随机且均匀的.</p>
-<p>对于模型的运行与训练结果保存, 在模型训练层面, DDP模式下训练循环和单卡类似, 在梯度反向传播中DDP机制会自动在所有进程之间同步梯度, 无需额外干预和对代码的修改. 对于训练权重的保存, DDP模式只在rank=0的进程上执行保存操作. </p>
-<p>通过以上操作即可实现多卡的模型训练与保存. </p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>工程开发</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：SAR Conditional Random Field Attack</title>
-    <url>/2025/08/11/paper-CRF/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于论文CRFA的笔记  
-</div><br><span id="more"></span></p>
-<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
-<script type="math/tex; mode=display">
-F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
-f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
-<script type="math/tex; mode=display">
-P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
-P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
-  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
-</figure>
-
-<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
-<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
-<script type="math/tex; mode=display">
-oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
-    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
-    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
-</figure>
-
-
-<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
-<script type="math/tex; mode=display">
-logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
-p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
-<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
-<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
-Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
-<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
-<script type="math/tex; mode=display">
-P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
-<script type="math/tex; mode=display">
-\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
-\phi_{ij}(y_i,y_j,X) = 
-\begin{cases}
-0 & \ if \  x_i = x_j \\ 
-1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
-\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
-<script type="math/tex; mode=display">
-E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
-<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
-<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
-<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
-<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
-<ul>
-<li>变量定义时缺少主语或引用不当</li>
-</ul>
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>相关变量缺少定义说明</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-
-<ul>
-<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
-</ul>
-<figure style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
-</figure>
-
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>局域网多设备协同与文件迁移</title>
     <url>/2025/09/30/code5/</url>
     <content><![CDATA[<p><p style="text-align: center;">
@@ -385,52 +247,202 @@ E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi
       </tags>
   </entry>
   <entry>
-    <title>论文笔记:DeCoWa</title>
-    <url>/2025/06/10/paper-decowa/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于DeCoWa的论文笔记
-</div><br><span id="more"></span></p>
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
-<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
-<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
-<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
-<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
-<script type="math/tex; mode=display">
-g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
-<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
-<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
-<script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
-<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
-<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
-<script type="math/tex; mode=display">
-f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
-<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
-<script type="math/tex; mode=display">
-\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
-<script type="math/tex; mode=display">
-\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
-<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
-<script type="math/tex; mode=display">
-\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
-<script type="math/tex; mode=display">
-g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
-<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
+    <title>PyTorch多卡训练初探</title>
+    <url>/2025/11/24/code6/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. 
+</p><br><span id="more"></span></p>
+<p>PyTorch DDP(Distributed Data Parallel)包括了三个核心概念, 分别为<code>rank</code>, <code>local_rank</code>和<code>node_rank</code>. </p>
+<ul>
+<li>rank: 即Gobal Rank, 为物理GPU的编号</li>
+<li>local_rank: 当前节点的进程编号. 每个节点GPU都从0开始编号</li>
+<li>node_rank: 当前节点的编号, 在多节点训练时使用</li>
+</ul>
+<p>需要注意的是, <code>local_rank</code>是<code>torchrun</code>自动传入的环境变量, 可以通过以下方式获取:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">local_rank = <span class="built_in">int</span>(os.environ.get(<span class="string">&#x27;LOCAL_RANK&#x27;</span>, <span class="number">0</span>))</span><br></pre></td></tr></table></figure>
+<p>此外pytorch的DDP中还有一些需要初始化的参数, 包括<code>world_size</code>, 为全局进程总数, 是所有节点上所有GPU进程的总数量; <code>nproc_per_node</code>是单节点进程数, 表示单个物理机上启动的训练进程的数量, <code>master_addr</code>是主节点IP地址, 用于初始化分布式进程组的rank=0进程所在机器的IP地址; <code>master_port</code>为主节点端口号, 用于初始化分布式进程组的协调进程所监听的TCP端口号, 与<code>master_addr</code>共同指定了协调服务的位置; <code>backend</code>为通信后端, 用于指定进程间通信所用协议, 常用nccl来进行GPU之间的高速通信. </p>
+<p>结合<code>torchrun</code>启动分布式训练的命令行如下:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">CUDA_VISIBLE_DEVICES=1,2 torchrun --nproc_per_node=2 train.py</span><br></pre></td></tr></table></figure>
+<p>启动后首先需要对模型进行DDP场景下的加载, 对应代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 启用 SyncBatchNorm</span></span><br><span class="line">    model = nn.SyncBatchNorm.convert_sync_batchnorm(model) </span><br><span class="line">    model = model.to(config.device) </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 使用 DistributedDataParallel 封装模型</span></span><br><span class="line">    model = nn.parallel.DistributedDataParallel(</span><br><span class="line">        model,</span><br><span class="line">        device_ids=[<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>])],</span><br><span class="line">        output_device=<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]) </span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
+<p>以上代码中的<code>nn.SyncBatchNorm.convert_sync_batchnorm(model)</code>的核心作用是跨所有GPU聚合批次的统计信息, 用于共享GPU之间不同数据的计算结果. <code>nn.parallel.DistributedDataParallel(...)</code>在每个进程/GPU 上拥有一个完整的模型副本, 独立进行前向和反向传播. 在反向传播完成后, 它会自动协调(使用 All-Reduce 操作)所有副本的梯度, 并同步更新模型参数, 确保所有 GPU 上的模型保持一致. </p>
+<p>此外, 在进行分布式训练时需要对数据的加载进行对应处理, 使不同GPU读取到不同的训练或测试数据, 对应的代码实现如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) <span class="comment"># 创建分布式数据采样器</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    train_sampler = <span class="literal">None</span> </span><br><span class="line"><span class="comment"># train_loader = DataLoader(train_dataset, sampler=train_sampler, ...)</span></span><br></pre></td></tr></table></figure>
+<p>以上代码中的<code>torch.utils.data.distributed.DistributedSampler</code>为分布式采样器, 根据当前的rank和world_size自动将整个数据集逻辑地分割成world_size个不重叠的子集, 从而保证每个GPU在每个epoch中都能获取唯一且互不重叠的数据批次. </p>
+<p>在训练进行中, 同样需要对数据采集器进行必要的同步操作, 对应代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 在每个 epoch 开始时调用</span></span><br><span class="line">    train_loader.sampler.set_epoch(epoch)</span><br></pre></td></tr></table></figure>
+<p>以上代码中的epoch为当前轮次的编号, 该函数的核心功能是重新打乱数据, 确保每个epoch的数据划分都是随机且均匀的.</p>
+<p>对于模型的运行与训练结果保存, 在模型训练层面, DDP模式下训练循环和单卡类似, 在梯度反向传播中DDP机制会自动在所有进程之间同步梯度, 无需额外干预和对代码的修改. 对于训练权重的保存, DDP模式只在rank=0的进程上执行保存操作. </p>
+<p>通过以上操作即可实现多卡的模型训练与保存. </p>
 ]]></content>
       <categories>
-        <category>论文笔记</category>
+        <category>笔记</category>
       </categories>
       <tags>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>数据集分布相似度量化</title>
+    <url>/2025/12/20/code7/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+dataset similarity measure调研与简单复现
+</p><br><span id="more"></span></p>
+<h1 id="基于metafeature的距离与相似度度量"><a href="#基于metafeature的距离与相似度度量" class="headerlink" title="基于metafeature的距离与相似度度量"></a>基于metafeature的距离与相似度度量</h1><p>Feuer et al.[1]提出使用meta-learning来有效初始化Sequential Model-Based Bayesian Optimization(SMBO)过程. 所设定的前提是在待度量的数据集集合中的每个数据集$D^{(i)}$都可以用K个metafeature描述, 即 $m^i = (m^i_1, m^i_2, … \ ,m_k^i)$. 作者进而提出两种距离度量方法, 一种是直接度量metafeature集的距离作为数据集之间的距离:</p>
+<script type="math/tex; mode=display">
+D_{Fq}(D^{(i)}, D^{(j)}) = \| m^i - m^j \|_q \tag{1}</script><p>第二种度量方法通过negative Spearman correlation度量不同超参数设定的模型性能并将其作为metafeature集合, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+D_{Fc}(D^{(i)}, D^{(j)}) = 1 - \mathcal{Cor}([g^{D^{(i)}}(\theta_1), g^{D^{(i)}}(\theta_2), ... , g^{D^{(i)}}(\theta_n)],[g^{D^{(j)}}(\theta_1), g^{D^{(j)}}(\theta_2), ... , g^{D^{(j)}}(\theta_n)]) \tag{2}</script><p>上式中$g^{D^{(i)}}(\cdot)$代表含参目标函数. 当需要在多个数据集中匹配最相似的数据集时, 由于参数无法固定下来, 因此需要借助mapping function在metafeature对$(m^i, m^j)$和$D_{Fc}(D^{(i)}, D^{(j)})$之间进行回归. 常用的metafeature可以归为以下几个大类:</p>
+<ul>
+<li>用于描述或者量化数据集的简单特征</li>
+<li>PCA metafeatures</li>
+<li>数据集的熵值</li>
+<li>统计特征, 包括数据集的峰度(kurtosis)或者标签的分布宽度(dispersion of label distribution)</li>
+<li>landmarking metafeatures(通过快速的ML算法获得, 如linear separability)</li>
+</ul>
+<p>上述中的峰度kurtosis是指用于描述概率分布曲线在平均值处峰值高低以及尾部厚度的统计量, 用于衡量数据特征的离散程度和异常值的存在情况. 对应数学表达如下:</p>
+<script type="math/tex; mode=display">
+K = \frac{\mu_4}{\sigma^4} = \frac{E[X - \mu]^4}{(E[(X-\mu)^2])^2} \tag{3}</script><p>上式中X为特征变量, $\mu$是均值, $E$是期望算子, $\sigma$是标准差, $\mu_4$是4阶中心矩. </p>
+<p>标签分布宽度则描述了类别分布的平衡程度或离散程度, 可以用类别概率标准差衡量, 对应数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+\sigma_{labels} = \sqrt{\frac{1}{C}\sum_{i=1}^C(p_i - \frac{1}{C})^2} \tag{4}</script><p>上式中C是类别总数, $p_i$是第i类的样本比例. </p>
+<p>此外, 式(2)中所用的Spearman相关系数为范围在[-1,1]间的统计值, 用于度量两组排序(ranks)结果的相关强度, 该系数可以用于衡量数据和模型的契合程度, 对于n对原始分数对$(X_i, Y_i)$, 将其转换为ranks$R[X_i], R[Y_i]$, 令$R[X_i], R[Y_i] = (R_i, S_i)$, 对应的相关系数计算如下:</p>
+<script type="math/tex; mode=display">
+r_s = \rho[R[X], R[Y]] = \frac{cov[R[X], R[Y]]}{\sigma_{R[X]} \cdot \sigma_{R[Y]}} = \frac{\frac{1}{n} \sum_{i=1}^n R_i S_i - \bar{R}\bar{S}}{\sigma_{R[X]} \cdot \sigma_{R[Y]}}      \tag{5}</script><p>上式中的rank不是矩阵的秩, 给定$\{X_1, X_2, …, X_n \}$, 对其进行排序后rank的定义为$R(X_i)$为在排序序列中$X_i$的位置. 当不存在并列的情况时, 表达式可简化为:</p>
+<script type="math/tex; mode=display">
+r_s = 1 - \frac{6 \sum_{i=1}^{n}d_i^2}{n(n^2-1)}\tag{6}</script><p>以SAMPLE数据集以及光学的CIFAR10为例, 通过以下代码可以初步计算real和synth子数据集和光学CIFAR10数据集的峰度和标签分布差异.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ImageClassificationDataset</span>(<span class="title class_ inherited__">Dataset</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, root_dir, transform=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="variable language_">self</span>.root_dir = root_dir</span><br><span class="line">        <span class="variable language_">self</span>.transform = transform</span><br><span class="line">        <span class="variable language_">self</span>.classes = <span class="built_in">sorted</span>(os.listdir(root_dir))</span><br><span class="line">        <span class="variable language_">self</span>.class_to_idx = &#123;cls: idx <span class="keyword">for</span> idx, cls <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="variable language_">self</span>.classes)&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.samples = []</span><br><span class="line">        <span class="keyword">for</span> class_name <span class="keyword">in</span> <span class="variable language_">self</span>.classes:</span><br><span class="line">            class_dir = os.path.join(root_dir, class_name)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> os.path.isdir(class_dir):</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            <span class="keyword">for</span> file_name <span class="keyword">in</span> os.listdir(class_dir):</span><br><span class="line">                file_path = os.path.join(class_dir, file_name)</span><br><span class="line">                <span class="variable language_">self</span>.samples.append((file_path, <span class="variable language_">self</span>.class_to_idx[class_name]))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__len__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(<span class="variable language_">self</span>.samples)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getitem__</span>(<span class="params">self, idx</span>):</span><br><span class="line">        img_path, label = <span class="variable language_">self</span>.samples[idx]</span><br><span class="line">        image = Image.<span class="built_in">open</span>(img_path).convert(<span class="string">&#x27;RGB&#x27;</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.transform:</span><br><span class="line">            image = <span class="variable language_">self</span>.transform(image)</span><br><span class="line">            </span><br><span class="line">        <span class="keyword">return</span> image, label</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>) <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    </span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data, label_data</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">calculate_kurtosis</span>(<span class="params">tensor</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    tensor: shape [n_samples, n_features]</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    mean = torch.mean(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    std = torch.std(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    </span><br><span class="line">    standardized = (tensor - mean) / (std + <span class="number">1e-8</span>)</span><br><span class="line">    fourth_moment = torch.mean(standardized ** <span class="number">4</span>, dim=<span class="number">0</span>)</span><br><span class="line">    kurtosis = fourth_moment - <span class="number">3</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> kurtosis</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_label_distribution</span>(<span class="params">labels</span>):</span><br><span class="line">    unique_labels = torch.unique(labels)</span><br><span class="line">    num_unique_labels = <span class="built_in">len</span>(unique_labels)</span><br><span class="line">    label_counts = torch.bincount(labels)</span><br><span class="line"></span><br><span class="line">    distribution_std = torch.std(label_counts.<span class="built_in">float</span>())</span><br><span class="line">    </span><br><span class="line">    probabilities = label_counts.<span class="built_in">float</span>() / torch.<span class="built_in">sum</span>(label_counts)</span><br><span class="line">    entropy = -torch.<span class="built_in">sum</span>(probabilities * torch.log(probabilities + <span class="number">1e-8</span>))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;num_unique_labels&#x27;</span>: num_unique_labels,</span><br><span class="line">        <span class="string">&#x27;label_counts&#x27;</span>: label_counts,</span><br><span class="line">        <span class="string">&#x27;distribution_std&#x27;</span>: distribution_std,</span><br><span class="line">        <span class="string">&#x27;entropy&#x27;</span>: entropy,</span><br><span class="line">        <span class="string">&#x27;probabilities&#x27;</span>: probabilities</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_dataset</span>(<span class="params">dataset_path, img_size=<span class="number">224</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    </span><br><span class="line">    pixel_data, label_data = extract_features_from_images(dataset, batch_size)  <span class="comment"># 提取特征和标签</span></span><br><span class="line">    </span><br><span class="line">    sample_indices = torch.randperm(pixel_data.shape[<span class="number">1</span>])[:<span class="number">10000</span>]  <span class="comment"># 计算峰度 (采样部分像素以减少计算量)</span></span><br><span class="line">    sampled_pixels = pixel_data[:, sample_indices]</span><br><span class="line">    kurtosis_values = calculate_kurtosis(sampled_pixels)</span><br><span class="line"></span><br><span class="line">    label_stats = analyze_label_distribution(label_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;kurtosis_mean&#x27;</span>: torch.mean(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;kurtosis_std&#x27;</span>: torch.std(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;label_distribution_std&#x27;</span>: label_stats[<span class="string">&#x27;distribution_std&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;label_entropy&#x27;</span>: label_stats[<span class="string">&#x27;entropy&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;num_classes&#x27;</span>: <span class="built_in">len</span>(dataset.classes),</span><br><span class="line">        <span class="string">&#x27;total_samples&#x27;</span>: <span class="built_in">len</span>(dataset)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    synth_dataset_path = <span class="string">&quot;./synth&quot;</span>  </span><br><span class="line">    real_dataset_path = <span class="string">&quot;./real&quot;</span>  </span><br><span class="line">    cifar10_dataset_path = <span class="string">&#x27;./cifar10&#x27;</span>  </span><br><span class="line">    synth_stats = analyze_dataset(synth_dataset_path)</span><br><span class="line">    real_stats = analyze_dataset(real_dataset_path)</span><br><span class="line">    cifar10_stats = analyze_dataset(cifar10_dataset_path)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;result&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Synth&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Real&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;CIFAR10&#x27;</span>:&lt;<span class="number">15</span>&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;-&quot;</span> * <span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;kurtosis_mean&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_std&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_entropy&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>特征结果如下所示<br><figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line"><span class="section">result               Synth           Real            CIFAR10        </span></span><br><span class="line"><span class="section">-------------------------------------------------------------</span></span><br><span class="line">kurtosis<span class="emphasis">_mean        1.1260          0.9982          -0.7343        </span></span><br><span class="line"><span class="emphasis">label_std            30.2811         30.2811         0.0000</span></span><br><span class="line"><span class="emphasis">label_</span>entropy        2.2800          2.2800          2.3026</span><br></pre></td></tr></table></figure></p>
+<h1 id="Gromov-Wasserstein距离"><a href="#Gromov-Wasserstein距离" class="headerlink" title="Gromov-Wasserstein距离"></a>Gromov-Wasserstein距离</h1><p>文献[2]提出基于Gromov-Wasserstein metric来度量数据集之间的相关程度, 对应数学表达如下所示:</p>
+<script type="math/tex; mode=display">
+d_{GW}(\mathcal{X}, \mathcal{Y}) = \inf_{\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})}   \int_{\mathcal{X}^2 \times \mathcal{Y}^2} |d_{\mathcal{X}}(x, x') -d_{\mathcal{Y}}(y, y')|^q \cdot d\pi(x,y)d\pi(x',y') \tag{7}</script><p>上式实际度量了两个概率空间$\mathcal{X}$和$\mathcal{Y}$之间的距离, 其中的$\mathcal{X}$和$\mathcal{Y}$不仅包含距离结构$d_{\mathcal{X}}$, $d_{\mathcal{Y}}$, 还带有概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$. $\pi$为最优传输理论中的联合概率测度, 对应的$\Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$是所有满足边缘约束的耦合集合. 当用于度量给定的数据集$\mathcal{X}=\{x_1, …, x_n \}$和$\mathcal{Y}=\{y_1, …, y_m\}$时, 对于度量空间$(\mathcal{X}, d_{\mathcal{X}})$的定义,  $d_{\mathcal{X}}:\mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}_+$可以表示为如下形式:</p>
+<script type="math/tex; mode=display">
+d_{\mathcal{X}}(x_i, x_j) =  \| \phi(x_i) - \phi(x_j) \|_2 \tag{8}</script><p>其中的$\phi(\cdot)$为特征提取器. 对于概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$, 在有限数据集上使用经验分布:</p>
+<script type="math/tex; mode=display">
+\mu_{\mathcal{X}} = \frac{1}{n}\sum_{i=1}^n \delta_{x_i}, \quad \mu_{\mathcal{Y}} = \frac{1}{m}\sum_{j=1}^m \delta_{y_j} \tag{9}</script><p>其中的$\delta$为狄拉克测度, 可以简单理解为每个$x_i$在数据集中的比例. 联合概率测度$\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$则表示一个软匹配关系, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+\pi_{ij} \geq 0, \quad  \sum_j \pi_{ij} = \frac{1}{n}, \quad \sum_i \pi_{ij} = \frac{1}{m} \tag{10}</script><p>GW距离并非衡量数据集中的点是否接近, 而是两个数据集的内部集合结构是否一致. 同上, 借助POT库(python optimal transport)可以实现GW的计算与可视化, 同样分别比较real-synth和real-cifar10, 代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> scipy <span class="keyword">as</span> sp</span><br><span class="line"><span class="keyword">import</span> ot</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> TSNE</span><br><span class="line"><span class="keyword">from</span> method1 <span class="keyword">import</span> ImageClassificationDataset <span class="comment">#同上</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, </span><br><span class="line">                          shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>)  <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data.numpy(), label_data.numpy() </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">load_dataset_features</span>(<span class="params">dataset_path, img_size=<span class="number">32</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    features, labels = extract_features_from_images(dataset, batch_size)</span><br><span class="line">    <span class="keyword">return</span> features, labels</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">compute_and_visualize_gw_with_features</span>(<span class="params">real_path, synth_path, feature_method=<span class="string">&#x27;pixel&#x27;</span>, img_size=<span class="number">128</span></span>):</span><br><span class="line">    real_features, real_labels = load_dataset_features(real_path, img_size)</span><br><span class="line">    synth_features, synth_labels = load_dataset_features(synth_path, img_size)</span><br><span class="line">    </span><br><span class="line">    C1 = sp.spatial.distance.cdist(real_features, real_features)</span><br><span class="line">    C2 = sp.spatial.distance.cdist(synth_features, synth_features)</span><br><span class="line">    C1 /= C1.<span class="built_in">max</span>()</span><br><span class="line">    C2 /= C2.<span class="built_in">max</span>()</span><br><span class="line">    </span><br><span class="line">    n_real, n_synth = <span class="built_in">len</span>(real_features), <span class="built_in">len</span>(synth_features)</span><br><span class="line">    p = ot.unif(n_real)</span><br><span class="line">    q = ot.unif(n_synth)</span><br><span class="line">    </span><br><span class="line">    gw, log = ot.gromov.gromov_wasserstein(</span><br><span class="line">        C1, C2, p, q, <span class="string">&quot;square_loss&quot;</span>, verbose=<span class="literal">True</span>, log=<span class="literal">True</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">6</span>))</span><br><span class="line">    plt.imshow(gw, cmap=<span class="string">&#x27;Blues&#x27;</span>)</span><br><span class="line">    plt.title(<span class="string">f&#x27;GW Transport Matrix (<span class="subst">&#123;feature_method&#125;</span>)\nGW Distance: <span class="subst">&#123;log[<span class="string">&quot;gw_dist&quot;</span>]:<span class="number">.6</span>f&#125;</span>&#x27;</span>)</span><br><span class="line">    plt.colorbar()</span><br><span class="line">    plt.show()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;distance&#x27;</span>: log[<span class="string">&quot;gw_dist&quot;</span>],</span><br><span class="line">        <span class="string">&#x27;transport_plan&#x27;</span>: gw,</span><br><span class="line">        <span class="string">&#x27;real_features&#x27;</span>: real_features,</span><br><span class="line">        <span class="string">&#x27;synth_features&#x27;</span>: synth_features</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    results = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./synth&quot;</span>)</span><br><span class="line">    results2 = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./cifar10&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;Gromov-Wasserstein Distance Results:&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results2[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>在分析实验结果之前, 首先对图像统计特征进行可视化. 将特征提取器设定为对图形简单一维展平, 获取特征集合的特征值分布图像和不同维度的方差分布, 结果从上至下分别为real-synth和real-cifar10, 下同. 对应可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着, 使用PCA对图像进行降维可视化, 分别按数据集和按类别进行着色区分, 可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>最终, 用t-SNE对展平的一维特征进行可视化处理, 对应结果如下所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着使用GW距离进行数据集相似度统计, 首先可以对代价矩阵(即由$d_{\mathcal{X}}$或$d_{\mathcal{Y}}$构成的元数据点两两之间距离匹配矩阵)进行可视化, 对应结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4_cifar10.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>运行算法可得, 最终不同数据集对之间的GW距离结果如下:</p>
+<figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line">==================================================</span><br><span class="line">Gromov-Wasserstein Distance Results:</span><br><span class="line">==================================================</span><br><span class="line">GW distance: 0.003756</span><br><span class="line">GW distance: 0.011917</span><br></pre></td></tr></table></figure>
+<h1 id="Deep-Dataset-Dissimliarity-Measures-DeDiMs"><a href="#Deep-Dataset-Dissimliarity-Measures-DeDiMs" class="headerlink" title="Deep Dataset Dissimliarity Measures(DeDiMs)"></a>Deep Dataset Dissimliarity Measures(DeDiMs)</h1><p>文献[3]提出了一种融合数据和标签分布以及半监督深度学习的数据分布匹配评估方法, 主要通过设计4个特殊的距离函数实现, 给定两个数据集$D^a$和$D^b$, 对应步骤如下:</p>
+<ol>
+<li>对数据集进行随机采样, 在系数$\tau$的约束下获得两个对应的子集, 称为$D^{a,\tau}$和$D^{b,\tau}$</li>
+<li>通过特征提取器(feature extractor)获得子数据集对应的特征向量集$H^{a,\tau}$和$H^{b,\tau}$</li>
+</ol>
+<p>完成上述两个步骤后, 首先需要计算 Minkowski-based distance set, 对应的过程如下:</p>
+<ol>
+<li>选取Manhattan距离或欧式距离(q-norm取1或2)计算距离$d_i=min_k |h_i - h_k |_q$, $h_i$为从$H^{a, \tau}$中采集C个样本构成, $h_k$是$H^{b, \tau}$中与之最接近的向量, 通过该步骤获取一个距离列表$d_{l_q}(D^a,D^b, \tau, C) = \{ \hat{d_1}, …,\hat{d_C}\}$</li>
+<li>类似步骤1, 计算$D^a$的组内距离, 获得参考距离列表(reference distance list)$d_{l_q}(D^a,D^a, \tau, C) = \{ \check{d_1}, …,\check{d_C}\}$</li>
+<li>计算上述两个距离列表的差值绝对值, 同时计算各个距离列表与自身均值的离散分布以及Wilcoxon test的p-value</li>
+</ol>
+<p>上述方法可以视为基于比较密度方程(comparing density function)的数据集相似度评估算法, 计算过程同时评估的数据集内和不同数据集之间的距离差异, 可以更好地反映数据集之间的分布差异并提升半监督深度学习(semi-supervised deep learning ,SSDL)的性能.</p>
+<p>此外, 上述的Minkowski distance, 也被称为Minkowski metric, 是一种正则化向量空间, 可以视为曼哈顿距离和欧式距离的推广. 对于两个向量集合$X = (x_1, x_2, …, x_n)$和$Y = (y_1, y_2, …, y_n)$, 对应计算公式如下:</p>
+<script type="math/tex; mode=display">
+D(X,Y)=(\sum_{i=1}^n |x_i - y_i|^{p})^{\frac{1}{p}} \tag{11}</script><p>该距离的设计启发来自Minkowski不等式, 通常p被设定为1或2, 分别对应曼哈顿距离和欧式距离. 闵氏距离可以理解为两个向量集合之间的能量平均. 对于Wilcoxson test, 有两种常见的检验定义, 分别为Wilcoxon Signed-Rank Test(符号秩检验)和Wilcoxon Rank-Sum Test(秩和检验), 前者基于成对样本, 后者则适用于独立样本, 没有一一对应关系. 此处采用的是Wilcoxon符号检验.  </p>
+<p>Wilcoxon符号秩检验是一种非参数假设检验方法, 用于比较两个配对样本是否有显著差异. 这里的秩是指数据绝对值大小所带来的排名. 对于两组距离列表, 首先计算每对数据的差值$D_i = x_i - y_i$, 当$D_i = 0$时会将该数据从分析中提出并对样本总数-1; 接着计算绝对值的秩, 对所有非零差值绝对值进行排序并从小至大赋予秩次$R_i$.</p>
+<script type="math/tex; mode=display">
+R_i = Rank(|D_i|) \tag{12}</script><p>此外需要定义相应的符号函数$sgn(\cdot)$以规定差值的方向, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+sgn(D_i) = 
+
+\begin{cases}
++1 \quad if D_i > 0 \\
+-1 \quad if D_i < 0
+\end{cases}
+\tag{13}</script><p>最终将符号秩总和作为检验结果:</p>
+<script type="math/tex; mode=display">
+W_{sum} = \sum_{i=1}^n sgn(D_i)\cdot R_i \tag{14}</script><p>对于上述假设检验或其他任意假设检验, 还可以用p值刻画分布的内涵. 其统一的定义为:</p>
+<script type="math/tex; mode=display">
+p = \mathbb{P}_{H_0}(T(X) \sim T(x_{obs})) \tag{15}</script><p>其中X为随机样本, $x_{obs}$为观测样本, $T(\cdot)$为检验统计量, $\mathbb{P}_{H_0}$为在原假设$H_0$成立条件下的概率. 对于Wilcoxon检验, 原假设为差值的中值为0, 即数据分布呈现中心对称.</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]: Initializing Bayesian Hyperparameter Optimization via Meta-Learning, AAAI</p>
+<p>[2]: Modern approaches to discrete curvature, Book</p>
+<p>[3]: Dataset Similarity to Assess Semisupervised Learning Under Distribution Mismatch Between the Labeled and Unlabeled Datasets, IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>review</tag>
+        <tag>代码复现</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>建站记录</title>
+    <url>/2025/01/09/hello-world/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
+</div><br><span id="more"></span></p>
+<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
+<ul>
+<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
+<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
+<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
+<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
+<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
+<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
+<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
+<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
+<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
+<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
+<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
+<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
+<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
+<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
+<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
+<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
+<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
+<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
+<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
+<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
+            <p>我为什么需要一个博客？ </p>
+          </div>  
+<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
+<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
+<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
+<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>建站</tag>
         <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-        <tag>迁移攻击</tag>
       </tags>
   </entry>
   <entry>
@@ -565,86 +577,97 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
       </tags>
   </entry>
   <entry>
-    <title>建站记录</title>
-    <url>/2025/01/09/hello-world/</url>
+    <title>论文笔记：SAR Conditional Random Field Attack</title>
+    <url>/2025/08/11/paper-CRF/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
-这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
+关于论文CRFA的笔记  
 </div><br><span id="more"></span></p>
-<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
-<ul>
-<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
-<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
-<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
-<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
-<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
-</ul>
-<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
-<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
-<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
-<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
-<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
-<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
-<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
-<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
-<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
-<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
-<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
-<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
-<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
-<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
-<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
-<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
-            <p>我为什么需要一个博客？ </p>
-          </div>  
-<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
-<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
-<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
-<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>建站</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>  
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><h2 id="logistic回归模型"><a href="#logistic回归模型" class="headerlink" title="logistic回归模型"></a>logistic回归模型</h2><p>二项(二分类)Logistic回归模型可以理解为参数化的Logistic分布.对于Logistic分布,设X为连续的随机变量,所服从的概率分布函数和概率密度函数如下.  </p>
+<script type="math/tex; mode=display">
+F(x) = P(X \leq x) = \frac{1}{1+e^{-(x-\mu)/\gamma}} \tag{1}</script><script type="math/tex; mode=display">
+f(x) = F(x) = \frac{e^{-(x-\mu)/\gamma}}{\gamma(1+e^{-(x-\mu)/\gamma})^2} \tag{2}</script><p>上式中$\mu$为位置参数,$\gamma &gt; 0$为形状参数.分布函数的图像是一条Sigmoid曲线,满足中心对称,在中心附近的增长速度快,在两端的增长速度慢.同时在DNN模型中Logistic函数也会和Sigmoid激活函数之间形成天然的联系.而当作为二分类模型时,logistic分类模型会对输入变量X进行0或1的标签Y划分,通过有监督学习的方法估计模型的参数.对应的表达式如下.</p>
+<script type="math/tex; mode=display">
+P(Y=1|x)=\frac{exp(w \cdot x + b)}{1 + exp(w \cdot x + b)} \tag{3}</script><script type="math/tex; mode=display">
+P(Y=0|x) = \frac{1}{1 + exp(w \cdot x + b)} \tag{4}</script><figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/d0f755e55f9da868d9da7d21e06fd007.png" alt="图像描述">
+  <figcaption style="text-align: center;">Logistic分布的概率密度函数和分布函数图像</figcaption>
+</figure>
 
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<p>在DNN分类模型中,不妨将二分类场景下模型最后一层输出设定为logit值,满足 $logit(z)=\mathbf{w} \cdot \mathbf{x}$.不难发现logit取值涵盖整个实数域,而我们希望找到一种转换函数,使模型的因变量变为分布于[0-1]的概率,同时logit的取值越大,标签Y为1的概率越大;logit的取值越小, 标签Y为0的概率越大(即为1的概率越小,同时这也表明了目标映射函数必须使关于0中心对称的).</p>
+<p>这里需要引入几率(Odds)的概念,并与概率(probability)的概念相对照.如果简单地将概率理解为采样空间中目标事件的占比(需满足非负性,规范性和可列可加性),那么几率则是目标事件与非目标事件的比值.对应几率比的表达式如下.几率是概率的函数,对事件的发生更加敏感,而对于0/1分类模型,事件发生和不发生应当时对称的,即将标签0打为标签1时,模型参数应当是一直而无趋向性的.</p>
 <script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+oddsRatio(p) = \frac{p}{1-p} \tag{5}</script><figure>
+    <img src=https://raw.githubusercontent.com/boremycin/ImageBed/master/3b21a1ffdd65657d152103fb7cdfdbf7.png>
+    <figcaption style="text-align: center;">oddsRatio和取对数的log oddsRatio</figcaption>
+</figure>
+
+
+<p>观察函数分布可以发现,将几率取对数后就是理想的中心对称图像,函数的自变量为[0-1]的分布,因变量覆盖整个实数域.因此,将其转置即可实现从logit到概率的映射,即有如下推导过程.</p>
 <script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+logit(z) = \mathbf{w} \cdot \mathbf{x} = log(\frac{p}{1-p}) \tag{6}</script><script type="math/tex; mode=display">
+p = \frac{exp(logit(z))}{1 + exp(logit(z))} \tag{7}</script><p>从式(7)不难发现,模型概率p即满足一个logistic分布,同时这也是一个sigmoid函数.因此,logistic回归模型可以视为一个Linear线性层和一个sigmoid激活函数叠加的简单DNN模型.对于多分类任务,则可以将sigmoid推广至softmax,即sigmoid是softmax的特例.</p>
+<p>不过在论文正文中,只简单用到了Logistic回归模型对Feature Vector进行前景和背景的二分类操作.</p>
+<h2 id="条件随机场-Conditonal-Random-Field"><a href="#条件随机场-Conditonal-Random-Field" class="headerlink" title="条件随机场(Conditonal Random Field)"></a>条件随机场(Conditonal Random Field)</h2><p>条件随机场(CRF)可以简单理解为用于结构化预测的概率图模型,模型输入序列X,输出标签序列Y.表达式如下,其中的$f_k$为特征函数,$\lambda_k$为相应权重,$Z(X)$为归一化因子.</p>
 <script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+P(Y|X) = \frac{1}{Z(X)}exp(\sum_i \sum_k \lambda_k f_k (y_{i-1},y_i,X,i) \tag{8}</script><script type="math/tex; mode=display">
+Z(X) = \sum_{Y'}exp(\sum_i \sum_k \lambda_k f_k(y'_{i-1},y'_i,X,i))  \tag{9}</script><p>对于训练完成的CRF模型,给定输入X后可以找出最可能的标签序列Y.</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>本文不同于常见的聚焦于SAR图像分类模型的对抗样本设计,而是提出了针对SAR目标检测模型的攻击方法.对于SAR图像而言,不同像素之间存在着明显的上下文信息相关性(目标-目标,目标-背景等等),影响了目标检测模型的决策过程.该论文首次提出通过CRF干扰SAR目标像素和背景像素之间的内在联系,设计了代表目标-背景区域特征向量差异性的语义信息损失,结合目标检测模型已有的目标损失,回归损失和分类损失进行loss最大优化,通过尝试最大化迭代过程前后目标-背景区域的特征向量的CRF差异实现攻击.</p>
+<h1 id="方法介绍"><a href="#方法介绍" class="headerlink" title="方法介绍"></a>方法介绍</h1><p>结合式(8)和式(9),CFR的表达式可以理解为通过基于Gibbs分布的概率分布与能量函数之间的关系,即式(8)的指数表达式部分可以理解为负能量函数,能量越低,对应标签分配y的可能性越大,而取负能量表达形式的原因是物理学中低能量状态出现的概率更高,对应的简化表达式为:</p>
+<script type="math/tex; mode=display">
+P(Y|X) = \frac{1}{Z(X)}exp(-E(Y,X)) \tag{6}</script><p>因此,在从CRF视角下的目标检测任务即为最小化能量函数.CRFA的后续设计也基于能量函数展开(同时符合loss上升实现对抗的优化方向).论文从一元序列(unary)和成对序列(pairwise)两个角度出发设计了相应的特征函数,分别为$\phi_i$和$\phi_{ij}$,相应的表达式如下.</p>
+<script type="math/tex; mode=display">
+\phi_i(y_i,X) = -ln(P(y_i = l_k | X)) \tag{11}</script><script type="math/tex; mode=display">
+\phi_{ij}(y_i,y_j,X) = 
+\begin{cases}
+0 & \ if \  x_i = x_j \\ 
+1 + \theta \cdot \frac{exp(-\| x_i - x_j \|^2)}{\| i - j  \|^2} & \ otherwise
+\end{cases} \tag{12}</script><p>对于式(12)的pairwise表达项,论文解释为当输入的两个像素有相似的纹理或色彩特征并被分类为不同类别时,二元项的值更大,最终的能量表达式为:</p>
+<script type="math/tex; mode=display">
+E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi_{ij}(y_i,y_j,X)  \tag{13}</script><p>论文提出,图像加入扰动前后的E的差别应该尽可能大,最终的伪代码流程和攻击示意图如下所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/23837804083de5ae3fde456c0481d7ca.png" alt="23837804083de5ae3fde456c0481d7ca"></p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>论文使用SSDD数据集训练了YOLOv3,SSD和Faster RCNN三种目标检测网络,在白盒攻击场景下与不同对抗算法比较的实验结果如下,可以看出作者在实验中并未将同一种攻击算法在所有模型上都进行测试.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6bf8a3a38e6f172bdf91bc77d955b575.png" alt="6bf8a3a38e6f172bdf91bc77d955b575"></p>
+<p>此外,作者还以替代模型的形式测试了CRFA的对抗样本攻击迁移性,结果表明算法展现了一定的攻击迁移能力,但并不显著,统计结果如下图所示.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/e76cc1f82da3a2b16d4ae0e358ede7f9.png" alt="e76cc1f82da3a2b16d4ae0e358ede7f9"></p>
+<p>同时作者也进行了部分消融实验,在此仅展示不同损失项叠加的结果,说明了引入的额外损失项确实促进了算法的攻击效果.下图中√表示加入的损失函数项,以第二行作为基础逐渐累加.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/10cb1b63c167cc8908351c78cd5bcfaa.png" alt="10cb1b63c167cc8908351c78cd5bcfaa"></p>
+<h1 id="总结与回顾"><a href="#总结与回顾" class="headerlink" title="总结与回顾"></a>总结与回顾</h1><p>CRFA结合SAR图像的成像机理,首次从前景-背景的图像成像结果特点出发,选择介于CRF工具引导模型损失函数在梯度上升迭代的过程中破坏图像的前景-背景分布相似性,从而达到更好的攻击效果.但从原理上看,对抗样本的效果下限仍是由梯度迭代上升操作本身进行保证的,同时实验部分没有做到对抗方法的统一,缺少了说服力.</p>
+<p>最后,也必须说明这篇文章的成稿质量低到了令人发指的程度.SAR领域的AI文章读起来云里雾里让人难受并不少见,但这篇读到如鲠在喉的效果还是稀缺的.出现的问题如下:</p>
+<ul>
+<li>变量定义时缺少主语或引用不当</li>
+</ul>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201213.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201329.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>相关变量缺少定义说明</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201348.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>CRF具体的训练过程没有明确说明,以及伪代码部分依赖RPN训练CRF,没有说明如何迁移到YOLOv3的单阶段模型上.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/65f551d265932555e29c33f64c00f312.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
+
+<ul>
+<li>指二为三:声明有三个迭代终止情况,但只列举了两条.</li>
+</ul>
+<figure style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250811201752.png" style="width: 100%; height: 6%; object-fit: cover;">
+</figure>
+
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -656,123 +679,43 @@ r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元�
       </tags>
   </entry>
   <entry>
-    <title>论文笔记：SAR-VLF</title>
-    <url>/2025/11/04/paper10/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-针对PolSAR和SAR的小样本Few-Shot场景改进CLIP模型框架
-</p><br><span id="more"></span></p>
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文发表于2025 TCSVT</p>
-<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>在真实的SAR-ATR场景中, 对于非合作目标, 往往无法获得大量数据用于模型的训练, 因此需要关注Few-shot条件下SAR-ATR模型的性能. 随着CLIP等pre-trained模型在可见光图像zero-shot和few-shot任务上取得了优异的性能, 如何将其与SAR图像结合以解决跨域任务下(可见光-&gt;SAR)的少样本识别准确率, 作者结合预训练的CLIP模型提出了VLF-SAR(Vision Language Framework SAR)的少样本识别框架, 论文的主要创新点如下:</p>
-<ol>
-<li><p>设计了频域嵌入模块(frequency embedded module, FEM)来提取图像中的频率域信息. 论文将所要识别的SAR图像分为了PolSAR和Traditional SAR两类, 并提出了相应的VLF-SAR-P和VLF-SAR-T.</p>
-</li>
-<li><p>对于VLF-SAR-P, 论文提出了名为polarimetric feature selector(PFS)的模块, 在图像结构相似度的基础上用于提取最合适的测定偏振向量, 为了实现不同偏振方向的向量之间的动态选取, 作者进而提出了adaptive multimodal triple attention mechanism(AMTAM). 此外, 作者引入了对比学习的方法, 通过将上述feature 划分为positive和negative来增强对于feature的区分和选取.</p>
-</li>
-<li><p>对于VLF-SAR-T, 由于一般的SAR图像只包含反映了幅值信息, 作者针对此提出了multimodal fusion attention mechanism(MFAM)处理信息量相对较少的SAR图像.</p>
-</li>
-</ol>
-<h1 id="核心方法"><a href="#核心方法" class="headerlink" title="核心方法"></a>核心方法</h1><p>VLF-SAR的整体架构如下图所示:</p>
-<figure style = "text-align: center">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251019200059.png" style = "height: 400px width: auto">
-</figure>
-
-<p>由于基于电磁散射的特殊成像机理, SAR图像呈现出包含大量散斑噪声, 高对比度和缺少自然色彩信息等特点, 也导致SAR图像和可见光图像之间存在巨大的domain gap. 在SAR成像过程中, 电磁波后向散射的信息会包含在成像结果的频率域当中, 因此作者提出了physical information guidance module(PIGM)来提取和利于图像频率域中所包含的物理信息.</p>
-<h2 id="FEM模块"><a href="#FEM模块" class="headerlink" title="FEM模块"></a>FEM模块</h2><p>该模块选择DCT进行空域SAR图像的频域转换, DCT变化的数学表达形式如下:</p>
+    <title>论文笔记:DeCoWa</title>
+    <url>/2025/06/10/paper-decowa/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于DeCoWa的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文收录于AAAI2024</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>针对不同类型模型（例如CNN模型和ViT模型）之间的架构差异，作者从对抗样本攻击迁移性出发，提出了基于图像变换增强的对抗攻击方法。该方法在现有的MI-FGSM攻击方法的基础上，从图像形态变换的角度出发继续攻击效果的增强。本文提出的攻击方法名为Deformation-Constrained Warping Attack(DeCoWA)，该方法通过对输入图像（或类似音频，视频数据）进行弹性变换（elastic deformation）来获取丰富的全局信息并避免图像语义信息损失.</p>
+<h1 id="相关背景"><a href="#相关背景" class="headerlink" title="相关背景"></a>相关背景</h1><h2 id="CNN与ViT的架构差异"><a href="#CNN与ViT的架构差异" class="headerlink" title="CNN与ViT的架构差异"></a>CNN与ViT的架构差异</h2><p>一般认为,CNN架构模型近似于高通滤波器,会捕捉图像的高频信息作为判断特征,而ViT架构(即Transformer模型)则近似于低通滤波器,会捕捉图像的全局信息.在论文的开始部分,作者利用ResNet50和DeiT-B模型进行了简单实验初步验证了以上观点.结果如下图.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/4f53d165b9c6ad72fa4c49ce6a9999ef" alt="4f53d165b9c6ad72fa4c49ce6a9999ef"></p>
+<p>对于左图实验,作者对完整图像进行patch划分,并对其中的部分图像进行模糊操作.结果表明随着被模糊图块占比的增加,CNN模型出现了明显的性能降低而ViT模型仍能保持较高的准确率;对于右图实验,作者则是重复局部patch来构建被测试图像,结果显示ViT模型的分类准确率的下降程度比CNN模型更加显著.</p>
+<h2 id="迁移对抗攻击"><a href="#迁移对抗攻击" class="headerlink" title="迁移对抗攻击"></a>迁移对抗攻击</h2><p>在ViT模型被广泛应用之前，对抗攻击迁移性主要聚焦于CNN模型之间。经典的迁移性提升对抗算法的设计往往从<strong>动量增强</strong>、<strong>方差调整（variance tuning，如引入对损失函数的方差控制）</strong>、<strong>知识先验（knowledge-based）</strong>和<strong>基于生成模型</strong>等角度出发进行设计。其中作者特别提到了基于梯度的动量增强的迁移攻击算法：MIM算法在FGSM的基础上加入动量项来保持梯度方向；SI-NI-FGSM算法继续讲动量项设置为Nestero项并加入了方差调整。   </p>
+<p>对于SI-NI-FGSM的具体说明如下：NI值Nesterov Iterative，该方法将加入扰动的目标由第t轮的图像$x_t$变更为了包含累计梯度信息的新变量$x_t + \alpha \cdot \mu \cdot g_t$，其中$g_t$为第t轮的累计梯度动量。使用Nesterov Accelerated Gradient（NAG）的动机是该方法可以加快攻击收敛速度并在损失函数分布空间中跳出局部最优，获得更有效的扰动矩阵。$g_t$的迭代公式如下。  </p>
 <script type="math/tex; mode=display">
-D(u, v) = \alpha(u) \cdot \alpha(v) \sum_{x = 0}^{M-1} \sum_{y = 0}^{N-1} \mathbf{I}(x, y) \cdot cos[\frac{(2x+1)u\pi}{2M}] \cos[\frac{(2y+1)v\pi}{2N}] \tag{1}</script><p>上式中的$\mathbf{I}(x,y)$为M*N的输入图像, $\alpha(\cdot)$为不同方向上的尺度缩放因子. 在进行DCT变换之后, 作者设定了全局阈值T来对频域矩阵进行阈值分割处理, T的表达形式如下:</p>
+g_(t+1) = \mu \cdot g_t + \nabla_x J (x_t + \alpha \cdot \mu \cdot g_t,y_{true})</script><p>上式中$J$为损失函数,$y_{true}$为图像真实标签.在更新$x_t$时思想与FGSM相同,只是梯度方向采用$g_t$作为替代.对于方差修正的部分,则采用了尺度不变法(Scale-Invariant Method，SIM).即对于输入图像x，生成m个不通过尺度的图像$x_1’,x_2’,…,x_m’$后在每个缩放版本的图像上利用当前迭代的临时版本计算梯度$x_t$计算相应的梯度(加入尺度对齐处理),最后对所有缩放尺度上的梯度求平均或求和，即获得最终的聚合梯度。</p>
+<p>SI-NI-FGSM算法结合了 Nesterov 加速梯度在优化过程中的稳定性和“向前看”能力，以及尺度不变性在不同尺度上生成鲁棒扰动的能力，使得生成的对抗性样本在攻击其他黑盒模型时表现出显著更高的成功率。减少了对抗性样本对白盒模型特定特征的“过拟合”。有效提高了针对CNN模型的对抗攻击可迁移性。</p>
+<p>随着基于Transformer的ViT模型不断发展,研究者也开始关注针对ViT模型的可迁移黑盒攻击.其中较为前沿的有ATA(Architecture-Oriented Transferable Attacking)和TGR(Token Gradient regularization)等.以ATA算法为例,该算法重点关注了不同架构模型间的梯度差异,同时利用多个替代模型进行梯度更新,对应的梯度更新公式如下所示.  </p>
 <script type="math/tex; mode=display">
-T = n \times mean(|D|) \tag{2}</script><p>上式中的n被设定为3, 来区分SAR图像的前景和背景. 根据T作者将DCT矩阵分为两份, 保留大于T部分的矩阵称为$D_{denoised}$, 另一个矩阵称为$D_{noise}$, 其中前者压缩了原始图像中的低频信息(denoise的对象则为高频的speckle noise), 后者则保留了高频信息. 此外, 作者提出了一种将单通道灰度PolSAR图像通过IDCT重建为3通道空域图像的方法, 其中各个通道的组成成分如下:</p>
+g_{t+1} = \mu \cdot g_t + \frac{\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))}{\|\nabla_x \mathcal{L}(\hat{x_t},y) + \lambda \cdot \nabla_x\mathcal{D}(f_1(\hat{x_t}),f_2(\hat{x_t}))\|_1}</script><p>上式中$\mathcal{L}$是标准的交叉熵损失, $\mathcal{D}$是散度度量函数(如KL散度),$\lambda$是平衡二者的超参数,$f_1$和$f_2$分别代表CNN架构和ViT架构的模型.</p>
+<p>此外,模型还加入了结构感知的随机降噪模块(Structure-aware Random Denoise, SRD),该模块的出发点是不同架构模型在深层特征上的差异较大,但在模型浅层空间中同一样本对应的特征(如边缘,纹理等)则往往较为接近.SRD模块首先在对抗样本迭代过程中加入随机降噪的操作,其中降噪的强度,概率分布和参数随机变化(如高斯滤波,均值滤波或中值滤波等),该降噪操作可以提升对抗样本的泛化性能,避免对单一模型的梯度信息过拟合;其次进行结构保持,当认为不同模型都会关注图像的边缘和轮廓等区域时,通过避免对该区域的降噪处理来保持对抗样本的攻击性能,实现方法为用诸如Canny或Sobel等标准边缘检测算子提取掩码矩阵,在降噪过程中保留前后差值矩阵,向降噪后的图像加入掩码部分的差值即实现边缘区域的信息复原,然后进行上述的梯度更新和对抗扰动迭代过程.</p>
+<h1 id="核心算法"><a href="#核心算法" class="headerlink" title="核心算法"></a>核心算法</h1><p>本文实现对抗迁移的核心是在替代模型上在对抗样本的迭代过程中加入图像变换过程,选择的参考算法是TPS算法.TPS是经典的非线性差值和图像变形算法,输入一组源点(包含x,y坐标),输出对应的目标点.该函数的通常变换形式如下.  </p>
 <script type="math/tex; mode=display">
-I_{DCT-3}(x, y ,1) = I(x, y)</script><script type="math/tex; mode=display">
-I_{DCT-3}(x, y ,2) = IDCT(D_{denoised})</script><script type="math/tex; mode=display">
-I_{DCT-3}(x, y ,3) = IDCT(D_{noised}) \tag{3}</script><p>该重建操作主要目的是对齐CLIP模块三通道输入的要求, 同时对于PolSAR和SAR图像都可以提取到基础的图像信息.</p>
-<h2 id="VLF-SAR-P模块"><a href="#VLF-SAR-P模块" class="headerlink" title="VLF-SAR-P模块"></a>VLF-SAR-P模块</h2><p>在PolSAR图像的解译过程中, 极化特征向量包含着成像目标区域的物理特性信息. 因此, 在进行PolSAR图像的小样本分类时需要重点关注极化特征向量的提取与选择(因为polar feature 通常多余3个). 论文提出了极化特征向量选取算法, 基于SSIM(structural similarity index measure)进行改进, 提出了名为Combined Similarity Index Measure的特征向量评估方法. 对于SSIM, 数学表达形式如下: </p>
+f(x,y)= a_1 + a_2x + a_3y + \sum_{i=1}^N w_i \cdot U(\|(x,y)-(x_i,y_i)\|)</script><p>上式中的$a_1,a_2,a_3$为仿射变换的参数,$w_i$为控制非线性扭曲的权重.$U(r) = r^2log(r)$,为TPS基函数,N为变换点的个数.</p>
+<p>DeCoWa在TPS的基础上,针对源点选择具有随机性的问题进行改进,加入了自适应控制策略,原始的坐标点选择向量为$\xi$,从正态分布中随机采样获得,变换函数为$T_v$,则结合对抗场景的目标坐标点选择向量应使替代模型的损失函数取最小,以减少图像全局语义信息的损失.对应优化目标表达式如下. </p>
 <script type="math/tex; mode=display">
-SSIM(I_1, I_2) = \frac{(2 \mu_{I_1} \mu_{I_2} + C_1) (2\sigma_{I_1I_2} + C_2)}{(\mu_{I_1}^2 +  \mu_{I_2}^2 + C_1)(\sigma_{I_1}^2 + \sigma_{I_2}^2 + C_2)} \tag{4}</script><p>上式中$\mu$为图像的均值, $\sigma$为图像的方差, 参数$C_1$和$C_2$被用于平衡分子和分母. 对于PolSAR图像, 背景散斑噪声占据了图像的主体部分, 会严重影响图像的均值与方差, 使不同图像间的差异被缩小或忽略. 因此作者提出使用Ostu图像分割算法提取PolSAR图像的主体部分并产生对应的mask掩膜矩阵, 再统计不同图像主体部分间的结构相似度, 这里所用于比较的图像为原始的PolSAR图像和所提取出的polar features. 掩膜矩阵M的定义如下:</p>
+\hat{\xi} = \arg \min_\xi \mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y)</script><p>上式中$S_\theta$为替代模型,y为真实标签.结合迭代更新的反向传播过程,设置学习率为$\beta$,对应的更新公式如下:</p>
 <script type="math/tex; mode=display">
-m = \arg \max_{\tau}[\sigma_B^2(\tau)]</script><script type="math/tex; mode=display">
-M(x, y) = \left\{ \begin{array}{rcl}
-1, & \ if \ I(x,y)  \geq m \\
-0, & \ if \ I(x,y)  \leq m \tag{5}
-
-\end{array}\right.</script><p>上式中的$\sigma_B^2(\tau)$为类间差额阈值(between class variance threshold), $M(x,y)$为对应的掩码矩阵.由此可以获得如下表达式:</p>
+\hat{\xi} = \xi - \beta \cdot \nabla_\xi (\mathcal{L}(\mathcal{S_\theta}(T_v(x_t^{adv};\xi)),y))</script><p>论文给出了对应的更新过程示意图和图像变换结果示意图,如下图所示.结果表明,当前的变化算法可以增加对抗样本的局部特征信息并同时不破坏全局语义信息.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/6d2055ecd7d3542dd5f27088f00b423f" alt="6d2055ecd7d3542dd5f27088f00b423f"></p>
+<p>结合MI-FGSM后的非动量梯度计算公式如下:</p>
 <script type="math/tex; mode=display">
-S_M(P_i, O) = SSIM(P_{iM}, O_{M}) \tag{6}</script><p>在此基础上, 作者引入了另一种度量矩阵FSIM, 会根据图像的梯度信息和相位一致性计算相似度, 对应的表达形式如下:</p>
+\hat{g}_{t+1} = \frac{1}{N} \sum_{j=0}^{N}\nabla_{x_t^{adv}}\mathcal{L}(\mathcal{S_\theta}(T_{dc}(x_t^{adv};\hat{\xi_j})),y)</script><p>上式中N为图像进行扭曲变换的次数.结合动量信息后的梯度计算公式如下:</p>
 <script type="math/tex; mode=display">
-F(P_i, O) = \frac{\sum_xPC_x \cdot GM_x \cdot S(P_i(x), O(x))}{\sum_x PC_x \cdot GM_x} \tag{7}</script><p>其中的$PC_x$为相位一致性, 其内涵为人眼观察下图像中的感知特征, 更能反映图像中例如边缘, 角点等显著的局部结构(体现在傅里叶频谱中的相位对齐); $GM_x$为像素点x的梯度值, 用于衡量局部区域的亮度变化率. 对于前者的计算基于局部能量模型, 使用一组具有不同尺度和方向的Log-Gabor小波滤波器对图像进行滤波. Log-Gabor是Gabor滤波器的变种, 在频域的传递函数(Transfor Function)服从对数高斯函数的分布. Log-Gabor的优势是可以在保持零交流分量的前提下构造具有任意带宽的滤波器, 滤波器对应的频率传递函数是两个函数的乘积:</p>
-<script type="math/tex; mode=display">
-G(f) = G_r(r) \cdot G_\theta(\theta) \tag{8}</script><p>其中$r = |f|$是径向频率(频谱中距离原点的距离), $\theta$是方向角度. $G_r(r)$的计算公式如下:</p>
-<script type="math/tex; mode=display">
-G_r(r) = exp(-\frac{|log(r/r_0)|^2}{2|log(\sigma / r_0)|^2}) \tag{9}</script><p>上式中的r是径向频率, $\sigma$是带宽参数, 在图像经过FFT后, 频谱图中的每个点(u,v)都代表一个二维坐标频率, r则是从原点到(u, v)的欧氏距离, 即 $r = \sqrt{u^2 + v^2}$ , 反映了图像中空间变化的快慢. 径向频率越高, 图像对应区域的纹理或边缘变化越密集精细. 而方向相应, 其决定了滤波器对哪个方向的结构最敏感, 数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-G_{\theta}(\theta) = exp(- \frac{(\theta - \theta_0)^2}{2\sigma_{\theta}^2}) \tag{10}</script><p>上式中$\theta$为当前频率点的角度, $\theta_0$为中心方向, 决定了滤波器相应最大的方向, $\sigma_{\theta}$为方向带宽参数, 控制方向相应的宽度. 原始的Gabor滤波器则是高斯包络与复正弦平面波的乘积, 数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-g(x, y; \lambda, \theta, \psi, \sigma, \gamma) = exp(-\frac{x'^2 + \gamma^2 y'^2}{2\sigma^2}) \cdot exp(i(2\pi\frac{x'}{\lambda}+\psi)) \tag{11}</script><p>其中的$\lambda$为正弦波波长(与中心频率成反比), $\theta$为滤波器方向, $\psi$为相位偏移, $\sigma$为高斯包络的标准差, $\gamma$为空间纵横比(控制包络的椭圆度), $x’, y’$为旋转后坐标, 用于实现$\theta$.</p>
-<p>回到FSIM的计算定义, 对于相位一致性$PC_x$, 其计算会使用一组具有不同尺度和方向(M个尺度, N个方向)的Log-Gabor小波滤波器对图像进行滤波, 对于每个尺度m和方向n, 滤波结果都包含实部$E_{m,n}^R(x)$和虚部$E_{m,n}^I(x)$, 通过根据这个复数结果即可获取幅值信息和相位信息, 局部幅值与相位的数学形式如下:</p>
-<script type="math/tex; mode=display">
-A_{m, n}(x) = \sqrt{[E_{m,n}^R(x)]^2 + [E_{m,n}^I(x)]^2}</script><script type="math/tex; mode=display">
-\Phi_{m,n}(x) = atan2(E_{m,n}^I(x), E_{m,n}^R(x)) \tag{12}</script><p>则PC的计算公式为:</p>
-<script type="math/tex; mode=display">
-PC(x) = \frac{\sum_n\sum_m A_{m,n}(x) \cdot \Delta \Phi_{m,n}(x) - \epsilon}{\sum_n \sum_m A_{m,n}(x) + \epsilon} \tag{13}</script><p>上式中的$\Delta \Phi_{m,n}(x)$ 用于衡量不同尺度上的相位偏离其加权平均相位的程度, $\sum_n \sum_m A_{m,n}(x) \cdot \Delta \Phi_{m,n}(x)$为局部能量, 表示所有尺度和方向上的小波幅值和, $\epsilon$为取值较小的常数, 用于放置除零. $\Delta \Phi_{m,n}(x)$的数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-\Delta \Phi_{m,n}(x) = |\Phi_{m,n}(x) - \bar{\Phi}(x)| \tag{14}</script><p>其中$\bar{\Phi}(x)$为加权平均相位. PC值越高, 表示该像素所有尺度和方位上的小波相位越一致, 结构越显著. 对于梯度幅值的计算则较为简单, 在空域中使用标准的梯度算子(如Sobel算子或Prewitt算子)即可完成, 梯度幅值为水平梯度矩阵和垂直梯度矩阵的几何平均数.</p>
-<script type="math/tex; mode=display">
-GM(x) = \sqrt{G_x(x)|^2 + |G_y(x)|^2} \tag{15}</script><p>FSIM算法在计算出参考图像X和给定图像Y的PC和GM图后, 会进而计算他们在每个像素上的相似度, PC相似度和GM相似度的计算公式如下图所示:</p>
-<script type="math/tex; mode=display">
-S_{PC}(x) = \frac{2 \cdot PC_{X}(x) \cdot PC_{Y}(x) + C_1}{[PC_{X}(x)]^2 + [PC_{Y}(x)]^2 + C_1}</script><script type="math/tex; mode=display">
-S_{GM}(x) = \frac{2 \cdot GM_{X}(x) \cdot GM_{Y}(x) + C_2}{[GM_{X}(x)]^2 + [GM_{Y}(x)]^2 + C_2} \tag{16}</script><p>对两个相似度进行融合即可得到局部相似度, 用$\alpha$和$\beta$进行加权, 通常直接求和, 表达形式如下: </p>
-<script type="math/tex; mode=display">
-S_L(x) = [S_{PC}(x)]^\alpha + [S_{GM}(x)]^\beta \tag{17}</script><p>最终的FSIM分数为对局部相似度图进行加权平均得来, 权重使用两幅图像中的PC值的最大值:</p>
-<script type="math/tex; mode=display">
-FSIM = \frac{\sum_{x \in \Omega} S_L(x) \cdot PC_M(x)}{\sum_{x \in \Omega} PC_M(x)}</script><script type="math/tex; mode=display">
-PC_M(x) = \max \{ PC_X(x), PC_Y(x) \} \tag{18}</script><p>在论文设定中, FSIM不需要使用由Ostu所提取的mask矩阵, 最终的混合相似度CSIM表达式为:</p>
-<script type="math/tex; mode=display">
-CSIM(P_i, O) = \sqrt{S_M(P_i, O) \cdot F(P_i, O)} \tag{19}</script><p>作者通过该结果同时考量了极化特征向量与原图的结构相似度和感知相似度. 最终作者挑选CSIM最大的极化特征作为结果. </p>
-<p>此外, 为了向CLIP模型中引入领域知识(如PolSAR图像中的物理信息), 作者提出了自适应多模态三重注意力机制(Adaptive Multimodal Triple Attention Mechanism, AMTAM), 对应框架图如下所示:</p>
-<figure style = "text-align: center">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251027210201.png" style = "height: 400px width: auto">
-</figure>
-
-<p>对于图像特征I和文本特征T, CLIP模型进行的注意力机制操作主要如下:</p>
-<script type="math/tex; mode=display">
-Q_T = W_Q^T  T</script><script type="math/tex; mode=display">
-K_I = W_K  I, \ \ V_I = W_V  I</script><script type="math/tex; mode=display">
-T_{attentionI} = softmax(\frac{Q_T \cdot K_I^T}{\sqrt{d}}) \cdot V_I \tag{20}</script><p>作者上文中通过PFS模块引入了多个额外极化特征矩阵作为SAR图像特殊的物理信息, 因此将其多为额外的模态, 引导模型动态的平衡不同模态间的输入对最终决策的贡献, 最终的合成文本向量代表了原始的文本向量和额外的被注意图像向量的加权和, 权重w为可训练参数, 使用softmax确保其归一性, 表达形式如下:</p>
-<script type="math/tex; mode=display">
-T_{fused} = w_1T'' + w_2T_{atttended\_I1} + w_3T_{atttended\_I2} \tag{21}</script><p>其中$T’’$的计算表达形式如下, 上文中注意力计算所用T矩阵为该输出结果:</p>
-<script type="math/tex; mode=display">
-T' = \sigma(W_T^1T + b_T^1), \ \ T'' = W_T^2T' + b_T^2 \tag{22}</script><p>上式中的T为文本的embedding feature, $\sigma$代表ReLU等激活函数. 以文本表征(text representation)为例, 最终的融合结果如下:</p>
-<script type="math/tex; mode=display">
-T_{final} = W_{F}^{T}T_{fused} + b_F^T \tag{23}</script><p>综上, 对于AMTAM模块, 其主要功能是对不同模态的特征进行了动态和自适应的融合.</p>
-<h2 id="对比学习"><a href="#对比学习" class="headerlink" title="对比学习"></a>对比学习</h2><p>研究表明, 对比学习(contrastive learning)在少样本学习的分类任务中具有显著的有效性. 基于此, 作者提出了针对SAR图像少样本识别的改进对比学习模块. 基于上述的$AMTAM-I_{DCT-3}$ 和相应的极化特征结果, 结合对应的相同样本作为positive pairs, 其余的$I_{DCT-3}$的samples作为negative samples, 对应的对比学习损失函数如下:</p>
-<script type="math/tex; mode=display">
-L_c = \sum_i max(0, d(f_i^D, f_i^P)- d(d_i^D, f_j^D) + margin) \tag{24}</script><p>上式中的$f_i^D$和$f_i^P$分别代表$I_{DCT-3}$特征和对应的极化特征, $d(\cdot, \cdot)$是欧氏距离. margin项确保模型可以在不破坏特征空间的情况下高效区分出不同的样本. 结合分类器原有的交叉熵损失, 最终VLF-SAR-P的损失函数的数学形式如下:</p>
-<script type="math/tex; mode=display">
-L_{total} = L_{CE} + \lambda L_c \ , \quad L_{CE} = -\sum_{i=1}^C y_i log(p_i) \tag{25}</script><h2 id="VLF-SAR-T"><a href="#VLF-SAR-T" class="headerlink" title="VLF-SAR-T"></a>VLF-SAR-T</h2><p>与PolSAR图像不同, 一般的SAR图像仅包括强度信息(即幅值信息), 因此需要对已有架构进行进化, 对应的VLF-SAR-T的模型架构仅包括FEM和MFAM, 前者已在上文中说明. 对于MFAM, 其目的在于优化文本信息和SAR图像信息的融合(而不设计极化特征向量), 相应的模型结构如下图所示:</p>
-<figure style = "text-align: center">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103124843.png" style = "height: 400px width:auto">
-</figure>
-
-<p>上图中起始的输入特征由冻结的CLIP模型的encoders提取获得, 经过简单的MLP和交叉注意力模块处理后获得互相关特征, 接着与原有的图像特征和文本特征进行拼接融合, 选择的方法是简单的拼接操作(concatenation), 对应的数学表达如下所示:</p>
-<script type="math/tex; mode=display">
-T_{final} = L(T \copyright T_{attended}) \ , \quad I_{final} = L(I \copyright I_{attended}) \tag{26}</script><p>上式中的$\copyright$表示concatenation操作, $L(\cdot)$代表线性变换.   </p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者选用了多个数据集, 包括包含PolSAR图像的opensarship2.0数据集和普通SAR图像的FuSAR-ship数据集, 并进行了包括消融实验在内的多项完备实验对比, 此处仅展示核心实验结果. 对于PolSAR和SAR图像, 模型fewshot的结果如下图所示:</p>
-<figure style = "text-align: center">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103180641.png" style = "height:400px width:auto">
-</figure>
-
-<p>由于作者在文中引入了多个改进模块, 关于不同模块有效性的消融实验结果如下:</p>
-<figure style = "text-align: center">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103181034.png" style = "height:400px width:auto">
-</figure>
-
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文作者提出了针对PolSAR和SAR图像的few-shot场景下的优化框架VLF-SAR, 并以CLIP模型为主体, 通过加入多个优化模块实现更好的少样本分类性能. 然而当前模型仍存在以下不足: FEM模块进行极化特征提取时依赖先验的阈值设定; 没有展开对于未知类别分类性能的测试.</p>
-<h1 id="代码复现"><a href="#代码复现" class="headerlink" title="代码复现"></a>代码复现</h1><p>对于论文中的FEM模块, 即用DCT与IDCT进行特征矩阵提取, 笔者进行了简单的复现, 针对batch形式的tensor场景, 选用torch-dct库, 对应的复现代码和可视化结果如下所示:</p>
-<p>复现代码:<br><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2 </span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torch_dct <span class="keyword">as</span> dct</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">polsar = cv2.imread(<span class="string">&quot;sarship.jpg&quot;</span>)</span><br><span class="line">polsar_rgb = cv2.cvtColor(polsar, cv2.COLOR_BGR2RGB)</span><br><span class="line">polsar_torch = torch.from_numpy(polsar_rgb).permute(<span class="number">2</span>,<span class="number">0</span>,<span class="number">1</span>).<span class="built_in">float</span>()</span><br><span class="line">polsar_batch = torch.unsqueeze(polsar_torch, dim = <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">polsar_dct = dct.dct_2d(polsar_batch)</span><br><span class="line"></span><br><span class="line">channels_mean = torch.<span class="built_in">abs</span>(polsar_dct).mean(dim=(<span class="number">2</span>,<span class="number">3</span>)) <span class="comment"># (batch_size, channels)</span></span><br><span class="line"></span><br><span class="line">T = <span class="number">3</span> * channels_mean[..., <span class="literal">None</span>, <span class="literal">None</span>]</span><br><span class="line"></span><br><span class="line">D_denoise = polsar_dct * (torch.<span class="built_in">abs</span>(polsar_dct) &lt; T).<span class="built_in">float</span>()</span><br><span class="line">D_noise = polsar_dct * (torch.<span class="built_in">abs</span>(polsar_dct) &gt;= T).<span class="built_in">float</span>()</span><br><span class="line"></span><br><span class="line">I_denoise = dct.idct_2d(D_denoise)</span><br><span class="line">I_noise = dct.idct_2d(D_noise)</span><br><span class="line"></span><br><span class="line">I = polsar_batch</span><br><span class="line"></span><br><span class="line">I_denoise_np = I_denoise.cpu().detach().numpy()[<span class="number">0</span>]  <span class="comment"># 选择第一个batch的第一个通道</span></span><br><span class="line">I_noise_np = I_noise.cpu().detach().numpy()[<span class="number">0</span>]      <span class="comment"># 选择第一个batch的第一个通道</span></span><br><span class="line">I_np = I.cpu().detach().numpy()[<span class="number">0</span>]     </span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">normalize_255</span>(<span class="params">img_np</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(img_np.shape) == <span class="number">2</span>:</span><br><span class="line">        img_normalized = (img_np - img_np.<span class="built_in">min</span>()) / (img_np.<span class="built_in">max</span>() - img_np.<span class="built_in">min</span>() + <span class="number">1e-8</span>)</span><br><span class="line">        <span class="keyword">return</span> (img_normalized * <span class="number">255</span>).astype(np.uint8)</span><br><span class="line">    <span class="keyword">elif</span> <span class="built_in">len</span>(img_np.shape) == <span class="number">3</span> <span class="keyword">and</span> img_np.shape[<span class="number">2</span>] == <span class="number">3</span>:</span><br><span class="line">        channel_mins = img_np.<span class="built_in">min</span>(axis = (<span class="number">0</span>,<span class="number">1</span>), keepdims = <span class="literal">True</span>)</span><br><span class="line">        channel_maxs = img_np.<span class="built_in">max</span>(axis = (<span class="number">0</span>,<span class="number">1</span>), keepdims = <span class="literal">True</span>)</span><br><span class="line">        channel_ranges = channel_maxs - channel_mins</span><br><span class="line">        channel_ranges[channel_ranges == <span class="number">0</span>] = <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        img_normalized = (img_np - channel_mins) / channel_ranges</span><br><span class="line">        <span class="keyword">return</span> (img_normalized * <span class="number">255</span>).astype(np.uint8)</span><br><span class="line"></span><br><span class="line">I_denoise_vis = normalize_255(np.transpose(I_denoise_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line">I_noise_vis = normalize_255(np.transpose(I_noise_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line">I_vis = normalize_255(np.transpose(I_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line"></span><br><span class="line">plt.figure()</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">1</span>)</span><br><span class="line">plt.imshow(I_vis)</span><br><span class="line">plt.title(<span class="string">&quot;original image&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>)</span><br><span class="line">plt.imshow(I_denoise_vis )</span><br><span class="line">plt.title(<span class="string">&quot;denoise feature&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">3</span>)</span><br><span class="line">plt.imshow(I_noise_vis)</span><br><span class="line">plt.title(<span class="string">&quot;noise feature&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line">plt.tight_layout()</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure></p>
-<p>PolSAR图像的可视化结果(采用OpenSARShip2.0数据集)如下:</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/polsar_result2.png" alt="polsar_result2"></p>
-<p>SAR图像的可视化结果如下:</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/sar_result2.png" alt="sar_result2"></p>
+g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者针对多种场景(如视频,语音)下的跨模型攻击进行了相应测试,这里演示图像分类场景下的DeCoWa算法迁移攻击性能.  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/7d6798d7674105261d236f78cbf9a74c" alt="7d6798d7674105261d236f78cbf9a74c"></p>
+<p>此外,通过Grad-CAM工具比较不同对抗算法对同一张图像的热力图结果,实验结果如下,可以看出DeCoWa算法扩大了模型的注意力区域并减少了不同模型间的注意分布差异,从而实现更理想的跨模型迁移性能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/fb5016c85a9d9216bde20c6626920415" alt="fb5016c85a9d9216bde20c6626920415"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>后续可以结合SAR的频率域背景杂波分布和目标成像特征,探索基于频率域的SAR图像可迁移变换并引入梯度动量的思想.</p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -780,8 +723,8 @@ T_{final} = L(T \copyright T_{attended}) \ , \quad I_{final} = L(I \copyright I_
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
-        <tag>小样本Few-Shot</tag>
-        <tag>CLIP</tag>
+        <tag>对抗样本</tag>
+        <tag>迁移攻击</tag>
       </tags>
   </entry>
   <entry>
@@ -834,6 +777,43 @@ MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独�
         <tag>笔记</tag>
         <tag>论文</tag>
         <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于One-Pixel-Attack的论文笔记  
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+<script type="math/tex; mode=display">
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
@@ -1001,6 +981,135 @@ X = clamp(X + \tau \cdot {normalize}(\delta U_{k+1} \otimes_{C} \delta V_{k+1}))
       </tags>
   </entry>
   <entry>
+    <title>论文笔记：SAR-VLF</title>
+    <url>/2025/11/04/paper10/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+针对PolSAR和SAR的小样本Few-Shot场景改进CLIP模型框架
+</p><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文发表于2025 TCSVT</p>
+<h1 id="创新点总结"><a href="#创新点总结" class="headerlink" title="创新点总结"></a>创新点总结</h1><p>在真实的SAR-ATR场景中, 对于非合作目标, 往往无法获得大量数据用于模型的训练, 因此需要关注Few-shot条件下SAR-ATR模型的性能. 随着CLIP等pre-trained模型在可见光图像zero-shot和few-shot任务上取得了优异的性能, 如何将其与SAR图像结合以解决跨域任务下(可见光-&gt;SAR)的少样本识别准确率, 作者结合预训练的CLIP模型提出了VLF-SAR(Vision Language Framework SAR)的少样本识别框架, 论文的主要创新点如下:</p>
+<ol>
+<li><p>设计了频域嵌入模块(frequency embedded module, FEM)来提取图像中的频率域信息. 论文将所要识别的SAR图像分为了PolSAR和Traditional SAR两类, 并提出了相应的VLF-SAR-P和VLF-SAR-T.</p>
+</li>
+<li><p>对于VLF-SAR-P, 论文提出了名为polarimetric feature selector(PFS)的模块, 在图像结构相似度的基础上用于提取最合适的测定偏振向量, 为了实现不同偏振方向的向量之间的动态选取, 作者进而提出了adaptive multimodal triple attention mechanism(AMTAM). 此外, 作者引入了对比学习的方法, 通过将上述feature 划分为positive和negative来增强对于feature的区分和选取.</p>
+</li>
+<li><p>对于VLF-SAR-T, 由于一般的SAR图像只包含反映了幅值信息, 作者针对此提出了multimodal fusion attention mechanism(MFAM)处理信息量相对较少的SAR图像.</p>
+</li>
+</ol>
+<h1 id="核心方法"><a href="#核心方法" class="headerlink" title="核心方法"></a>核心方法</h1><p>VLF-SAR的整体架构如下图所示:</p>
+<figure style = "text-align: center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251019200059.png" style = "height: 400px width: auto">
+</figure>
+
+<p>由于基于电磁散射的特殊成像机理, SAR图像呈现出包含大量散斑噪声, 高对比度和缺少自然色彩信息等特点, 也导致SAR图像和可见光图像之间存在巨大的domain gap. 在SAR成像过程中, 电磁波后向散射的信息会包含在成像结果的频率域当中, 因此作者提出了physical information guidance module(PIGM)来提取和利于图像频率域中所包含的物理信息.</p>
+<h2 id="FEM模块"><a href="#FEM模块" class="headerlink" title="FEM模块"></a>FEM模块</h2><p>该模块选择DCT进行空域SAR图像的频域转换, DCT变化的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+D(u, v) = \alpha(u) \cdot \alpha(v) \sum_{x = 0}^{M-1} \sum_{y = 0}^{N-1} \mathbf{I}(x, y) \cdot cos[\frac{(2x+1)u\pi}{2M}] \cos[\frac{(2y+1)v\pi}{2N}] \tag{1}</script><p>上式中的$\mathbf{I}(x,y)$为M*N的输入图像, $\alpha(\cdot)$为不同方向上的尺度缩放因子. 在进行DCT变换之后, 作者设定了全局阈值T来对频域矩阵进行阈值分割处理, T的表达形式如下:</p>
+<script type="math/tex; mode=display">
+T = n \times mean(|D|) \tag{2}</script><p>上式中的n被设定为3, 来区分SAR图像的前景和背景. 根据T作者将DCT矩阵分为两份, 保留大于T部分的矩阵称为$D_{denoised}$, 另一个矩阵称为$D_{noise}$, 其中前者压缩了原始图像中的低频信息(denoise的对象则为高频的speckle noise), 后者则保留了高频信息. 此外, 作者提出了一种将单通道灰度PolSAR图像通过IDCT重建为3通道空域图像的方法, 其中各个通道的组成成分如下:</p>
+<script type="math/tex; mode=display">
+I_{DCT-3}(x, y ,1) = I(x, y)</script><script type="math/tex; mode=display">
+I_{DCT-3}(x, y ,2) = IDCT(D_{denoised})</script><script type="math/tex; mode=display">
+I_{DCT-3}(x, y ,3) = IDCT(D_{noised}) \tag{3}</script><p>该重建操作主要目的是对齐CLIP模块三通道输入的要求, 同时对于PolSAR和SAR图像都可以提取到基础的图像信息.</p>
+<h2 id="VLF-SAR-P模块"><a href="#VLF-SAR-P模块" class="headerlink" title="VLF-SAR-P模块"></a>VLF-SAR-P模块</h2><p>在PolSAR图像的解译过程中, 极化特征向量包含着成像目标区域的物理特性信息. 因此, 在进行PolSAR图像的小样本分类时需要重点关注极化特征向量的提取与选择(因为polar feature 通常多余3个). 论文提出了极化特征向量选取算法, 基于SSIM(structural similarity index measure)进行改进, 提出了名为Combined Similarity Index Measure的特征向量评估方法. 对于SSIM, 数学表达形式如下: </p>
+<script type="math/tex; mode=display">
+SSIM(I_1, I_2) = \frac{(2 \mu_{I_1} \mu_{I_2} + C_1) (2\sigma_{I_1I_2} + C_2)}{(\mu_{I_1}^2 +  \mu_{I_2}^2 + C_1)(\sigma_{I_1}^2 + \sigma_{I_2}^2 + C_2)} \tag{4}</script><p>上式中$\mu$为图像的均值, $\sigma$为图像的方差, 参数$C_1$和$C_2$被用于平衡分子和分母. 对于PolSAR图像, 背景散斑噪声占据了图像的主体部分, 会严重影响图像的均值与方差, 使不同图像间的差异被缩小或忽略. 因此作者提出使用Ostu图像分割算法提取PolSAR图像的主体部分并产生对应的mask掩膜矩阵, 再统计不同图像主体部分间的结构相似度, 这里所用于比较的图像为原始的PolSAR图像和所提取出的polar features. 掩膜矩阵M的定义如下:</p>
+<script type="math/tex; mode=display">
+m = \arg \max_{\tau}[\sigma_B^2(\tau)]</script><script type="math/tex; mode=display">
+M(x, y) = \left\{ \begin{array}{rcl}
+1, & \ if \ I(x,y)  \geq m \\
+0, & \ if \ I(x,y)  \leq m \tag{5}
+
+\end{array}\right.</script><p>上式中的$\sigma_B^2(\tau)$为类间差额阈值(between class variance threshold), $M(x,y)$为对应的掩码矩阵.由此可以获得如下表达式:</p>
+<script type="math/tex; mode=display">
+S_M(P_i, O) = SSIM(P_{iM}, O_{M}) \tag{6}</script><p>在此基础上, 作者引入了另一种度量矩阵FSIM, 会根据图像的梯度信息和相位一致性计算相似度, 对应的表达形式如下:</p>
+<script type="math/tex; mode=display">
+F(P_i, O) = \frac{\sum_xPC_x \cdot GM_x \cdot S(P_i(x), O(x))}{\sum_x PC_x \cdot GM_x} \tag{7}</script><p>其中的$PC_x$为相位一致性, 其内涵为人眼观察下图像中的感知特征, 更能反映图像中例如边缘, 角点等显著的局部结构(体现在傅里叶频谱中的相位对齐); $GM_x$为像素点x的梯度值, 用于衡量局部区域的亮度变化率. 对于前者的计算基于局部能量模型, 使用一组具有不同尺度和方向的Log-Gabor小波滤波器对图像进行滤波. Log-Gabor是Gabor滤波器的变种, 在频域的传递函数(Transfor Function)服从对数高斯函数的分布. Log-Gabor的优势是可以在保持零交流分量的前提下构造具有任意带宽的滤波器, 滤波器对应的频率传递函数是两个函数的乘积:</p>
+<script type="math/tex; mode=display">
+G(f) = G_r(r) \cdot G_\theta(\theta) \tag{8}</script><p>其中$r = |f|$是径向频率(频谱中距离原点的距离), $\theta$是方向角度. $G_r(r)$的计算公式如下:</p>
+<script type="math/tex; mode=display">
+G_r(r) = exp(-\frac{|log(r/r_0)|^2}{2|log(\sigma / r_0)|^2}) \tag{9}</script><p>上式中的r是径向频率, $\sigma$是带宽参数, 在图像经过FFT后, 频谱图中的每个点(u,v)都代表一个二维坐标频率, r则是从原点到(u, v)的欧氏距离, 即 $r = \sqrt{u^2 + v^2}$ , 反映了图像中空间变化的快慢. 径向频率越高, 图像对应区域的纹理或边缘变化越密集精细. 而方向相应, 其决定了滤波器对哪个方向的结构最敏感, 数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+G_{\theta}(\theta) = exp(- \frac{(\theta - \theta_0)^2}{2\sigma_{\theta}^2}) \tag{10}</script><p>上式中$\theta$为当前频率点的角度, $\theta_0$为中心方向, 决定了滤波器相应最大的方向, $\sigma_{\theta}$为方向带宽参数, 控制方向相应的宽度. 原始的Gabor滤波器则是高斯包络与复正弦平面波的乘积, 数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+g(x, y; \lambda, \theta, \psi, \sigma, \gamma) = exp(-\frac{x'^2 + \gamma^2 y'^2}{2\sigma^2}) \cdot exp(i(2\pi\frac{x'}{\lambda}+\psi)) \tag{11}</script><p>其中的$\lambda$为正弦波波长(与中心频率成反比), $\theta$为滤波器方向, $\psi$为相位偏移, $\sigma$为高斯包络的标准差, $\gamma$为空间纵横比(控制包络的椭圆度), $x’, y’$为旋转后坐标, 用于实现$\theta$.</p>
+<p>回到FSIM的计算定义, 对于相位一致性$PC_x$, 其计算会使用一组具有不同尺度和方向(M个尺度, N个方向)的Log-Gabor小波滤波器对图像进行滤波, 对于每个尺度m和方向n, 滤波结果都包含实部$E_{m,n}^R(x)$和虚部$E_{m,n}^I(x)$, 通过根据这个复数结果即可获取幅值信息和相位信息, 局部幅值与相位的数学形式如下:</p>
+<script type="math/tex; mode=display">
+A_{m, n}(x) = \sqrt{[E_{m,n}^R(x)]^2 + [E_{m,n}^I(x)]^2}</script><script type="math/tex; mode=display">
+\Phi_{m,n}(x) = atan2(E_{m,n}^I(x), E_{m,n}^R(x)) \tag{12}</script><p>则PC的计算公式为:</p>
+<script type="math/tex; mode=display">
+PC(x) = \frac{\sum_n\sum_m A_{m,n}(x) \cdot \Delta \Phi_{m,n}(x) - \epsilon}{\sum_n \sum_m A_{m,n}(x) + \epsilon} \tag{13}</script><p>上式中的$\Delta \Phi_{m,n}(x)$ 用于衡量不同尺度上的相位偏离其加权平均相位的程度, $\sum_n \sum_m A_{m,n}(x) \cdot \Delta \Phi_{m,n}(x)$为局部能量, 表示所有尺度和方向上的小波幅值和, $\epsilon$为取值较小的常数, 用于放置除零. $\Delta \Phi_{m,n}(x)$的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+\Delta \Phi_{m,n}(x) = |\Phi_{m,n}(x) - \bar{\Phi}(x)| \tag{14}</script><p>其中$\bar{\Phi}(x)$为加权平均相位. PC值越高, 表示该像素所有尺度和方位上的小波相位越一致, 结构越显著. 对于梯度幅值的计算则较为简单, 在空域中使用标准的梯度算子(如Sobel算子或Prewitt算子)即可完成, 梯度幅值为水平梯度矩阵和垂直梯度矩阵的几何平均数.</p>
+<script type="math/tex; mode=display">
+GM(x) = \sqrt{G_x(x)|^2 + |G_y(x)|^2} \tag{15}</script><p>FSIM算法在计算出参考图像X和给定图像Y的PC和GM图后, 会进而计算他们在每个像素上的相似度, PC相似度和GM相似度的计算公式如下图所示:</p>
+<script type="math/tex; mode=display">
+S_{PC}(x) = \frac{2 \cdot PC_{X}(x) \cdot PC_{Y}(x) + C_1}{[PC_{X}(x)]^2 + [PC_{Y}(x)]^2 + C_1}</script><script type="math/tex; mode=display">
+S_{GM}(x) = \frac{2 \cdot GM_{X}(x) \cdot GM_{Y}(x) + C_2}{[GM_{X}(x)]^2 + [GM_{Y}(x)]^2 + C_2} \tag{16}</script><p>对两个相似度进行融合即可得到局部相似度, 用$\alpha$和$\beta$进行加权, 通常直接求和, 表达形式如下: </p>
+<script type="math/tex; mode=display">
+S_L(x) = [S_{PC}(x)]^\alpha + [S_{GM}(x)]^\beta \tag{17}</script><p>最终的FSIM分数为对局部相似度图进行加权平均得来, 权重使用两幅图像中的PC值的最大值:</p>
+<script type="math/tex; mode=display">
+FSIM = \frac{\sum_{x \in \Omega} S_L(x) \cdot PC_M(x)}{\sum_{x \in \Omega} PC_M(x)}</script><script type="math/tex; mode=display">
+PC_M(x) = \max \{ PC_X(x), PC_Y(x) \} \tag{18}</script><p>在论文设定中, FSIM不需要使用由Ostu所提取的mask矩阵, 最终的混合相似度CSIM表达式为:</p>
+<script type="math/tex; mode=display">
+CSIM(P_i, O) = \sqrt{S_M(P_i, O) \cdot F(P_i, O)} \tag{19}</script><p>作者通过该结果同时考量了极化特征向量与原图的结构相似度和感知相似度. 最终作者挑选CSIM最大的极化特征作为结果. </p>
+<p>此外, 为了向CLIP模型中引入领域知识(如PolSAR图像中的物理信息), 作者提出了自适应多模态三重注意力机制(Adaptive Multimodal Triple Attention Mechanism, AMTAM), 对应框架图如下所示:</p>
+<figure style = "text-align: center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251027210201.png" style = "height: 400px width: auto">
+</figure>
+
+<p>对于图像特征I和文本特征T, CLIP模型进行的注意力机制操作主要如下:</p>
+<script type="math/tex; mode=display">
+Q_T = W_Q^T  T</script><script type="math/tex; mode=display">
+K_I = W_K  I, \ \ V_I = W_V  I</script><script type="math/tex; mode=display">
+T_{attentionI} = softmax(\frac{Q_T \cdot K_I^T}{\sqrt{d}}) \cdot V_I \tag{20}</script><p>作者上文中通过PFS模块引入了多个额外极化特征矩阵作为SAR图像特殊的物理信息, 因此将其多为额外的模态, 引导模型动态的平衡不同模态间的输入对最终决策的贡献, 最终的合成文本向量代表了原始的文本向量和额外的被注意图像向量的加权和, 权重w为可训练参数, 使用softmax确保其归一性, 表达形式如下:</p>
+<script type="math/tex; mode=display">
+T_{fused} = w_1T'' + w_2T_{atttended\_I1} + w_3T_{atttended\_I2} \tag{21}</script><p>其中$T’’$的计算表达形式如下, 上文中注意力计算所用T矩阵为该输出结果:</p>
+<script type="math/tex; mode=display">
+T' = \sigma(W_T^1T + b_T^1), \ \ T'' = W_T^2T' + b_T^2 \tag{22}</script><p>上式中的T为文本的embedding feature, $\sigma$代表ReLU等激活函数. 以文本表征(text representation)为例, 最终的融合结果如下:</p>
+<script type="math/tex; mode=display">
+T_{final} = W_{F}^{T}T_{fused} + b_F^T \tag{23}</script><p>综上, 对于AMTAM模块, 其主要功能是对不同模态的特征进行了动态和自适应的融合.</p>
+<h2 id="对比学习"><a href="#对比学习" class="headerlink" title="对比学习"></a>对比学习</h2><p>研究表明, 对比学习(contrastive learning)在少样本学习的分类任务中具有显著的有效性. 基于此, 作者提出了针对SAR图像少样本识别的改进对比学习模块. 基于上述的$AMTAM-I_{DCT-3}$ 和相应的极化特征结果, 结合对应的相同样本作为positive pairs, 其余的$I_{DCT-3}$的samples作为negative samples, 对应的对比学习损失函数如下:</p>
+<script type="math/tex; mode=display">
+L_c = \sum_i max(0, d(f_i^D, f_i^P)- d(d_i^D, f_j^D) + margin) \tag{24}</script><p>上式中的$f_i^D$和$f_i^P$分别代表$I_{DCT-3}$特征和对应的极化特征, $d(\cdot, \cdot)$是欧氏距离. margin项确保模型可以在不破坏特征空间的情况下高效区分出不同的样本. 结合分类器原有的交叉熵损失, 最终VLF-SAR-P的损失函数的数学形式如下:</p>
+<script type="math/tex; mode=display">
+L_{total} = L_{CE} + \lambda L_c \ , \quad L_{CE} = -\sum_{i=1}^C y_i log(p_i) \tag{25}</script><h2 id="VLF-SAR-T"><a href="#VLF-SAR-T" class="headerlink" title="VLF-SAR-T"></a>VLF-SAR-T</h2><p>与PolSAR图像不同, 一般的SAR图像仅包括强度信息(即幅值信息), 因此需要对已有架构进行进化, 对应的VLF-SAR-T的模型架构仅包括FEM和MFAM, 前者已在上文中说明. 对于MFAM, 其目的在于优化文本信息和SAR图像信息的融合(而不设计极化特征向量), 相应的模型结构如下图所示:</p>
+<figure style = "text-align: center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103124843.png" style = "height: 400px width:auto">
+</figure>
+
+<p>上图中起始的输入特征由冻结的CLIP模型的encoders提取获得, 经过简单的MLP和交叉注意力模块处理后获得互相关特征, 接着与原有的图像特征和文本特征进行拼接融合, 选择的方法是简单的拼接操作(concatenation), 对应的数学表达如下所示:</p>
+<script type="math/tex; mode=display">
+T_{final} = L(T \copyright T_{attended}) \ , \quad I_{final} = L(I \copyright I_{attended}) \tag{26}</script><p>上式中的$\copyright$表示concatenation操作, $L(\cdot)$代表线性变换.   </p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者选用了多个数据集, 包括包含PolSAR图像的opensarship2.0数据集和普通SAR图像的FuSAR-ship数据集, 并进行了包括消融实验在内的多项完备实验对比, 此处仅展示核心实验结果. 对于PolSAR和SAR图像, 模型fewshot的结果如下图所示:</p>
+<figure style = "text-align: center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103180641.png" style = "height:400px width:auto">
+</figure>
+
+<p>由于作者在文中引入了多个改进模块, 关于不同模块有效性的消融实验结果如下:</p>
+<figure style = "text-align: center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251103181034.png" style = "height:400px width:auto">
+</figure>
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文作者提出了针对PolSAR和SAR图像的few-shot场景下的优化框架VLF-SAR, 并以CLIP模型为主体, 通过加入多个优化模块实现更好的少样本分类性能. 然而当前模型仍存在以下不足: FEM模块进行极化特征提取时依赖先验的阈值设定; 没有展开对于未知类别分类性能的测试.</p>
+<h1 id="代码复现"><a href="#代码复现" class="headerlink" title="代码复现"></a>代码复现</h1><p>对于论文中的FEM模块, 即用DCT与IDCT进行特征矩阵提取, 笔者进行了简单的复现, 针对batch形式的tensor场景, 选用torch-dct库, 对应的复现代码和可视化结果如下所示:</p>
+<p>复现代码:<br><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> cv2 </span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torch_dct <span class="keyword">as</span> dct</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">polsar = cv2.imread(<span class="string">&quot;sarship.jpg&quot;</span>)</span><br><span class="line">polsar_rgb = cv2.cvtColor(polsar, cv2.COLOR_BGR2RGB)</span><br><span class="line">polsar_torch = torch.from_numpy(polsar_rgb).permute(<span class="number">2</span>,<span class="number">0</span>,<span class="number">1</span>).<span class="built_in">float</span>()</span><br><span class="line">polsar_batch = torch.unsqueeze(polsar_torch, dim = <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">polsar_dct = dct.dct_2d(polsar_batch)</span><br><span class="line"></span><br><span class="line">channels_mean = torch.<span class="built_in">abs</span>(polsar_dct).mean(dim=(<span class="number">2</span>,<span class="number">3</span>)) <span class="comment"># (batch_size, channels)</span></span><br><span class="line"></span><br><span class="line">T = <span class="number">3</span> * channels_mean[..., <span class="literal">None</span>, <span class="literal">None</span>]</span><br><span class="line"></span><br><span class="line">D_denoise = polsar_dct * (torch.<span class="built_in">abs</span>(polsar_dct) &lt; T).<span class="built_in">float</span>()</span><br><span class="line">D_noise = polsar_dct * (torch.<span class="built_in">abs</span>(polsar_dct) &gt;= T).<span class="built_in">float</span>()</span><br><span class="line"></span><br><span class="line">I_denoise = dct.idct_2d(D_denoise)</span><br><span class="line">I_noise = dct.idct_2d(D_noise)</span><br><span class="line"></span><br><span class="line">I = polsar_batch</span><br><span class="line"></span><br><span class="line">I_denoise_np = I_denoise.cpu().detach().numpy()[<span class="number">0</span>]  <span class="comment"># 选择第一个batch的第一个通道</span></span><br><span class="line">I_noise_np = I_noise.cpu().detach().numpy()[<span class="number">0</span>]      <span class="comment"># 选择第一个batch的第一个通道</span></span><br><span class="line">I_np = I.cpu().detach().numpy()[<span class="number">0</span>]     </span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">normalize_255</span>(<span class="params">img_np</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(img_np.shape) == <span class="number">2</span>:</span><br><span class="line">        img_normalized = (img_np - img_np.<span class="built_in">min</span>()) / (img_np.<span class="built_in">max</span>() - img_np.<span class="built_in">min</span>() + <span class="number">1e-8</span>)</span><br><span class="line">        <span class="keyword">return</span> (img_normalized * <span class="number">255</span>).astype(np.uint8)</span><br><span class="line">    <span class="keyword">elif</span> <span class="built_in">len</span>(img_np.shape) == <span class="number">3</span> <span class="keyword">and</span> img_np.shape[<span class="number">2</span>] == <span class="number">3</span>:</span><br><span class="line">        channel_mins = img_np.<span class="built_in">min</span>(axis = (<span class="number">0</span>,<span class="number">1</span>), keepdims = <span class="literal">True</span>)</span><br><span class="line">        channel_maxs = img_np.<span class="built_in">max</span>(axis = (<span class="number">0</span>,<span class="number">1</span>), keepdims = <span class="literal">True</span>)</span><br><span class="line">        channel_ranges = channel_maxs - channel_mins</span><br><span class="line">        channel_ranges[channel_ranges == <span class="number">0</span>] = <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        img_normalized = (img_np - channel_mins) / channel_ranges</span><br><span class="line">        <span class="keyword">return</span> (img_normalized * <span class="number">255</span>).astype(np.uint8)</span><br><span class="line"></span><br><span class="line">I_denoise_vis = normalize_255(np.transpose(I_denoise_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line">I_noise_vis = normalize_255(np.transpose(I_noise_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line">I_vis = normalize_255(np.transpose(I_np, (<span class="number">1</span>,<span class="number">2</span>,<span class="number">0</span>)))</span><br><span class="line"></span><br><span class="line">plt.figure()</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">1</span>)</span><br><span class="line">plt.imshow(I_vis)</span><br><span class="line">plt.title(<span class="string">&quot;original image&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>)</span><br><span class="line">plt.imshow(I_denoise_vis )</span><br><span class="line">plt.title(<span class="string">&quot;denoise feature&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">3</span>)</span><br><span class="line">plt.imshow(I_noise_vis)</span><br><span class="line">plt.title(<span class="string">&quot;noise feature&quot;</span>)</span><br><span class="line">plt.axis(<span class="string">&#x27;off&#x27;</span>)</span><br><span class="line"></span><br><span class="line">plt.tight_layout()</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure></p>
+<p>PolSAR图像的可视化结果(采用OpenSARShip2.0数据集)如下:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/polsar_result2.png" alt="polsar_result2"></p>
+<p>SAR图像的可视化结果如下:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/sar_result2.png" alt="sar_result2"></p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>小样本Few-Shot</tag>
+        <tag>CLIP</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记：GAN和pixel2pixel</title>
     <url>/2025/03/25/paper5-GAN/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -1044,6 +1153,166 @@ G^{*} = \arg \min_{G}\max_{D}L_{cGAN}(G,D) + \lambda \mathcal{L}_{L1}(G)</script
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</title>
+    <url>/2025/03/04/paper4/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+关于《Towards Transferable Adversarial Attacks with Centralized Perturbation》的论文笔记
+</div><br><span id="more"></span></p>
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被AAAI2024接收</p>
+<h1 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h1><h2 id="YCbCr色彩空间"><a href="#YCbCr色彩空间" class="headerlink" title="YCbCr色彩空间"></a>YCbCr色彩空间</h2><p>本论文的主要操作都基于将彩色图像RGB矩阵转换为YCrCb矩阵，并针对不同通道进行处理。YCrCb色彩空间常用于数码视频成像系统，其中的Y通道代表图像的明亮度（luma），Cb和Cb通道则反映图像的色度（chroma）信息。</p>
+<figure>
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/00d10b652a6f6818acd38a6894f23312" alt="00d10b652a6f6818acd38a6894f23312">
+  <figcaption>图1. RGB与YCrCb色彩空间展示</figcaption>
+</figure>
+
+<p>由RGB至YCC的色彩空间转换可分为模拟信号转换和数字信号转换，在此只关注后者的转换关系。根据标准ITU-R BT.601，对应的转换公式如下：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a0263dfbd33ff729f9521bdcd4134b8f" alt="a0263dfbd33ff729f9521bdcd4134b8f"></p>
+<h2 id="图像DCT变换"><a href="#图像DCT变换" class="headerlink" title="图像DCT变换"></a>图像DCT变换</h2><p>论文的主要创新点在于将对图像的扰动施加过程转换到频率域中进行，同时作者使用了离散余弦变换（DCT）而非离散傅里叶变换（DFT）来实现此过程。与傅里叶变换相比DCT只使用了实数进行变换，一个N=8的变换矩阵图如下图所示。该矩阵是实矩阵，有正交且不对称的特性。DCT被应用于JPEG压缩编码当中，可图像视觉信息损失较少的有损压缩。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a04fbede927547029c5d35ba0cb0bc19" alt="a04fbede927547029c5d35ba0cb0bc19"></p>
+<p>DCT的变换公式如下所示：</p>
+<script type="math/tex; mode=display">
+s(x,u) = \alpha(u)cos(\frac{(2x+1)u\pi}{2N})</script><script type="math/tex; mode=display">
+\alpha(u) = 
+\begin{cases} 
+\sqrt{1/N} & & \text{if } u = 0 \\
+\sqrt{2/N} & & \text{if } u =1,2,...,N-1 
+\end{cases}</script><p>对于二维离散图像矩阵，由灰度矩阵转换为频率矩阵的转换公式如下：</p>
+<script type="math/tex; mode=display">
+T(u,v) = \sum_{x=0}^{N-1}\sum_{y=0}^{N-1}f(x,y)s(x,y,u,v)</script><script type="math/tex; mode=display">
+s(x,y,u,v) = s_1(x,u) s_2(y,v)</script><h1 id="摘要总结"><a href="#摘要总结" class="headerlink" title="摘要总结"></a>摘要总结</h1><p>当前的主流对抗样本会在图像灰度矩阵上施加全局扰动，往往导致对抗样本对梯度来源模型的过拟合而降低对抗样本的可迁移性。向主要的图像目标区域加入模型相关性弱的扰动是提升对抗有效性的关键，但在空域中限制扰动范围被证明对对抗样本的迁移性提升不足。对于上述情况，论文作者提出了基于频率域的梯度扰动优化对抗样本设计，使产生的对抗扰动可以降低对来源模型的过拟合，提升对抗样本的迁移性能并可以扰动多种模型防御方法，最大限度地保留攻击有效性。    </p>
+<p>作者的主要创新点如下：</p>
+<ol>
+<li>设计了基于DCT的共享频率分解算法，通过频域系数的量化处理消除多余扰动，使频率域的扰动限定在中心频率当中，从而避免对梯度源模型的过拟合。</li>
+<li>实现了量化处理矩阵的并行优化，确保了与每一步模型预测结果的对齐。</li>
+</ol>
+<h1 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h1><h2 id="频率分解（Frequency-Decomposition）"><a href="#频率分解（Frequency-Decomposition）" class="headerlink" title="频率分解（Frequency Decomposition）"></a>频率分解（Frequency Decomposition）</h2><p>假定输入图像为8bit的（3，224，224）图像X，首先将RGB图像转换为YCC图像，然后对每个channel进行DCT频率变换；接着进行block化操作将图像矩阵转化为多个8*8的blocks，将（B，C，W，H）的图像转化为（B，C，W，H/64，8，8）；然后对每一个频率矩阵进行量化操作（quantization），引入量化矩阵Qs来除去多余的频率系数；最后进行blocks的合并，使输入矩阵变为原始维度，然后进行IDCT操作获取分解后的图像X。完成以上流程后即实现对图像的频率分解，对应流程图如下所示。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/3de78e58ed30b6b0cb57d31fa92d8fa5" alt="3de78e58ed30b6b0cb57d31fa92d8fa5"></p>
+<p>对于上述的量化矩阵Qs，以Y通道为例其量化处理过程如下：</p>
+<script type="math/tex; mode=display">
+B_Y = blockify(DCT(Y))</script><script type="math/tex; mode=display">
+B_Y^{'} = B_Y\odot Q_Y</script><p>不同于JPEG压缩过程中的量化矩阵，本文的量化矩阵定义如下：</p>
+<script type="math/tex; mode=display">Q = (q_{ij}) \subseteq \{0，1\}^{m\times m}</script><p>Q矩阵初始化为单位向量<strong>1</strong>，在每一轮的量化过程中不重要的频率参数均被自动清楚，使得扰动主要添加在DNN预测中更加关键的区域。对于扰动矩阵$\delta_t$，通过下式的优化过程可以将其进行中心化产生新的扰动$\delta_t^{‘}$。</p>
+<script type="math/tex; mode=display">
+\delta_t^{'} = \mathcal{K}(\delta_t;Q_t)</script><p>上式中的$\mathcal{K}$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
+<h2 id="优化量化矩阵Qt"><a href="#优化量化矩阵Qt" class="headerlink" title="优化量化矩阵Qt"></a>优化量化矩阵Qt</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/2243d7411336bcb596664f85678d0c12" alt="2243d7411336bcb596664f85678d0c12"></p>
+<p>施加扰动产生对抗样本的整体流程如上图所示。在stage2中完成对Qt的更新过程。更新的主要思想是将该轮次的对抗样本输出到源模型中，通过设计的loss损失函数实现Qt的更新。更新的主要思路是利用源模型输出梯度矩阵的变换程度，矩阵Q在每一轮优化$x_t^{adv}$后应当使得模型输出真实标签置信度降低。对应的损失函数公式如下：  </p>
+<script type="math/tex; mode=display">
+\arg\max_{Q_t}\mathcal{J}(\mathcal{K}(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5a630fd839119e7b1f2c446c0bd1433d" alt="5a630fd839119e7b1f2c446c0bd1433d">  </p>
+<p>在更新Qt的反向传播过程中，优化结果用m*m的矩阵P表示，对于YCC三通道每个通道有不同的P和相应的优化系数$0\leq r\leq 1$，对于Y，Cr，Cb分别对应为（0.9，0.05，0.05）。更新公式如下所示。  </p>
+<script type="math/tex; mode=display">
+Q = R(P;r) = \begin{cases} 
+1, & \text{where }  P_{ij} \geq \rho \\
+0 & \text{otherwise } 
+\end{cases}</script><p>上式中$\rho$为相应通道矩阵的1-r分位数。此外，作者使用了直通估计器（STE）避免了二值化矩阵Qt的非连续性导致的梯度消失。</p>
+<p>结合上述更新过程可以看出，作者在更新量化矩阵部分主要保留了Y通道的信息，而略去了大部分的Cr和Cb通道的图像信息，即认为图像的明亮度信息会对模型准确判别的影响更大，且在不同模型之间具备通用性。 </p>
+<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><h2 id="实验准备"><a href="#实验准备" class="headerlink" title="实验准备"></a>实验准备</h2><p>论文使用NIPS2017的Adversarial Learning Challenge数据集，包含1000张ImageNet的图像；训练了ResNet50，VGG-19和Inception-v3作为source model；采用了不同基于梯度的FGSM类攻击方法作为基准攻击方法，包括MI、DI、TI、VMI和SI-NI-FGSM；最后作者还额外设计模型防御和对抗训练等场景验证扰动矩阵的泛化攻击鲁棒性。 </p>
+<h2 id="攻击迁移性结果"><a href="#攻击迁移性结果" class="headerlink" title="攻击迁移性结果"></a>攻击迁移性结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/092c9072871f675b4042166c65e98a90" alt="092c9072871f675b4042166c65e98a90"></p>
+<p>在黑盒场景下对于ResNet、VGG和Dense等架构的模型本论文方法对生成扰动的攻击迁移性提升起到了一定的促进作用，但对于ConvNeXt和ViT架构模型，原始FGSM方法的攻击效果和相应的迁移性提升表现都不理想。</p>
+<h2 id="对防御方法的攻击效果"><a href="#对防御方法的攻击效果" class="headerlink" title="对防御方法的攻击效果"></a>对防御方法的攻击效果</h2><p>对于以JPEG和Bit-depth reduction为代表的滤波器防御方法，本文方法的攻击结果如下。</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/dd6ef8b49a9eae203550c9fa33a6dd00" alt="dd6ef8b49a9eae203550c9fa33a6dd00">  </p>
+<p>对于对抗训练的防御方法，对应结果如下。  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/185981e0411bc1727b31dc04eadea665" alt="185981e0411bc1727b31dc04eadea665"> </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本论文提出了基于频率域的迁移攻击增强方法，搭建了完整的频率域攻击和优化流程，并在FGSM为代表的梯度攻击方法上实现了理想的攻击效果，后续可以借鉴该论文的思路进一步探索频率域的攻击手段。</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>论文笔记：Adversarial Robust under Long-tailed distribution</title>
+    <url>/2025/10/07/paper9/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+关于结合LT分布与AT(Adversarial Training)的论文笔记
+</p><br><span id="more"></span></p>
+<h1 id="发表情况"><a href="#发表情况" class="headerlink" title="发表情况"></a>发表情况</h1><p>2021年CVPR oral论文</p>
+<h1 id="摘要与创新点总结"><a href="#摘要与创新点总结" class="headerlink" title="摘要与创新点总结"></a>摘要与创新点总结</h1><p>对抗样本的提出解释了CNN架构为代表的神经网络模型具有特殊的脆弱性, 而对抗鲁棒性则重点关注提升模型对对抗样本的识别准确率, 使模型在处于攻击的场景下仍能保持性能, 同时拓展对模型性能的评估角度, 进一步解释神经网络模型的内在机理. 然而, 从数据角度出发, 大部分模型训练所用数据均是均匀分布的, 而在现实场景中数据的分布常为长尾分布(Long-tailed Distribution). 在论文中, 作者从长尾分布数据的角度出发, 揭示了该数据分布对模型的识别性能和对抗鲁棒性造成的负面影响. 在此基础上, 作者提出了针对长尾分布数据集的高效对抗训练框架(可以理解为defense手段), 实现了该场景下的SOTA效果. 对于论文的场景, 作者定义了两种识别准确率 $A_{nat}$ 和 $A_{rob}$ , 前者指natural, 会在默认训练和加入对抗训练的两种模型上进行评估, 而后者指robust, 仅在对抗训练的分类模型上进行评估. 对于二者的区别, 可以用如下公式表示. </p>
+<script type="math/tex; mode=display">
+A_{rob} = A_{nat} - R_{bdy} \tag{1}</script><p>上式中的$R_{bdy}$指那些干净和被正确分类的输入的features与决策边界的$\epsilon$范围的距离. 为了使$A_{nat}$较大且$A_{rob}$较小, 作者认为可以从长尾分布数据再平衡的角度着手. 综上, 本文的创新点可总结如下:</p>
+<ol>
+<li>首次提出从数据长尾分布的角度研究模型对抗鲁棒性的问题</li>
+<li>结合针对长尾分布的rebalance方法和对抗训练方法</li>
+<li>提出了SOTA的针对长尾分布的对抗鲁棒训练框架</li>
+</ol>
+<h1 id="核心方法"><a href="#核心方法" class="headerlink" title="核心方法"></a>核心方法</h1><h2 id="现有方法及其实验结果分析"><a href="#现有方法及其实验结果分析" class="headerlink" title="现有方法及其实验结果分析"></a>现有方法及其实验结果分析</h2><p>首先需要对<strong>Adversarial Robustness</strong>的定义进行阐释, 该定义主要指通过Adversarial Defence或Adversarial Training(AT)的方法提升模型在受到对抗样本攻击时的分类性能. 针对LT策略和AT框架结合后对模型的影响, 作者进行了详尽的实验, 结果如下:</p>
+<figure style="text-align: center;">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251005212230.png" style = "width: auto; height: 350px;">
+</figure>
+
+<p>对于对抗训练的流程, 可以用如下数学形式表示:</p>
+<script type="math/tex; mode=display">
+\min_{\theta} \mathbb{E}_{(x,y) \sim D} [L_{T}(\theta ; x + \delta, y)] \ , \\
+where \ \  \delta = \arg \max_{\delta \in \mathcal{B}(\epsilon) } L_{A}(\theta ; x + \delta, y) \tag{2}</script><p>上式中的内部优化目标时找到最有效的对抗扰动, 外部目标是通过损失函数的梯度下降使模型对对抗样本也保持鲁棒性. 两个损失函数都可以用CE损失. 而对于LT分布下的模型优化方法, 可以大致分为三类: <strong>training</strong>, <strong>fine-tuning</strong>和<strong>inference</strong>. 同时对以下表达进行规定: $f(x)$为图像$x$输入模型后提取深层特征向量, $W$为分类器的权重向量; $\tilde{f}(x)$ 和 $\tilde{W}$ 则为对上述向量进行归一化后的结果. </p>
+<p>在训练结果, 作者结合多种针对长尾分布的重采样和代价敏感学习(cost-sensitive learning)的方法, 提出了改进的基于CE的损失函数, 具体数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+L'_{CE}(W; f(x),y) = -r_{w}(y) \cdot log(\frac{e^{z_y}}{\sum_{i}e^{z_i}})</script><script type="math/tex; mode=display">
+where \ \ z_i = g_i(W_i, f(x)) \tag{3}</script><p>上式中的$g(\cdot)$代表分类模型进行softmax前的logit值, $r_w(y)$则代表对于类别y的re-weighting因子, 相当于对这类样本的采样频率. $g$函数由多种表达形式, 常用线性分类形式: </p>
+<script type="math/tex; mode=display">
+g_i(W_i, f(x)) = W_i^T \cdot f(x) + b_i \tag{4}</script><p>此外, $L’_{CE}$还可用于加入到对抗训练中(即模型更新所用梯度和对抗样本生成所有梯度均来自作为标量的$L’_{CE}$损失函数). 在fine-tuning阶段, 核心的做法是将模型的backbone冻结, 通过数据re-balancing的技术对模型进行微调, 实验结果表明经过一轮微调即可显著提升$A_{nat}$, 但后续微调轮次增加的效果则不明显. 在inference阶段, 作者比较了权重正则化($\tau-norm$), classifier re-scaling 和 feature disentangling等解决LT问题的算法. 结果均已在上述表格中. </p>
+<p>在实验中作者发现, 当前的LT methods对于$A_{nat}$ 和 $A_{rob}$ 间性能存在差距的问题都没有较好的解决手段. 然而, cosine classifier相较于传统的linear classifier则在这个问题上有更好的表现. 对于linear classifier, 可以简单理解为通过CNN提取出特征向量后, 在执行分类层时近似为线性运算, 进而获得模型输出的logits, 相应的表达形式如下:</p>
+<script type="math/tex; mode=display">
+z_j = W_j^T \cdot f(x) + b_j \tag{5}</script><p>上式中f(x)表示CNN模型的backbone, $z_j$表示第j类的logits值. 而在cosine classifier中, 对特征向量$f(x)$ 和 对应权重$W_j$进行归一化操作, 这样两者的点乘结果即为两向量间的余弦值, 因此避免了向量长度对预测分类结果的影响, 提高对LT分布数据集的分类鲁棒性. </p>
+<h2 id="RoBal训练框架"><a href="#RoBal训练框架" class="headerlink" title="RoBal训练框架"></a>RoBal训练框架</h2><p>结合上述实验结果, 作者总结了长尾分布下的对抗鲁棒性面临着两个主要问题:</p>
+<ol>
+<li>合适的特征向量与嵌入手段的选择</li>
+<li>如何更好地将LT方法与AT对抗训练框架相结合</li>
+</ol>
+<p>针对以上两个问题, 作者提出了包含尺度不变分类器(scale-invariant classifier)和二阶段再平衡(re-balancing)的Robust and Balanced训练框架, 即RoBal.</p>
+<h3 id="scale-invariant-classifier"><a href="#scale-invariant-classifier" class="headerlink" title="scale invariant classifier"></a>scale invariant classifier</h3><p>经典的线性分类器的logit计算可以写为如下的数学形式:</p>
+<script type="math/tex; mode=display">
+W_i^T \cdot f(x) + b_i = \| W_i \| \cdot \| f(x) \| \cdot cos\theta_i + b_i \tag{6}</script><p>针对其中的$W$项作者进行了尺度不变的思路延申. 在AT的框架下, 最初可以被正确分类的样本可以根据是否产生有效的对抗样本而分为两类. 通过计算scaling ratio(如下式(7)所示), 可以观察这两类不同图像的分布情况, 结果表明可以产生有效对抗样本的类别有更高的scaling ratio.</p>
+<script type="math/tex; mode=display">
+\frac{\| f(x + \delta) \|}{\| f(x) \|} \tag{7}</script><p>对于不同类别的scaling ratio分布如下图所示, 由上至下分别是原始样本和加入扰动后的对抗样本的scaling ratio和图像数目的分布情况:</p>
+<figure style="text-align: center;">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006182337.png" style = "height: 400px; width: 300">
+</figure>
+
+<p>对于尺度不变的自然想法就是引入cosine classifier, 降低权重向量和特征向量的模长对分类的影响. </p>
+<h3 id="two-stage-re-balancing"><a href="#two-stage-re-balancing" class="headerlink" title="two-stage re-balancing"></a>two-stage re-balancing</h3><p>在从AT的角度出发引入cosine classifier后, 针对训练数据的长尾分布, 作者对$cos\theta_i$ 和 $b_i$这两个变量提出了对应的改进形式. 一个被广泛使用的对偏置项的改进就是加入类别特定(class-specific)的偏置项, 即 $b_i = \tau_b log(n_i)$ , 而改进后的CE损失函数如下所示:</p>
+<script type="math/tex; mode=display">
+L_0 = -log(\frac{e^{z_y + b_y}}{\sum_i e^{z_i+b_i}}) = log(1 + \sum_{i \neq y} e^{z_i - z_y + \tau_b log(n_i / n_y)}) \tag{8}</script><p>上式中的$\tau_b$使超参数, 用于控制偏置值的计算. $n_i$则为第i类的样本数量. 对于上述的引入样本数量的偏置值的设定, 由于模型训练过程中对损失函数的优化目标使使之最小化, 以CE为例的损失函数需要模型输出的logits和真实标签构成的one-hot向量, 而当构建上述偏置项后, 在损失函数的计算过程中相当于直接在logits上加入一个固定的向量, 使数量多的样本的logits天然偏大, 而真实标签是那些少量样本时, 在面对模型天然倾向误判为大样本的前提下会在训练中促使模型输出更大的原始logits的小样本项的值, 从损失函数反向传播的贡献上即小样本项会带来更大的梯度矩阵, 从而解决LT的问题. </p>
+<p>然而, 从类间差距的角度出发(在cosine classifier的背景下, 这个差距就是不同类别在球空间中被分配的角度范围间的角度边界距离), 当 $n_y$ 明显大于 $n_i$时, CE损失有被缩小的倾向, 加入的偏置项有negative的作用. 为了解决这个问题, 作者提出了一个类别感知的间隔, 为头部的样本数量大的类别分配了更大的margin value作为补偿. 对应的margin value的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+m_i = \frac{\tau_m}{s} log \frac{n_i}{n_{min}} + m_0 \tag{9}</script><p>上式中的$\tau_m$为用于控制m变化的超参数, s代表temperature, 用于拓展cosine形式下的输出值域. 结合margin value的CE损失函数的数学表达形式如下所示:</p>
+<script type="math/tex; mode=display">
+L_1 = -log(\frac{e^{s(cos\theta_y - m_y) + b_y}}{e^{s(cos\theta_y - m_y) + b_y} + \sum_{i \neq y} e^{s \cos \theta_i + b_i } }) \tag{10}</script><p>以笔者个人的理解来看, 本文作者在这里的改进的核心就是高级版的复杂版的<strong>水多加面, 面多加水</strong>, 由于softmax和交叉熵损失的计算固定, 仅就对模型输出的干净logits值的改动来看作者的改进. 原始的偏置项的作用可用下式表示:</p>
+<script type="math/tex; mode=display">
+Logits_{final} = Logits_{original} + \mathbf{b} \tag{11}</script><p>其中的向量$\mathbf{b}$的分布特征是类别的数量越多, 对应位置分配的值越大, 却恒为正数. 在cosine classifier的背景下Logits的计算过程如下:</p>
+<script type="math/tex; mode=display">
+Logits_{original} = \cos \theta_i = \cos(f(x), W) \tag{12}</script><p>而作者的改进相当于对原始的Logits先减去一项, 再在后面加上一项, 反复进行拉扯来平衡最终的Logits的效果, 且当$i \neq y$ 时不执行减去的操作. 最终从Logits的视角模型的输出的数学形式如下所示:</p>
+<script type="math/tex; mode=display">
+Logits = \cos \theta_i - s \cdot m_i + b_i = \cos \theta_i - \tau_m log(\frac{n_i}{n_{min}}) - m_0 + \tau_b log(n_i) \tag{13}</script><p>只能说作者从一个刁钻的角度(AT训练)证实了加入采样偏置项带来的trade-off, 但提出的解决方案很难说有多么高明. 最后, 受AT训练框架的启发, 作者提出了在最终的训练损失中加入KL散度, 来制约对抗样本和干净图像之间的分布差距(可以理解为一种高级的范数约束, 散度是用来衡量两个概率分布间的相似情况). 最终的损失函数的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+L = L_1(x+\delta, y) + \alpha \cdot KL(\tilde{W} \cdot \tilde{f}(x + \delta), \tilde{W} \cdot \tilde{f}(x)) \tag{14}</script><p>对抗样本的产生则是基于vanilla CE loss. 此外, 对于two-stage的定义, 则是作者在推理阶段也对模型所用的偏置项进行了改进, 具体为减去一个采样偏置项来放大对小样本量类别的注意, 对应的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+\arg \max_{i \in [C]} s \cdot \cos \theta_i - \tau_p log(\frac{n_i}{\sum_j n_j}) \tag{15}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者进行了详尽的消融实验和结果分析. 这里仅展示相对重要的实验结果. 下图的N与R分别代表natural和robust, 对比结果如下:</p>
+<figure style="text-align: center;">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006205753.png" style = "width: auto; height: 270px">
+</figure>
+
+<p>对于不同的数据长尾分布情况(即imbalance ratio, IR不同), 作者也进行了消融实验, 结果如下:</p>
+<figure style="text-align: center;">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006210043.png" style = "width: auto; height: 350px">
+</figure>
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文最核心的创新视角在于用对抗样本和对抗攻击漂亮地解释了长尾分布方法中偏置项设置可能带来的trade-off, 说明对抗样本作为解释工具的巨大应用前景.</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+        <tag>对抗防御</tag>
       </tags>
   </entry>
   <entry>
@@ -1172,166 +1441,6 @@ h_i \\
       <tags>
         <tag>笔记</tag>
         <tag>论文</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：Adversarial Robust under Long-tailed distribution</title>
-    <url>/2025/10/07/paper9/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-关于结合LT分布与AT(Adversarial Training)的论文笔记
-</p><br><span id="more"></span></p>
-<h1 id="发表情况"><a href="#发表情况" class="headerlink" title="发表情况"></a>发表情况</h1><p>2021年CVPR oral论文</p>
-<h1 id="摘要与创新点总结"><a href="#摘要与创新点总结" class="headerlink" title="摘要与创新点总结"></a>摘要与创新点总结</h1><p>对抗样本的提出解释了CNN架构为代表的神经网络模型具有特殊的脆弱性, 而对抗鲁棒性则重点关注提升模型对对抗样本的识别准确率, 使模型在处于攻击的场景下仍能保持性能, 同时拓展对模型性能的评估角度, 进一步解释神经网络模型的内在机理. 然而, 从数据角度出发, 大部分模型训练所用数据均是均匀分布的, 而在现实场景中数据的分布常为长尾分布(Long-tailed Distribution). 在论文中, 作者从长尾分布数据的角度出发, 揭示了该数据分布对模型的识别性能和对抗鲁棒性造成的负面影响. 在此基础上, 作者提出了针对长尾分布数据集的高效对抗训练框架(可以理解为defense手段), 实现了该场景下的SOTA效果. 对于论文的场景, 作者定义了两种识别准确率 $A_{nat}$ 和 $A_{rob}$ , 前者指natural, 会在默认训练和加入对抗训练的两种模型上进行评估, 而后者指robust, 仅在对抗训练的分类模型上进行评估. 对于二者的区别, 可以用如下公式表示. </p>
-<script type="math/tex; mode=display">
-A_{rob} = A_{nat} - R_{bdy} \tag{1}</script><p>上式中的$R_{bdy}$指那些干净和被正确分类的输入的features与决策边界的$\epsilon$范围的距离. 为了使$A_{nat}$较大且$A_{rob}$较小, 作者认为可以从长尾分布数据再平衡的角度着手. 综上, 本文的创新点可总结如下:</p>
-<ol>
-<li>首次提出从数据长尾分布的角度研究模型对抗鲁棒性的问题</li>
-<li>结合针对长尾分布的rebalance方法和对抗训练方法</li>
-<li>提出了SOTA的针对长尾分布的对抗鲁棒训练框架</li>
-</ol>
-<h1 id="核心方法"><a href="#核心方法" class="headerlink" title="核心方法"></a>核心方法</h1><h2 id="现有方法及其实验结果分析"><a href="#现有方法及其实验结果分析" class="headerlink" title="现有方法及其实验结果分析"></a>现有方法及其实验结果分析</h2><p>首先需要对<strong>Adversarial Robustness</strong>的定义进行阐释, 该定义主要指通过Adversarial Defence或Adversarial Training(AT)的方法提升模型在受到对抗样本攻击时的分类性能. 针对LT策略和AT框架结合后对模型的影响, 作者进行了详尽的实验, 结果如下:</p>
-<figure style="text-align: center;">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251005212230.png" style = "width: auto; height: 350px;">
-</figure>
-
-<p>对于对抗训练的流程, 可以用如下数学形式表示:</p>
-<script type="math/tex; mode=display">
-\min_{\theta} \mathbb{E}_{(x,y) \sim D} [L_{T}(\theta ; x + \delta, y)] \ , \\
-where \ \  \delta = \arg \max_{\delta \in \mathcal{B}(\epsilon) } L_{A}(\theta ; x + \delta, y) \tag{2}</script><p>上式中的内部优化目标时找到最有效的对抗扰动, 外部目标是通过损失函数的梯度下降使模型对对抗样本也保持鲁棒性. 两个损失函数都可以用CE损失. 而对于LT分布下的模型优化方法, 可以大致分为三类: <strong>training</strong>, <strong>fine-tuning</strong>和<strong>inference</strong>. 同时对以下表达进行规定: $f(x)$为图像$x$输入模型后提取深层特征向量, $W$为分类器的权重向量; $\tilde{f}(x)$ 和 $\tilde{W}$ 则为对上述向量进行归一化后的结果. </p>
-<p>在训练结果, 作者结合多种针对长尾分布的重采样和代价敏感学习(cost-sensitive learning)的方法, 提出了改进的基于CE的损失函数, 具体数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-L'_{CE}(W; f(x),y) = -r_{w}(y) \cdot log(\frac{e^{z_y}}{\sum_{i}e^{z_i}})</script><script type="math/tex; mode=display">
-where \ \ z_i = g_i(W_i, f(x)) \tag{3}</script><p>上式中的$g(\cdot)$代表分类模型进行softmax前的logit值, $r_w(y)$则代表对于类别y的re-weighting因子, 相当于对这类样本的采样频率. $g$函数由多种表达形式, 常用线性分类形式: </p>
-<script type="math/tex; mode=display">
-g_i(W_i, f(x)) = W_i^T \cdot f(x) + b_i \tag{4}</script><p>此外, $L’_{CE}$还可用于加入到对抗训练中(即模型更新所用梯度和对抗样本生成所有梯度均来自作为标量的$L’_{CE}$损失函数). 在fine-tuning阶段, 核心的做法是将模型的backbone冻结, 通过数据re-balancing的技术对模型进行微调, 实验结果表明经过一轮微调即可显著提升$A_{nat}$, 但后续微调轮次增加的效果则不明显. 在inference阶段, 作者比较了权重正则化($\tau-norm$), classifier re-scaling 和 feature disentangling等解决LT问题的算法. 结果均已在上述表格中. </p>
-<p>在实验中作者发现, 当前的LT methods对于$A_{nat}$ 和 $A_{rob}$ 间性能存在差距的问题都没有较好的解决手段. 然而, cosine classifier相较于传统的linear classifier则在这个问题上有更好的表现. 对于linear classifier, 可以简单理解为通过CNN提取出特征向量后, 在执行分类层时近似为线性运算, 进而获得模型输出的logits, 相应的表达形式如下:</p>
-<script type="math/tex; mode=display">
-z_j = W_j^T \cdot f(x) + b_j \tag{5}</script><p>上式中f(x)表示CNN模型的backbone, $z_j$表示第j类的logits值. 而在cosine classifier中, 对特征向量$f(x)$ 和 对应权重$W_j$进行归一化操作, 这样两者的点乘结果即为两向量间的余弦值, 因此避免了向量长度对预测分类结果的影响, 提高对LT分布数据集的分类鲁棒性. </p>
-<h2 id="RoBal训练框架"><a href="#RoBal训练框架" class="headerlink" title="RoBal训练框架"></a>RoBal训练框架</h2><p>结合上述实验结果, 作者总结了长尾分布下的对抗鲁棒性面临着两个主要问题:</p>
-<ol>
-<li>合适的特征向量与嵌入手段的选择</li>
-<li>如何更好地将LT方法与AT对抗训练框架相结合</li>
-</ol>
-<p>针对以上两个问题, 作者提出了包含尺度不变分类器(scale-invariant classifier)和二阶段再平衡(re-balancing)的Robust and Balanced训练框架, 即RoBal.</p>
-<h3 id="scale-invariant-classifier"><a href="#scale-invariant-classifier" class="headerlink" title="scale invariant classifier"></a>scale invariant classifier</h3><p>经典的线性分类器的logit计算可以写为如下的数学形式:</p>
-<script type="math/tex; mode=display">
-W_i^T \cdot f(x) + b_i = \| W_i \| \cdot \| f(x) \| \cdot cos\theta_i + b_i \tag{6}</script><p>针对其中的$W$项作者进行了尺度不变的思路延申. 在AT的框架下, 最初可以被正确分类的样本可以根据是否产生有效的对抗样本而分为两类. 通过计算scaling ratio(如下式(7)所示), 可以观察这两类不同图像的分布情况, 结果表明可以产生有效对抗样本的类别有更高的scaling ratio.</p>
-<script type="math/tex; mode=display">
-\frac{\| f(x + \delta) \|}{\| f(x) \|} \tag{7}</script><p>对于不同类别的scaling ratio分布如下图所示, 由上至下分别是原始样本和加入扰动后的对抗样本的scaling ratio和图像数目的分布情况:</p>
-<figure style="text-align: center;">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006182337.png" style = "height: 400px; width: 300">
-</figure>
-
-<p>对于尺度不变的自然想法就是引入cosine classifier, 降低权重向量和特征向量的模长对分类的影响. </p>
-<h3 id="two-stage-re-balancing"><a href="#two-stage-re-balancing" class="headerlink" title="two-stage re-balancing"></a>two-stage re-balancing</h3><p>在从AT的角度出发引入cosine classifier后, 针对训练数据的长尾分布, 作者对$cos\theta_i$ 和 $b_i$这两个变量提出了对应的改进形式. 一个被广泛使用的对偏置项的改进就是加入类别特定(class-specific)的偏置项, 即 $b_i = \tau_b log(n_i)$ , 而改进后的CE损失函数如下所示:</p>
-<script type="math/tex; mode=display">
-L_0 = -log(\frac{e^{z_y + b_y}}{\sum_i e^{z_i+b_i}}) = log(1 + \sum_{i \neq y} e^{z_i - z_y + \tau_b log(n_i / n_y)}) \tag{8}</script><p>上式中的$\tau_b$使超参数, 用于控制偏置值的计算. $n_i$则为第i类的样本数量. 对于上述的引入样本数量的偏置值的设定, 由于模型训练过程中对损失函数的优化目标使使之最小化, 以CE为例的损失函数需要模型输出的logits和真实标签构成的one-hot向量, 而当构建上述偏置项后, 在损失函数的计算过程中相当于直接在logits上加入一个固定的向量, 使数量多的样本的logits天然偏大, 而真实标签是那些少量样本时, 在面对模型天然倾向误判为大样本的前提下会在训练中促使模型输出更大的原始logits的小样本项的值, 从损失函数反向传播的贡献上即小样本项会带来更大的梯度矩阵, 从而解决LT的问题. </p>
-<p>然而, 从类间差距的角度出发(在cosine classifier的背景下, 这个差距就是不同类别在球空间中被分配的角度范围间的角度边界距离), 当 $n_y$ 明显大于 $n_i$时, CE损失有被缩小的倾向, 加入的偏置项有negative的作用. 为了解决这个问题, 作者提出了一个类别感知的间隔, 为头部的样本数量大的类别分配了更大的margin value作为补偿. 对应的margin value的数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-m_i = \frac{\tau_m}{s} log \frac{n_i}{n_{min}} + m_0 \tag{9}</script><p>上式中的$\tau_m$为用于控制m变化的超参数, s代表temperature, 用于拓展cosine形式下的输出值域. 结合margin value的CE损失函数的数学表达形式如下所示:</p>
-<script type="math/tex; mode=display">
-L_1 = -log(\frac{e^{s(cos\theta_y - m_y) + b_y}}{e^{s(cos\theta_y - m_y) + b_y} + \sum_{i \neq y} e^{s \cos \theta_i + b_i } }) \tag{10}</script><p>以笔者个人的理解来看, 本文作者在这里的改进的核心就是高级版的复杂版的<strong>水多加面, 面多加水</strong>, 由于softmax和交叉熵损失的计算固定, 仅就对模型输出的干净logits值的改动来看作者的改进. 原始的偏置项的作用可用下式表示:</p>
-<script type="math/tex; mode=display">
-Logits_{final} = Logits_{original} + \mathbf{b} \tag{11}</script><p>其中的向量$\mathbf{b}$的分布特征是类别的数量越多, 对应位置分配的值越大, 却恒为正数. 在cosine classifier的背景下Logits的计算过程如下:</p>
-<script type="math/tex; mode=display">
-Logits_{original} = \cos \theta_i = \cos(f(x), W) \tag{12}</script><p>而作者的改进相当于对原始的Logits先减去一项, 再在后面加上一项, 反复进行拉扯来平衡最终的Logits的效果, 且当$i \neq y$ 时不执行减去的操作. 最终从Logits的视角模型的输出的数学形式如下所示:</p>
-<script type="math/tex; mode=display">
-Logits = \cos \theta_i - s \cdot m_i + b_i = \cos \theta_i - \tau_m log(\frac{n_i}{n_{min}}) - m_0 + \tau_b log(n_i) \tag{13}</script><p>只能说作者从一个刁钻的角度(AT训练)证实了加入采样偏置项带来的trade-off, 但提出的解决方案很难说有多么高明. 最后, 受AT训练框架的启发, 作者提出了在最终的训练损失中加入KL散度, 来制约对抗样本和干净图像之间的分布差距(可以理解为一种高级的范数约束, 散度是用来衡量两个概率分布间的相似情况). 最终的损失函数的数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-L = L_1(x+\delta, y) + \alpha \cdot KL(\tilde{W} \cdot \tilde{f}(x + \delta), \tilde{W} \cdot \tilde{f}(x)) \tag{14}</script><p>对抗样本的产生则是基于vanilla CE loss. 此外, 对于two-stage的定义, 则是作者在推理阶段也对模型所用的偏置项进行了改进, 具体为减去一个采样偏置项来放大对小样本量类别的注意, 对应的数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-\arg \max_{i \in [C]} s \cdot \cos \theta_i - \tau_p log(\frac{n_i}{\sum_j n_j}) \tag{15}</script><h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><p>作者进行了详尽的消融实验和结果分析. 这里仅展示相对重要的实验结果. 下图的N与R分别代表natural和robust, 对比结果如下:</p>
-<figure style="text-align: center;">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006205753.png" style = "width: auto; height: 270px">
-</figure>
-
-<p>对于不同的数据长尾分布情况(即imbalance ratio, IR不同), 作者也进行了消融实验, 结果如下:</p>
-<figure style="text-align: center;">
-    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20251006210043.png" style = "width: auto; height: 350px">
-</figure>
-
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文最核心的创新视角在于用对抗样本和对抗攻击漂亮地解释了长尾分布方法中偏置项设置可能带来的trade-off, 说明对抗样本作为解释工具的巨大应用前景.</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
-        <tag>对抗防御</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：《Towards Transferable Adversarial Attacks with Centralized Perturbation》</title>
-    <url>/2025/03/04/paper4/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-关于《Towards Transferable Adversarial Attacks with Centralized Perturbation》的论文笔记
-</div><br><span id="more"></span></p>
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被AAAI2024接收</p>
-<h1 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h1><h2 id="YCbCr色彩空间"><a href="#YCbCr色彩空间" class="headerlink" title="YCbCr色彩空间"></a>YCbCr色彩空间</h2><p>本论文的主要操作都基于将彩色图像RGB矩阵转换为YCrCb矩阵，并针对不同通道进行处理。YCrCb色彩空间常用于数码视频成像系统，其中的Y通道代表图像的明亮度（luma），Cb和Cb通道则反映图像的色度（chroma）信息。</p>
-<figure>
-  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/00d10b652a6f6818acd38a6894f23312" alt="00d10b652a6f6818acd38a6894f23312">
-  <figcaption>图1. RGB与YCrCb色彩空间展示</figcaption>
-</figure>
-
-<p>由RGB至YCC的色彩空间转换可分为模拟信号转换和数字信号转换，在此只关注后者的转换关系。根据标准ITU-R BT.601，对应的转换公式如下：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a0263dfbd33ff729f9521bdcd4134b8f" alt="a0263dfbd33ff729f9521bdcd4134b8f"></p>
-<h2 id="图像DCT变换"><a href="#图像DCT变换" class="headerlink" title="图像DCT变换"></a>图像DCT变换</h2><p>论文的主要创新点在于将对图像的扰动施加过程转换到频率域中进行，同时作者使用了离散余弦变换（DCT）而非离散傅里叶变换（DFT）来实现此过程。与傅里叶变换相比DCT只使用了实数进行变换，一个N=8的变换矩阵图如下图所示。该矩阵是实矩阵，有正交且不对称的特性。DCT被应用于JPEG压缩编码当中，可图像视觉信息损失较少的有损压缩。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/a04fbede927547029c5d35ba0cb0bc19" alt="a04fbede927547029c5d35ba0cb0bc19"></p>
-<p>DCT的变换公式如下所示：</p>
-<script type="math/tex; mode=display">
-s(x,u) = \alpha(u)cos(\frac{(2x+1)u\pi}{2N})</script><script type="math/tex; mode=display">
-\alpha(u) = 
-\begin{cases} 
-\sqrt{1/N} & & \text{if } u = 0 \\
-\sqrt{2/N} & & \text{if } u =1,2,...,N-1 
-\end{cases}</script><p>对于二维离散图像矩阵，由灰度矩阵转换为频率矩阵的转换公式如下：</p>
-<script type="math/tex; mode=display">
-T(u,v) = \sum_{x=0}^{N-1}\sum_{y=0}^{N-1}f(x,y)s(x,y,u,v)</script><script type="math/tex; mode=display">
-s(x,y,u,v) = s_1(x,u) s_2(y,v)</script><h1 id="摘要总结"><a href="#摘要总结" class="headerlink" title="摘要总结"></a>摘要总结</h1><p>当前的主流对抗样本会在图像灰度矩阵上施加全局扰动，往往导致对抗样本对梯度来源模型的过拟合而降低对抗样本的可迁移性。向主要的图像目标区域加入模型相关性弱的扰动是提升对抗有效性的关键，但在空域中限制扰动范围被证明对对抗样本的迁移性提升不足。对于上述情况，论文作者提出了基于频率域的梯度扰动优化对抗样本设计，使产生的对抗扰动可以降低对来源模型的过拟合，提升对抗样本的迁移性能并可以扰动多种模型防御方法，最大限度地保留攻击有效性。    </p>
-<p>作者的主要创新点如下：</p>
-<ol>
-<li>设计了基于DCT的共享频率分解算法，通过频域系数的量化处理消除多余扰动，使频率域的扰动限定在中心频率当中，从而避免对梯度源模型的过拟合。</li>
-<li>实现了量化处理矩阵的并行优化，确保了与每一步模型预测结果的对齐。</li>
-</ol>
-<h1 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h1><h2 id="频率分解（Frequency-Decomposition）"><a href="#频率分解（Frequency-Decomposition）" class="headerlink" title="频率分解（Frequency Decomposition）"></a>频率分解（Frequency Decomposition）</h2><p>假定输入图像为8bit的（3，224，224）图像X，首先将RGB图像转换为YCC图像，然后对每个channel进行DCT频率变换；接着进行block化操作将图像矩阵转化为多个8*8的blocks，将（B，C，W，H）的图像转化为（B，C，W，H/64，8，8）；然后对每一个频率矩阵进行量化操作（quantization），引入量化矩阵Qs来除去多余的频率系数；最后进行blocks的合并，使输入矩阵变为原始维度，然后进行IDCT操作获取分解后的图像X。完成以上流程后即实现对图像的频率分解，对应流程图如下所示。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/3de78e58ed30b6b0cb57d31fa92d8fa5" alt="3de78e58ed30b6b0cb57d31fa92d8fa5"></p>
-<p>对于上述的量化矩阵Qs，以Y通道为例其量化处理过程如下：</p>
-<script type="math/tex; mode=display">
-B_Y = blockify(DCT(Y))</script><script type="math/tex; mode=display">
-B_Y^{'} = B_Y\odot Q_Y</script><p>不同于JPEG压缩过程中的量化矩阵，本文的量化矩阵定义如下：</p>
-<script type="math/tex; mode=display">Q = (q_{ij}) \subseteq \{0，1\}^{m\times m}</script><p>Q矩阵初始化为单位向量<strong>1</strong>，在每一轮的量化过程中不重要的频率参数均被自动清楚，使得扰动主要添加在DNN预测中更加关键的区域。对于扰动矩阵$\delta_t$，通过下式的优化过程可以将其进行中心化产生新的扰动$\delta_t^{‘}$。</p>
-<script type="math/tex; mode=display">
-\delta_t^{'} = \mathcal{K}(\delta_t;Q_t)</script><p>上式中的$\mathcal{K}$即为频率分解和量化过程，每一轮迭代的Qt在该过程固定。  </p>
-<h2 id="优化量化矩阵Qt"><a href="#优化量化矩阵Qt" class="headerlink" title="优化量化矩阵Qt"></a>优化量化矩阵Qt</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/2243d7411336bcb596664f85678d0c12" alt="2243d7411336bcb596664f85678d0c12"></p>
-<p>施加扰动产生对抗样本的整体流程如上图所示。在stage2中完成对Qt的更新过程。更新的主要思想是将该轮次的对抗样本输出到源模型中，通过设计的loss损失函数实现Qt的更新。更新的主要思路是利用源模型输出梯度矩阵的变换程度，矩阵Q在每一轮优化$x_t^{adv}$后应当使得模型输出真实标签置信度降低。对应的损失函数公式如下：  </p>
-<script type="math/tex; mode=display">
-\arg\max_{Q_t}\mathcal{J}(\mathcal{K}(x_t^{adv};Q_t),y)</script><p>其中的损失$\mathcal{J}$是模型输出的交叉熵损失。作者认为Qt的更新过程一方面使Qt始终准确反映频率参数矩阵对模型预测准确性的影响；另一方面源模型的梯度矩阵在更新过程中会不断累加，从而提升泛化性能。模型算法流程如下所示。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5a630fd839119e7b1f2c446c0bd1433d" alt="5a630fd839119e7b1f2c446c0bd1433d">  </p>
-<p>在更新Qt的反向传播过程中，优化结果用m*m的矩阵P表示，对于YCC三通道每个通道有不同的P和相应的优化系数$0\leq r\leq 1$，对于Y，Cr，Cb分别对应为（0.9，0.05，0.05）。更新公式如下所示。  </p>
-<script type="math/tex; mode=display">
-Q = R(P;r) = \begin{cases} 
-1, & \text{where }  P_{ij} \geq \rho \\
-0 & \text{otherwise } 
-\end{cases}</script><p>上式中$\rho$为相应通道矩阵的1-r分位数。此外，作者使用了直通估计器（STE）避免了二值化矩阵Qt的非连续性导致的梯度消失。</p>
-<p>结合上述更新过程可以看出，作者在更新量化矩阵部分主要保留了Y通道的信息，而略去了大部分的Cr和Cb通道的图像信息，即认为图像的明亮度信息会对模型准确判别的影响更大，且在不同模型之间具备通用性。 </p>
-<h1 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h1><h2 id="实验准备"><a href="#实验准备" class="headerlink" title="实验准备"></a>实验准备</h2><p>论文使用NIPS2017的Adversarial Learning Challenge数据集，包含1000张ImageNet的图像；训练了ResNet50，VGG-19和Inception-v3作为source model；采用了不同基于梯度的FGSM类攻击方法作为基准攻击方法，包括MI、DI、TI、VMI和SI-NI-FGSM；最后作者还额外设计模型防御和对抗训练等场景验证扰动矩阵的泛化攻击鲁棒性。 </p>
-<h2 id="攻击迁移性结果"><a href="#攻击迁移性结果" class="headerlink" title="攻击迁移性结果"></a>攻击迁移性结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/092c9072871f675b4042166c65e98a90" alt="092c9072871f675b4042166c65e98a90"></p>
-<p>在黑盒场景下对于ResNet、VGG和Dense等架构的模型本论文方法对生成扰动的攻击迁移性提升起到了一定的促进作用，但对于ConvNeXt和ViT架构模型，原始FGSM方法的攻击效果和相应的迁移性提升表现都不理想。</p>
-<h2 id="对防御方法的攻击效果"><a href="#对防御方法的攻击效果" class="headerlink" title="对防御方法的攻击效果"></a>对防御方法的攻击效果</h2><p>对于以JPEG和Bit-depth reduction为代表的滤波器防御方法，本文方法的攻击结果如下。</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/dd6ef8b49a9eae203550c9fa33a6dd00" alt="dd6ef8b49a9eae203550c9fa33a6dd00">  </p>
-<p>对于对抗训练的防御方法，对应结果如下。  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/185981e0411bc1727b31dc04eadea665" alt="185981e0411bc1727b31dc04eadea665"> </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本论文提出了基于频率域的迁移攻击增强方法，搭建了完整的频率域攻击和优化流程，并在FGSM为代表的梯度攻击方法上实现了理想的攻击效果，后续可以借鉴该论文的思路进一步探索频率域的攻击手段。</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
       </tags>
   </entry>
 </search>
