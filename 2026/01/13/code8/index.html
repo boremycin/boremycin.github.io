@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="针对信号处理过程的SAR成像失真模拟">
+<meta property="og:type" content="article">
+<meta property="og:title" content="结合SAR成像过程的图像形变失真模拟">
+<meta property="og:url" content="http://boremycin.github.io/2026/01/13/code8/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="针对信号处理过程的SAR成像失真模拟">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113141714.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113141951.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113142836.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113142929.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143042.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143128.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143443.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143638.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143740.png">
+<meta property="article:published_time" content="2026-01-13T06:15:34.145Z">
+<meta property="article:modified_time" content="2026-01-13T06:38:21.232Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="工程实践">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113141714.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2026/01/13/code8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>结合SAR成像过程的图像形变失真模拟 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2026/01/13/code8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          结合SAR成像过程的图像形变失真模拟
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-01-13 14:15:34 / 修改时间：14:38:21" itemprop="dateCreated datePublished" datetime="2026-01-13T14:15:34+08:00">2026-01-13</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+针对信号处理过程的SAR成像失真模拟
+</p><br><span id="more"></span></p>
+<h1 id="SAR成像流程梳理"><a href="#SAR成像流程梳理" class="headerlink" title="SAR成像流程梳理"></a>SAR成像流程梳理</h1><p>合成孔径雷达(synthetic aperture radar, SAR)的成像过程可以大致分为物理, 信号和成像三个维度, 与常见的光学成像系统在各个层面上都存在着本质的差异.</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113141714.png" alt="Figure_1" style="display: block; margin: 0 auto; width: auto; height: 300px;">
+</figure>
+
+<p>在物理层面, SAR是一种主动式的探测系统. 其核心的物理机制是: 雷达系统向目标区域发射具有高度相干性的高功率电磁波(通常为微波波段), 当波束与地面目标接触后发生复杂的电磁反射, 雷达接受反射回波并进行信号处理成像. SAR物理建模的关键在于线性调频信号(LFM)的发射与目标的反向散射(Backscattering), 发射信号的数学表达形式通常如下所示:</p>
+<script type="math/tex; mode=display">
+s\left(t\right)=rect\left(\frac{t}{T}\right)exp\left(j2\pi f_ct+j\pi K t^2\right) \tag{1}</script><p>上式中T为脉冲宽度, $f_c$为中心频率,K为调频斜率.</p>
+<p>目标对于发射电磁波信号的响应取决于其物理特性, 包括复介电常数, 表面粗糙度以及几何形状. 对于SAR系统, 地面目标并非简单的“反光板”, 而是由无数的微小散射点组成的集合. 雷达接收的是对应点的电磁波矢量叠加后的回波.   </p>
+<p>对于光学系统, 其往往是被动式成像, 依赖外部光源, 其集中在390-760nm波长的可见光频谱段成像. 光学成像多基于漫反射（Diffuse Reflection），遵循朗伯定律（Lambert’s Law），光线向各个方向均匀散射。而 SAR 成像属于相干散射，地物的粗糙度是相对于微波波长而言的。如果地面平滑（如静止水面），会发生镜面反射导致回波极弱（呈现黑色）；只有当粗糙度与波长匹配时，才产生强回波。物理波长的差异决定了 SAR 具有“全天时、全天候”能力，能穿透云雾、雨雪，甚至一定深度的植被或干燥土壤。光学系统则会被云层完全遮挡。  </p>
+<p>在信号层面, SAR信号建模的核心是距离-方位双向解析. 回波不再是由光电传感器形成的像素矩阵,而是一个随时间变化的复数信号流. </p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113141951.png" alt="Figure_1" style="display: block; margin: 0 auto; width: auto; height: 400px;">
+</figure>
+
+<p>距离向通过记录电磁波往返的时间延迟来确定目标的远近, 由于LFM信号的存在, 距离信息被编码在信号的频率变化中. 方位向则基于雷达平台移动时与目标之间的相对位置不断变化而产生多普勒频率调制, 对应的回波信号数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+s_r(\tau,\eta)=Aw_r(\tau-\tau_d)w_a(\eta-\eta_c)\exp\left\{-j\frac{4\pi R(\eta)}{\lambda}\right\}\exp\left\{j\pi K(\tau-\tau_d)^2\right\} \tag{2}</script><p>该回波信号为二维耦合信号, 其中$\tau$是距离向快时间, $\eta$为方位向慢时间, $R\left(\eta\right)$为随方位时间变化的瞬时斜距. 方位向的空间分辨率并不取决于天线的物理尺寸, 而是取决于合成孔径的长度. </p>
+<p>SAR与光学系统在信号层面的差异体现在以下方面. 编码方式： 光学系统采用的是直接强度映射。每个像元接收的光强直接对应地物的反射率。信号是空间域的直接投影。SAR 则是相位/频率编码。回波数据在未经处理前（称为 Raw Data），肉眼无法分辨任何地物特征，看起来像是杂乱无章的噪声。成像几何： 光学成像属于中心投影（透视投影），其几何关系遵循视线传播。SAR 属于斜距投影（Range-Doppler 投影）。这导致了 SAR 特有的几何畸变：缩短（Foreshortening）、叠掩（Layover）和阴影（Shadow）。在 SAR 信号中，高度不同的点如果到雷达的距离相同，会被记录在同一个时间点上，产生严重的混叠。相干性： SAR 记录的是复信号（幅度 + 相位），相位包含了亚波长级的距离信息，这使得干涉 SAR（InSAR）测量毫米级形变成可能。光学图像通常只保留幅度信息。</p>
+<p>在成像层面, SAR成像系统本质为逆问题求解, 即从杂乱的, 具有高度耦合性的二维原始数据中反演地表真实的复散射系数分布. 其中的核心逻辑是相干累加, 即通过脉冲压缩技术将分散的LFM信号在时域上聚拢. 在距离向利用已知发射信号的共轭对回波进行匹配滤波, 获得高距离分辨率; 在方位向补偿由于平台运动造成的多普勒相位变化, 利用合成孔径原理将长距离的等效天线接受的能量聚焦在一个点上. 最终得到的SAR图像是地面反向散射截面积(RCS)的映射图. </p>
+<p>相较于光学成像系统相比, 光学系统的空间分辨率受限于衍射极限，即光学镜头的孔径越大，分辨率越高。SAR 的距离分辨率取决于信号带宽（Bandwidth），带宽越宽，分辨率越高；而方位分辨率在理论上与距离无关，且物理天线越小，分辨率反而越高（因为小天线波束更宽，合成孔径更长）。同时SAR 成像中存在一种特有的相干斑噪声（Speckle Noise）。这是由于一个分辨率单元内多个随机散射点的相干叠加引起的，表现为强烈的“颗粒感”。这种噪声是相干系统固有的，是乘性噪声。光学图像则主要是由于光子计数引起的高斯加性噪声。光学图像符合人类视觉直觉。SAR 图像则更像是一张“电磁特征图”。例如，金属物体的二次反射会造成极亮的光点，而平整道路由于反射能量远去而呈现深黑色。</p>
+<h1 id="SAR成像失真分析与建模"><a href="#SAR成像失真分析与建模" class="headerlink" title="SAR成像失真分析与建模"></a>SAR成像失真分析与建模</h1><p>在标准 SAR 成像物理与处理框架下，光学成像中常见的仿射变换、弹性形变一类“几何形状失真”，原则上并不是 SAR 成像中的主导失真机制；尤其在雷达平台轨迹已知且稳定的情况下，SAR 中几何错位并不来源于视角变化和透视投影，而来源于完全不同的物理与信号处理因素。</p>
+<p>SAR图像中的两个轴, 距离向由回波往返时间确定, 是物理距离的函数; 方位向由平台运动造成的多普勒调制决定, 是相对径向速度的函数. 这两个量均与目标在空间中的投影方式无关. 距离坐标和方位坐标的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+r=\frac{c\tau}{2}= \|p-sη \| \tag{3}</script><script type="math/tex; mode=display">
+f_d\left(\eta\right)\propto\frac{d}{d\eta}\|p-sη \| \tag{4}</script><p>同时, 由于雷达平台航迹固定, 与目标之间难以发生空间错位, 因此SAR成像中不存在相机抖动, 每个像素都来自整条航迹的相干累积. SAR系统的成像失真通常为几何畸变, 包括斜距到地距变换引起的非线性畸变, 如压缩, 叠掩或阴影. 此外, 飞行平台的运动误差也会导致方位模糊或局部展宽.</p>
+<p>对于前倾压缩, 其发生原因为当成像地表存在迎向雷达的斜坡时高程方向会被压缩, 设地面点高度$h$, 入射角$\theta$, 对应高程表达为:</p>
+<script type="math/tex; mode=display">
+r=r_0-h\ sin\theta \tag{5}</script><p>相应投影长度为:</p>
+<script type="math/tex; mode=display">
+\Delta r\ \approx\Delta x\ sin\ \theta \tag{6}</script><p>当θ变小时压缩加剧.</p>
+<p>对于叠掩现象, 其表现为高处目标会率先成像并表现为在雷达成像平台前倒置. 该失真发生的数学条件如下:</p>
+<script type="math/tex; mode=display">
+r_0-h_1sin\theta<r_0-h_2sin\theta \tag{7}</script><p>对于阴影现象, 主要是因为SAR作为主动探测系统, 无法依赖散射环境, 因此图像中的阴影部分则为绝对的成像系统热噪声.</p>
+<h1 id="SAR图像形变失真实验"><a href="#SAR图像形变失真实验" class="headerlink" title="SAR图像形变失真实验"></a>SAR图像形变失真实验</h1><h2 id="正向SAR信号处理和成像可视化"><a href="#正向SAR信号处理和成像可视化" class="headerlink" title="正向SAR信号处理和成像可视化"></a>正向SAR信号处理和成像可视化</h2><p>首先基于真实ERS（European Remote-Sensing Satellite）卫星数据进行完整的正向SAR信号处理与图像生成流程. ERS卫星计划由欧洲空间局（ESA）实施，旨在开展全球地球观测与海洋/陆地动态监测，是欧洲首个以微波遥感为核心的长期卫星计划。ERS卫星采用近太阳同步、极地轨道，高度约785–800km，倾角约98.5°，轨道周期约100分钟。</p>
+<p>对于成像信号所在的雷达载荷平台, 对应的系统参数如下所示:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>符号</th>
+<th>数值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>波长</td>
+<td>$\lambda$</td>
+<td>0.0566 m</td>
+<td>C波段</td>
+</tr>
+<tr>
+<td>载频</td>
+<td>$f_c$</td>
+<td>5.300 GHz</td>
+<td>$f_c = c / \lambda$</td>
+</tr>
+<tr>
+<td>距离采样率</td>
+<td>$f_s$</td>
+<td>18.96 MHz</td>
+<td>——</td>
+</tr>
+<tr>
+<td>脉冲宽度</td>
+<td>$\tau$</td>
+<td>37.1 $\mu$s</td>
+<td>LFM 脉冲</td>
+</tr>
+<tr>
+<td>调频斜率</td>
+<td>$K_r$</td>
+<td>$4.19 \times 10^{11}$ Hz/s</td>
+<td>——</td>
+</tr>
+<tr>
+<td>调频带宽</td>
+<td>$B$</td>
+<td>15.5 MHz</td>
+<td>$B = K_r \cdot \tau$</td>
+</tr>
+<tr>
+<td>最近斜距</td>
+<td>$r_0$</td>
+<td>850 km</td>
+<td>——</td>
+</tr>
+<tr>
+<td>脉冲重复频率</td>
+<td>PRF</td>
+<td>1670 Hz</td>
+<td>星载固定</td>
+</tr>
+<tr>
+<td>平台高度</td>
+<td>$h$</td>
+<td>790 km</td>
+<td>ERS轨道</td>
+</tr>
+<tr>
+<td>多普勒中心</td>
+<td>$f_d$</td>
+<td>-134.97 Hz</td>
+<td>——</td>
+</tr>
+<tr>
+<td>侧视角</td>
+<td>$\theta_s$</td>
+<td>-0.21°</td>
+<td>——</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>原始回波信号的可视化结果如下图所示, 左图为原始复数信号的幅值图像, 右图为复数信号的实部图像. 从可视化效果来看, 原始SAR信号类似噪声图, 其原因是SAR能量在空间上完全散焦, 每一个目标点的能量被散布到多个距离采样点和方位脉冲当中. 而对于实部数据的可视化结果, 存在密集的线条分布, 这是LFM信号在时域的波形. 图像中坐标轴的横轴代表“快时间”（Fast Time），即雷达脉冲往返的时间, 纵轴代表“慢时间”（Slow Time），即卫星沿轨道飞行的位置。</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113142836.png" alt="Figure_1" style="display: block; margin: 0 auto; width: auto; height: 400px;">
+</figure>
+
+<p>此外, 对原始数据进行二维FFT变换, 可以观察到信号的带宽分布, 多普勒中心和距离-方位向的耦合情况. 通过下图结果可以观察到明显的矩形亮区。横轴宽度对应信号的 距离向带宽。纵轴高度对应多普勒带宽。其范围受限于脉冲重复频率.</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113142929.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 550px; height: auto;">
+</figure>
+
+<p>实验中所采用的成像算法为Range Migration Algorithm(RMA)算法, 该算法在频域中完成距离向的匹配滤波, 进行二维的FFT, Stolt差值对距离徙动进行补偿, 最终反变换得到聚焦图像. 对于处理结果, 算法首先输出单复数图像(Single Look Complex, SLC)幅度图, 是原始回波信号经过RMA算法聚焦后的直接结果. 图像保留了系统所能达到的最高理论分辨率。每一个像素点都是由回波信号相干累加而成的。图像上有非常明显的“颗粒感”，这被称为 相干斑噪声 (Speckle Noise)。这是由于空间中多个微小散射点在同一分辨率单元内发生相干叠加（干涉）产生的，是所有相干成像系统（如 SAR、激光雷达）的固有特性。</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143042.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着对结果进行多视处理, 获得相应的强度图. 多视处理的本质是非相干空间平均,对相邻的多个像素取平均值. 这种平均操作会极大地平滑掉SLC图像中的颗粒感, 使地物轮廓更加清晰, 符合人眼感知. 同时虽然牺牲了一定的空间分辨率, 但提高了图像的信噪比. 此外, 由于卫星在距离向和方位向的分辨率通常不等, 通过设置视数可以将结果图像的长宽比调整到更真实的地理比例. 最终成像结果的地物的边界和纹理更符合人类视觉的直觉。相应的图像如下图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143128.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 500px; height: auto;">
+</figure>
+
+<h2 id="基于信号处理的SAR失真形变模拟"><a href="#基于信号处理的SAR失真形变模拟" class="headerlink" title="基于信号处理的SAR失真形变模拟"></a>基于信号处理的SAR失真形变模拟</h2><p>首先模拟前倾压缩失真, 其对应的信号层面成因为成像时使用了错误的调频率, 即 :</p>
+<script type="math/tex; mode=display">
+K_r^{img}\neq K_r^{true} \tag{8}</script><p>相应的成像坐标映射的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+r_{img}=\alpha\cdot\tau_{true},\ \ \alpha=\frac{K_r^{true}}{K_r^{img}} \tag{9}</script><p>实现手段为在匹配滤波阶段加入参数认为制造调频率压缩, 在信号处理过程中的对应设定为修改有效速度的参数来进行误差注入, RMA的距离迁移校正不再精确, 使前倾和方位耦合同时出现, 对应成像结果对比如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143443.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 650px; height: auto;">
+</figure>
+
+<p>对于掩叠失真, 可以针对距离向和方位向分别进行讨论. 对于距离向掩叠, 其产生原理可以等效于$f_s$过低,对应人为进行回波信号的下采样; 对于方位向掩叠, 其发生原理可以等效于PRF不满足多普勒带宽, 其慢时间欠采样. 两种失真方式和对应原始图像的对照结果如下图所示. 不难观察到方位向掩叠主要体现为横向失真, 距离向掩叠主要体现为纵向失真. 最终的成效效果为出现远近目标周期性折叠, 产生重影, 多普勒谱发生折叠</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143638.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 450px; height: auto;">
+</figure>
+
+<p>最后, 实验还验证了信号层级的匹配滤波失配型失真. 其主要实现手段为降低bw带宽, 使图像的距离分辨率下降, 最终呈现的效果为图像整体的模糊化.随着带宽的收窄, 模糊化的程度显著加深. 相应的对比效果如下图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260113143740.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 450px; height: auto;">
+</figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>本文主要针对SAR成像系统作为具有代表性的成像观测手段, 结合对应的物理部署场景和实际成像过程, 对应分析了成像失真的可能原因, 数学表达和对应的模拟复现. 对于SAR成像, 则关注从接近噪声的原始信号到符合人眼感知规律的结果图像的全成像流程, 并分析其中可能存在的针对SAR系统的图像畸变. 在实验部分, 首先完成从信号到图像的处理步骤, 结合重点聚焦于信号域处理, 模拟了不同SAR图像畸变的结果并进行可视化比较. 后续可以对照光学系统的形变方式, 尝试设计针对SAR系统的更加精细化, 智能化的形变干扰方式, 探索作为关键目标反SAR侦察保护的新手段.</p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/" <i class="fa fa-tag"></i> 工程实践</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2025/12/20/code7/" rel="prev" title="数据集分布相似度量化">
+      <i class="fa fa-chevron-left"></i> 数据集分布相似度量化
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#SAR%E6%88%90%E5%83%8F%E6%B5%81%E7%A8%8B%E6%A2%B3%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">SAR成像流程梳理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SAR%E6%88%90%E5%83%8F%E5%A4%B1%E7%9C%9F%E5%88%86%E6%9E%90%E4%B8%8E%E5%BB%BA%E6%A8%A1"><span class="nav-number">2.</span> <span class="nav-text">SAR成像失真分析与建模</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SAR%E5%9B%BE%E5%83%8F%E5%BD%A2%E5%8F%98%E5%A4%B1%E7%9C%9F%E5%AE%9E%E9%AA%8C"><span class="nav-number">3.</span> <span class="nav-text">SAR图像形变失真实验</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%AD%A3%E5%90%91SAR%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86%E5%92%8C%E6%88%90%E5%83%8F%E5%8F%AF%E8%A7%86%E5%8C%96"><span class="nav-number">3.1.</span> <span class="nav-text">正向SAR信号处理和成像可视化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86%E7%9A%84SAR%E5%A4%B1%E7%9C%9F%E5%BD%A2%E5%8F%98%E6%A8%A1%E6%8B%9F"><span class="nav-number">3.2.</span> <span class="nav-text">基于信号处理的SAR失真形变模拟</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">99k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:59</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
