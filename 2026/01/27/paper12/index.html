@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="关于目标检测任务中的虚警(False Alarm)现象的相关论文的梳理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="目标检测中的虚警问题调研">
+<meta property="og:url" content="http://boremycin.github.io/2026/01/27/paper12/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="关于目标检测任务中的虚警(False Alarm)现象的相关论文的梳理">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126212406.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126214442.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126222910.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126223324.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126231021.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126233809.png">
+<meta property="article:published_time" content="2026-01-27T01:37:06.461Z">
+<meta property="article:modified_time" content="2026-01-27T01:44:48.841Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="笔记">
+<meta property="article:tag" content="论文">
+<meta property="article:tag" content="目标检测">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126212406.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2026/01/27/paper12/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>目标检测中的虚警问题调研 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2026/01/27/paper12/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          目标检测中的虚警问题调研
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-01-27 09:37:06 / 修改时间：09:44:48" itemprop="dateCreated datePublished" datetime="2026-01-27T09:37:06+08:00">2026-01-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>10 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+关于目标检测任务中的虚警(False Alarm)现象的相关论文的梳理
+</p><br><span id="more"></span></p>
+<h1 id="目标检测任务中的虚警问题"><a href="#目标检测任务中的虚警问题" class="headerlink" title="目标检测任务中的虚警问题"></a>目标检测任务中的虚警问题</h1><h2 id="目标检测任务主流指标与对应数学表达"><a href="#目标检测任务主流指标与对应数学表达" class="headerlink" title="目标检测任务主流指标与对应数学表达"></a>目标检测任务主流指标与对应数学表达</h2><p>对于目标检测模型性能的度量，基础的指标为预测检测框与真实标签之间的交并比(Intersection over Union, IoU), 该指标度量了上述两种检测框之间重叠的程度, 令$B_{gt}$为真实框, $B_{p}$为预测框, 相应的数学表达式如下:</p>
+<script type="math/tex; mode=display">
+IoU = \frac{B_p \cap B_{gt}}{B_p \cup B_{gt}} \tag{1}</script><p>Precision则度量了所有正样本中真实正样本(true positive predictions)的占比, 其中TP的定义为当GT框还没被检测时, 第一个与GT框的IoU超过设定阈值的预测框则为TP, 其余的诸如未超过设定IoU阈值的或者对已经产生TP框的目标重复检测的预测框则归类为负样本FP, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+Precision = \frac{TP}{TP + FP} \tag{2}</script><p>对应的Recall则度量了所有真实正样本中被模型正确识别的比例, 用来模型检测图像中出现的所有相关目标的能力, 对应的表达形式如下:</p>
+<script type="math/tex; mode=display">
+Recall = \frac{TP}{TP + FN} \tag{3}</script><p>为了调和Recall和Precision, 来更公平地评估检测模型的识别性能, 平均进度(Average Precision, AP)的概念被进一步提出, 代表了所有回归水平下的准确度的值(因此可以简单理解为P和R的积分). AP通过P-R曲线的面积获取, 对应曲线则通过设定不同的IoU阈值用于区分当前的TP, FP和FN, 通过一系列阈值的设定可以获取每个阈值下的Precision和Recall, 构成一个(R,P)点对坐标, 通过设定横轴为R, 纵轴为P则获取相应的PR Curve, 进而进行AP的计算. mAP则是针对多类别目标检测模型, 计算所有类别的AP值并取平均值. 对应的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+AP = \sum_n (R_n - R_{n-1}) \cdot p_n \tag{4}</script><p>此外F1也是对Precision和Recall 的调和指标, 希望通过平衡二者来真实反映模型的检测性能, 对应数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+F1 = 2 \cdot \frac{P \cdot R}{ P + R} \quad or \quad F1 = \frac{2TP}{2TP + FP + FN} \tag{5}</script><h2 id="红外小目标分割任务中的漏检和虚警"><a href="#红外小目标分割任务中的漏检和虚警" class="headerlink" title="红外小目标分割任务中的漏检和虚警"></a>红外小目标分割任务中的漏检和虚警</h2><p>论文 <strong>Miss Detection vs. False Alarm: Adversarial Learning for Small Object<br>Segmentation in Infrared Images</strong> 发表在2019ICCV, 在题目中明确提出了漏检(Miss Detection, MD)和虚警(False Alarm, FA)的问题, 虽然是针对语义分割任务, 但也给SAR图像的目标检测的虚警问题以定义和解决思路的启发. </p>
+<p>作者提出针对红外小目标语义分割(infrared samll object segmentation, ISOS)任务, 一个关键的挑战即为MD和FA的平衡, 因为针对这两类问题的性能改善往往需要通过相反的策略并导致FA和MD难以在同一个改进策略下同时抑制. 在文章中作者则受cGAN网络的启发, 将MD和FA设定为了两个同等地位的子任务 ,设置了一种对抗训练策略来实现对MD和FA的平衡(Nash equilibrium). 具体的网络则是在cGAN的基础上引入了两个生成器和一个判别器, 并设置了不同的损失函数, 实验结果显示作者提出的网络超越的论文发表时的SOTA模型. 对应的改进模型架构如下图所示. </p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126212406.png" alt="20260126212406"></p>
+<p>两个生成器对应两个子任务, 分别用于最小化MD损失或者FA损失. 相应的判别器D则改为三分类, 用于区分两个生成器和结果和对应的真实标签. 对于损失函数的设定, 作者设置了Adversarial Loss, Generator Consistency Loss和Data Loss三类. 对于第一项AL, 其综合了两个生成器的损失项, 优化目标为让两个子生成器的输出都尽可能逼近真实标签, 对应的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+L_{cGAN} = E[logD(I, S_0)] + E[log(1 - D(I, G_1(I)))] + E[log(1 - D(I, G_2(I)))] \tag{6}</script><p>对于第二项GCL, 其设计动机为使两个子生成器针对MD和FA的优化特征进行相应的平衡(即增强二者之间的information flow), 对应的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+L_{CG}(G, D) = \frac{1}{w \cdot h \cdot d} \| \phi(I, S_1) - \phi(I, S_2) \|_2^2 \tag{7}</script><p>上式中的$\phi(\cdot)$为对应的feature mapping函数, 用于提取G中的特征图, w,h和d则是相应卷积特征图的维度. </p>
+<p>对于Data Loss, 其作用为对应cGAN的原始设置, 在忽略MD或FA度量的情况下反映像素层级的真实值与预测值之间的差异, 对不同的G设置的损失函数分别如下:</p>
+<script type="math/tex; mode=display">
+L_{MF1}(G_1, D) = \frac{1}{n} \sum_{i=1}^n (\lambda_1\cdot MD_{1i} + FA_{1i})</script><script type="math/tex; mode=display">
+L_{MF2}(G_2, D) = \frac{1}{n} \sum_{i=1}^n ( MD_{2i} +\lambda_2 \cdot FA_{2i}) \tag{8}</script><p>上式中的$MD_{1i}$和$FA_{1i}$是生成器$G_1$输出结果的对应漏检率和虚警率(但原文没有给出相应的数学表达). 另外一对同理. 最终的Data Loss表达式为:</p>
+<script type="math/tex; mode=display">
+L_{MF}(G_1,G_2, D) = L_{MF1}(G_1, D) + L_{MF2}(G_2,D) \tag{9}</script><p>结合GAN网络的对抗训练(min-max优化)特性, 最终的合并损失函数如下:</p>
+<script type="math/tex; mode=display">
+(G_1^*, G_2^*, D^*) = \arg \min_{G_1, G_2} \max_D (L_{GC} + \alpha_1 L_{MF} + \alpha_2 L_{cGAN}) \tag{10}</script><p>简要展示作者的实验结果, 对应如下:</p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126214442.png" alt="20260126214442"></p>
+<h2 id="视频变化检测任务中的虚警抑制"><a href="#视频变化检测任务中的虚警抑制" class="headerlink" title="视频变化检测任务中的虚警抑制"></a>视频变化检测任务中的虚警抑制</h2><p>论文 <strong>Statistical Modeling of Deep Features to Reduce False Alarms in Video<br>Change Detection</strong> 发表与2025年的JMIV, 提出了视频变化检测任务(Video Change Detection, VCD)中的一个核心问题: 虚警率(False Alarm Rate)过高, 并针对这一问题提出了针对性的解决方法, 但遗憾的是论文中的检测手段依然近似于语义分割. </p>
+<p>传统的视频变化检测方法通常基于像素点的亮度或颜色信息，这种局部特性极易受到动态背景、光照变化或伪影的影响，从而产生大量虚警. 对此作者提出了一种弱监督的高维深度特征建模方法, 用特征数据替代原始像素实现更稳健的场景中背景模式的描述, 另外作者将背景特征建模为了高斯混合分布, 采用全局-局部的策略进行精细化的背景统计分布建模.</p>
+<p>文中作者提出了<strong>A-contrario detection theory</strong>作为关键方法, 其核心为对于非偶然内容的数学表达(mathematical formulation of the non-accidentalness principle), 指出被观察的结构只有在非偶然的背景模型中出现才能被认为是有效的检测, Number of False Alarms(NFA)是事件e的观测结果, $z(e)$是对应概率, $H_0$则是相应的背景模型, NFA的内涵为在纯随机的背景噪声中出现目标结构的期望次数, 当NFA极小时可以认为目标是有效结构, 对应的数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+NFA(e) = N_T \cdot IP[Z_{H_0}(e) \geq z(e)] \tag{11}</script><p>上式中的$IP[\cdot]$为在背景模型中观测到目标事件的概率大于等于被观测事件的概率的可能性. 结合具体的视频变化检测任务, 由于由于深度特征图的像素之间存在感受野重叠(非独立性),作者通过对图像进行下采样或采用保守估计的方法(取 $c_f$ 次方根), 修正了统计独立性假设, 从而确保降虚警过程的科学性. 对于背景模型的建模, 作者采用了高斯混合模型, 对应PDF如下:</p>
+<script type="math/tex; mode=display">
+f_{H_0}(x) = \sum_{k-1}^K \pi_k \cdot N(x; \mu_k, \Sigma_k) \tag{12}</script><p>其中x为DNN提取的高位特征向量. 接下来对于每个像素i计算相应的特性$x_i$的p-value, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+p(x_i) = P(f_{H_0}(X) \leq f_{H_0}(x_i)) \tag{13}</script><p>当p-value越小时说明对应像素点在背景中越罕见, 因此越有可能是真实的目标. 继而计算区域R的整体NFA, 表达形式如下:</p>
+<script type="math/tex; mode=display">
+NFA(R) = N_{test} \cdot (\prod_{i \in R}(p(x_i)))^{1/c_f} \tag{14}</script><p>上式中$N_{test}$为测试总数, 即图像中可能出现的所有候选区域, $\prod(p(x_i))$表示当假设各区域内的像素点独立分布时, 偶然产生的背景波动的概率, $c_f$为独立性修正因子, 代表特征的冗余程度. 通过设定阈值来判定某区域是否是真实的视频变化, 从而实现虚警区域的滤除. 结合以上思想, 作者提出的对应框架如下:</p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126222910.png" alt="20260126222910"></p>
+<p>作为即插即用的模块, 作者的实验结果表明对应方法实现了鲁棒的虚警抑制效果, 对应的可视化结果如下所示:</p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126223324.png" alt="20260126223324"></p>
+<h2 id="对于虚警框的自动去除方法"><a href="#对于虚警框的自动去除方法" class="headerlink" title="对于虚警框的自动去除方法"></a>对于虚警框的自动去除方法</h2><p>论文 <strong>Dual-NMS: A Method for Autonomously Removing False Detection Boxes from Aerial Image Object Detection Results</strong> 针对航天图像存在过多虚警的问题, 针对性地提出了Dual-NMS方法, 结合预测框的密度来自动去除虚警框. 文章主要依据mAP的提高和可视化结果的比较来证明方法的有效性. 作者所提出方法的架构图和对虚警的抑制效果可视化结果如下所示:</p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126231021.png" alt="20260126231021"></p>
+<p>首先介绍非极大值抑制(Non-Maximum Suppression, NMS), 该方法是现代DNN目标检测模型中常用且重要的后处理方法, 其核心即为抑制冗余检测和降低虚警, NMS不是网络训练中的一部分, 而是进行检测结果中的有效候选框筛选的方法. NMS的核心计算基于两个概念, 首先置信度排序. 对于所有预测的候选框$B = \{b_1, b_2, …, b_n\}$和相应的置信度得分$S = \{s_1, s_2, …, s_n \}$, 对其按照置信度得分从大到小排序; 其次为候选框之间的交并比计算. NMS的核心操作如下:</p>
+<ol>
+<li>初始化最终保留集合D, 设定为空集</li>
+<li>对排序后的候选框列表由高到低排列: 取未被抑制的最高得分框$ b^* $, 加入D, 对所有剩余框, 计算与$b^*$的IoU, 若$IoU(b^*, b_j) \geq \tau$, 则将$b_j$从候选中抑制(即删除).</li>
+<li>重复上述过程至无候选框剩余.</li>
+</ol>
+<p>以上过程中的$\tau$为预设参数, 用于判定两个框是否过度重叠. NMS通过移除重复的预测结果, 保留最高得分即可有效避免重复删除, 降低了虚警的风险. 但标准的NMS被证明对于密集目标场景的处理不够理想, 同时处理效果对设定阈值过于敏感. </p>
+<p>在论文中, 作者任务由于航拍图像(aerial images)都是从上至下拍摄的, 因此在目标检测模型中难以提取出足够数量的有效特征用于检测, 继而容易产生虚警. 虚警框大致可以分为两种: (1). 背景中没有目标的区域被误认为目标 (2). 真实目标区域被误分类.</p>
+<p>作者所提出的改进的Dual-NMS的动机主要为真实检测框的平均密度明显高出虚警框密度, 通过定义检测框密度来将其作为区分真伪目标的关键条件. 对应的动态阈值函数表达式如下:</p>
+<script type="math/tex; mode=display">
+f(d, s_m, \alpha, \beta, \gamma) = \beta \cdot e^{-s_m} \cdot d^{1 - \alpha \cdot s_m - \gamma \cdot d} \tag{15}</script><p>上式中d为当前检测框组的密度, $s_m$为最大的分类置信度, 其余参数均为作为缩放因子的超参数. 算法执行中系统计算该组内所有检测框置信度的总和, 当大于阈值时则认为包含真实目标, 进入后续的标准NMS; 当小于阈值时认为是虚警直接移除. </p>
+<p>针对Precision指标, 文章的实验结果如下所示, 可以看出实现了理想的提升效果:</p>
+<p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126233809.png" alt="20260126233809"></p>
+<p>需要额外说明的是, 文章所定义的虚警框更倾向于false positive, 与SAR图像检测中出现的真实目标周围的多个预测框的场景还存在较大的差距. </p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>针对False Alarm这一关键词进行调研后初步的结论是对于目标检测任务而言, False Alarm还没有成为一种严格的研究主题(显著表现是没有针对性的评估指标)并获得广泛的关注, 同时由于NMS算法的设定以及检测模型的不断发展, False Alarm本身或许可以作为模型性能局限, 通过对mAP的提升来解决. 因为有监督模型的训练往往可以在足够数据量的前提下拟合到理想的标签分布, 当训练数据的标签质量得到保证时, 不应该存在明显的以出现大量检测框为特征的虚警现象. 但在SAR目标检测任务中确实出现了上述的情况(而在大规模光学数据集上类似问题并不显著), 因此可以首先通过实验确认这种现象的产生规律, 与对应数据以及分布的关联, 并给出合理的评估SAR目标检测任务中False Alarm问题的Evaluation Matrix. </p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 笔记</a>
+              <a href="/tags/%E8%AE%BA%E6%96%87/" <i class="fa fa-tag"></i> 论文</a>
+              <a href="/tags/%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B/" <i class="fa fa-tag"></i> 目标检测</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/01/13/code8/" rel="prev" title="结合SAR成像过程的图像形变失真模拟">
+      <i class="fa fa-chevron-left"></i> 结合SAR成像过程的图像形变失真模拟
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E4%BB%BB%E5%8A%A1%E4%B8%AD%E7%9A%84%E8%99%9A%E8%AD%A6%E9%97%AE%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text">目标检测任务中的虚警问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E4%BB%BB%E5%8A%A1%E4%B8%BB%E6%B5%81%E6%8C%87%E6%A0%87%E4%B8%8E%E5%AF%B9%E5%BA%94%E6%95%B0%E5%AD%A6%E8%A1%A8%E8%BE%BE"><span class="nav-number">1.1.</span> <span class="nav-text">目标检测任务主流指标与对应数学表达</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%A2%E5%A4%96%E5%B0%8F%E7%9B%AE%E6%A0%87%E5%88%86%E5%89%B2%E4%BB%BB%E5%8A%A1%E4%B8%AD%E7%9A%84%E6%BC%8F%E6%A3%80%E5%92%8C%E8%99%9A%E8%AD%A6"><span class="nav-number">1.2.</span> <span class="nav-text">红外小目标分割任务中的漏检和虚警</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%86%E9%A2%91%E5%8F%98%E5%8C%96%E6%A3%80%E6%B5%8B%E4%BB%BB%E5%8A%A1%E4%B8%AD%E7%9A%84%E8%99%9A%E8%AD%A6%E6%8A%91%E5%88%B6"><span class="nav-number">1.3.</span> <span class="nav-text">视频变化检测任务中的虚警抑制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E4%BA%8E%E8%99%9A%E8%AD%A6%E6%A1%86%E7%9A%84%E8%87%AA%E5%8A%A8%E5%8E%BB%E9%99%A4%E6%96%B9%E6%B3%95"><span class="nav-number">1.4.</span> <span class="nav-text">对于虚警框的自动去除方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.5.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">104k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:09</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

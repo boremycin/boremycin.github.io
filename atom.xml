@@ -6,7 +6,7 @@
   <link href="http://boremycin.github.io/atom.xml" rel="self"/>
   
   <link href="http://boremycin.github.io/"/>
-  <updated>2026-01-13T06:38:21.232Z</updated>
+  <updated>2026-01-27T01:44:48.841Z</updated>
   <id>http://boremycin.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>目标检测中的虚警问题调研</title>
+    <link href="http://boremycin.github.io/2026/01/27/paper12/"/>
+    <id>http://boremycin.github.io/2026/01/27/paper12/</id>
+    <published>2026-01-27T01:37:06.461Z</published>
+    <updated>2026-01-27T01:44:48.841Z</updated>
+    
+    <content type="html"><![CDATA[<p><p style="text-align: center;">关于目标检测任务中的虚警(False Alarm)现象的相关论文的梳理</p><br><span id="more"></span></p><h1 id="目标检测任务中的虚警问题"><a href="#目标检测任务中的虚警问题" class="headerlink" title="目标检测任务中的虚警问题"></a>目标检测任务中的虚警问题</h1><h2 id="目标检测任务主流指标与对应数学表达"><a href="#目标检测任务主流指标与对应数学表达" class="headerlink" title="目标检测任务主流指标与对应数学表达"></a>目标检测任务主流指标与对应数学表达</h2><p>对于目标检测模型性能的度量，基础的指标为预测检测框与真实标签之间的交并比(Intersection over Union, IoU), 该指标度量了上述两种检测框之间重叠的程度, 令$B_{gt}$为真实框, $B_{p}$为预测框, 相应的数学表达式如下:</p><script type="math/tex; mode=display">IoU = \frac{B_p \cap B_{gt}}{B_p \cup B_{gt}} \tag{1}</script><p>Precision则度量了所有正样本中真实正样本(true positive predictions)的占比, 其中TP的定义为当GT框还没被检测时, 第一个与GT框的IoU超过设定阈值的预测框则为TP, 其余的诸如未超过设定IoU阈值的或者对已经产生TP框的目标重复检测的预测框则归类为负样本FP, 对应表达形式如下:</p><script type="math/tex; mode=display">Precision = \frac{TP}{TP + FP} \tag{2}</script><p>对应的Recall则度量了所有真实正样本中被模型正确识别的比例, 用来模型检测图像中出现的所有相关目标的能力, 对应的表达形式如下:</p><script type="math/tex; mode=display">Recall = \frac{TP}{TP + FN} \tag{3}</script><p>为了调和Recall和Precision, 来更公平地评估检测模型的识别性能, 平均进度(Average Precision, AP)的概念被进一步提出, 代表了所有回归水平下的准确度的值(因此可以简单理解为P和R的积分). AP通过P-R曲线的面积获取, 对应曲线则通过设定不同的IoU阈值用于区分当前的TP, FP和FN, 通过一系列阈值的设定可以获取每个阈值下的Precision和Recall, 构成一个(R,P)点对坐标, 通过设定横轴为R, 纵轴为P则获取相应的PR Curve, 进而进行AP的计算. mAP则是针对多类别目标检测模型, 计算所有类别的AP值并取平均值. 对应的数学表达形式如下:</p><script type="math/tex; mode=display">AP = \sum_n (R_n - R_{n-1}) \cdot p_n \tag{4}</script><p>此外F1也是对Precision和Recall 的调和指标, 希望通过平衡二者来真实反映模型的检测性能, 对应数学表达形式如下:</p><script type="math/tex; mode=display">F1 = 2 \cdot \frac{P \cdot R}{ P + R} \quad or \quad F1 = \frac{2TP}{2TP + FP + FN} \tag{5}</script><h2 id="红外小目标分割任务中的漏检和虚警"><a href="#红外小目标分割任务中的漏检和虚警" class="headerlink" title="红外小目标分割任务中的漏检和虚警"></a>红外小目标分割任务中的漏检和虚警</h2><p>论文 <strong>Miss Detection vs. False Alarm: Adversarial Learning for Small Object<br>Segmentation in Infrared Images</strong> 发表在2019ICCV, 在题目中明确提出了漏检(Miss Detection, MD)和虚警(False Alarm, FA)的问题, 虽然是针对语义分割任务, 但也给SAR图像的目标检测的虚警问题以定义和解决思路的启发. </p><p>作者提出针对红外小目标语义分割(infrared samll object segmentation, ISOS)任务, 一个关键的挑战即为MD和FA的平衡, 因为针对这两类问题的性能改善往往需要通过相反的策略并导致FA和MD难以在同一个改进策略下同时抑制. 在文章中作者则受cGAN网络的启发, 将MD和FA设定为了两个同等地位的子任务 ,设置了一种对抗训练策略来实现对MD和FA的平衡(Nash equilibrium). 具体的网络则是在cGAN的基础上引入了两个生成器和一个判别器, 并设置了不同的损失函数, 实验结果显示作者提出的网络超越的论文发表时的SOTA模型. 对应的改进模型架构如下图所示. </p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126212406.png" alt="20260126212406"></p><p>两个生成器对应两个子任务, 分别用于最小化MD损失或者FA损失. 相应的判别器D则改为三分类, 用于区分两个生成器和结果和对应的真实标签. 对于损失函数的设定, 作者设置了Adversarial Loss, Generator Consistency Loss和Data Loss三类. 对于第一项AL, 其综合了两个生成器的损失项, 优化目标为让两个子生成器的输出都尽可能逼近真实标签, 对应的数学表达形式如下:</p><script type="math/tex; mode=display">L_{cGAN} = E[logD(I, S_0)] + E[log(1 - D(I, G_1(I)))] + E[log(1 - D(I, G_2(I)))] \tag{6}</script><p>对于第二项GCL, 其设计动机为使两个子生成器针对MD和FA的优化特征进行相应的平衡(即增强二者之间的information flow), 对应的数学表达形式如下:</p><script type="math/tex; mode=display">L_{CG}(G, D) = \frac{1}{w \cdot h \cdot d} \| \phi(I, S_1) - \phi(I, S_2) \|_2^2 \tag{7}</script><p>上式中的$\phi(\cdot)$为对应的feature mapping函数, 用于提取G中的特征图, w,h和d则是相应卷积特征图的维度. </p><p>对于Data Loss, 其作用为对应cGAN的原始设置, 在忽略MD或FA度量的情况下反映像素层级的真实值与预测值之间的差异, 对不同的G设置的损失函数分别如下:</p><script type="math/tex; mode=display">L_{MF1}(G_1, D) = \frac{1}{n} \sum_{i=1}^n (\lambda_1\cdot MD_{1i} + FA_{1i})</script><script type="math/tex; mode=display">L_{MF2}(G_2, D) = \frac{1}{n} \sum_{i=1}^n ( MD_{2i} +\lambda_2 \cdot FA_{2i}) \tag{8}</script><p>上式中的$MD_{1i}$和$FA_{1i}$是生成器$G_1$输出结果的对应漏检率和虚警率(但原文没有给出相应的数学表达). 另外一对同理. 最终的Data Loss表达式为:</p><script type="math/tex; mode=display">L_{MF}(G_1,G_2, D) = L_{MF1}(G_1, D) + L_{MF2}(G_2,D) \tag{9}</script><p>结合GAN网络的对抗训练(min-max优化)特性, 最终的合并损失函数如下:</p><script type="math/tex; mode=display">(G_1^*, G_2^*, D^*) = \arg \min_{G_1, G_2} \max_D (L_{GC} + \alpha_1 L_{MF} + \alpha_2 L_{cGAN}) \tag{10}</script><p>简要展示作者的实验结果, 对应如下:</p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126214442.png" alt="20260126214442"></p><h2 id="视频变化检测任务中的虚警抑制"><a href="#视频变化检测任务中的虚警抑制" class="headerlink" title="视频变化检测任务中的虚警抑制"></a>视频变化检测任务中的虚警抑制</h2><p>论文 <strong>Statistical Modeling of Deep Features to Reduce False Alarms in Video<br>Change Detection</strong> 发表与2025年的JMIV, 提出了视频变化检测任务(Video Change Detection, VCD)中的一个核心问题: 虚警率(False Alarm Rate)过高, 并针对这一问题提出了针对性的解决方法, 但遗憾的是论文中的检测手段依然近似于语义分割. </p><p>传统的视频变化检测方法通常基于像素点的亮度或颜色信息，这种局部特性极易受到动态背景、光照变化或伪影的影响，从而产生大量虚警. 对此作者提出了一种弱监督的高维深度特征建模方法, 用特征数据替代原始像素实现更稳健的场景中背景模式的描述, 另外作者将背景特征建模为了高斯混合分布, 采用全局-局部的策略进行精细化的背景统计分布建模.</p><p>文中作者提出了<strong>A-contrario detection theory</strong>作为关键方法, 其核心为对于非偶然内容的数学表达(mathematical formulation of the non-accidentalness principle), 指出被观察的结构只有在非偶然的背景模型中出现才能被认为是有效的检测, Number of False Alarms(NFA)是事件e的观测结果, $z(e)$是对应概率, $H_0$则是相应的背景模型, NFA的内涵为在纯随机的背景噪声中出现目标结构的期望次数, 当NFA极小时可以认为目标是有效结构, 对应的数学表达形式如下:</p><script type="math/tex; mode=display">NFA(e) = N_T \cdot IP[Z_{H_0}(e) \geq z(e)] \tag{11}</script><p>上式中的$IP[\cdot]$为在背景模型中观测到目标事件的概率大于等于被观测事件的概率的可能性. 结合具体的视频变化检测任务, 由于由于深度特征图的像素之间存在感受野重叠(非独立性),作者通过对图像进行下采样或采用保守估计的方法(取 $c_f$ 次方根), 修正了统计独立性假设, 从而确保降虚警过程的科学性. 对于背景模型的建模, 作者采用了高斯混合模型, 对应PDF如下:</p><script type="math/tex; mode=display">f_{H_0}(x) = \sum_{k-1}^K \pi_k \cdot N(x; \mu_k, \Sigma_k) \tag{12}</script><p>其中x为DNN提取的高位特征向量. 接下来对于每个像素i计算相应的特性$x_i$的p-value, 对应表达形式如下:</p><script type="math/tex; mode=display">p(x_i) = P(f_{H_0}(X) \leq f_{H_0}(x_i)) \tag{13}</script><p>当p-value越小时说明对应像素点在背景中越罕见, 因此越有可能是真实的目标. 继而计算区域R的整体NFA, 表达形式如下:</p><script type="math/tex; mode=display">NFA(R) = N_{test} \cdot (\prod_{i \in R}(p(x_i)))^{1/c_f} \tag{14}</script><p>上式中$N_{test}$为测试总数, 即图像中可能出现的所有候选区域, $\prod(p(x_i))$表示当假设各区域内的像素点独立分布时, 偶然产生的背景波动的概率, $c_f$为独立性修正因子, 代表特征的冗余程度. 通过设定阈值来判定某区域是否是真实的视频变化, 从而实现虚警区域的滤除. 结合以上思想, 作者提出的对应框架如下:</p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126222910.png" alt="20260126222910"></p><p>作为即插即用的模块, 作者的实验结果表明对应方法实现了鲁棒的虚警抑制效果, 对应的可视化结果如下所示:</p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126223324.png" alt="20260126223324"></p><h2 id="对于虚警框的自动去除方法"><a href="#对于虚警框的自动去除方法" class="headerlink" title="对于虚警框的自动去除方法"></a>对于虚警框的自动去除方法</h2><p>论文 <strong>Dual-NMS: A Method for Autonomously Removing False Detection Boxes from Aerial Image Object Detection Results</strong> 针对航天图像存在过多虚警的问题, 针对性地提出了Dual-NMS方法, 结合预测框的密度来自动去除虚警框. 文章主要依据mAP的提高和可视化结果的比较来证明方法的有效性. 作者所提出方法的架构图和对虚警的抑制效果可视化结果如下所示:</p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126231021.png" alt="20260126231021"></p><p>首先介绍非极大值抑制(Non-Maximum Suppression, NMS), 该方法是现代DNN目标检测模型中常用且重要的后处理方法, 其核心即为抑制冗余检测和降低虚警, NMS不是网络训练中的一部分, 而是进行检测结果中的有效候选框筛选的方法. NMS的核心计算基于两个概念, 首先置信度排序. 对于所有预测的候选框$B = \{b_1, b_2, …, b_n\}$和相应的置信度得分$S = \{s_1, s_2, …, s_n \}$, 对其按照置信度得分从大到小排序; 其次为候选框之间的交并比计算. NMS的核心操作如下:</p><ol><li>初始化最终保留集合D, 设定为空集</li><li>对排序后的候选框列表由高到低排列: 取未被抑制的最高得分框$ b^* $, 加入D, 对所有剩余框, 计算与$b^*$的IoU, 若$IoU(b^*, b_j) \geq \tau$, 则将$b_j$从候选中抑制(即删除).</li><li>重复上述过程至无候选框剩余.</li></ol><p>以上过程中的$\tau$为预设参数, 用于判定两个框是否过度重叠. NMS通过移除重复的预测结果, 保留最高得分即可有效避免重复删除, 降低了虚警的风险. 但标准的NMS被证明对于密集目标场景的处理不够理想, 同时处理效果对设定阈值过于敏感. </p><p>在论文中, 作者任务由于航拍图像(aerial images)都是从上至下拍摄的, 因此在目标检测模型中难以提取出足够数量的有效特征用于检测, 继而容易产生虚警. 虚警框大致可以分为两种: (1). 背景中没有目标的区域被误认为目标 (2). 真实目标区域被误分类.</p><p>作者所提出的改进的Dual-NMS的动机主要为真实检测框的平均密度明显高出虚警框密度, 通过定义检测框密度来将其作为区分真伪目标的关键条件. 对应的动态阈值函数表达式如下:</p><script type="math/tex; mode=display">f(d, s_m, \alpha, \beta, \gamma) = \beta \cdot e^{-s_m} \cdot d^{1 - \alpha \cdot s_m - \gamma \cdot d} \tag{15}</script><p>上式中d为当前检测框组的密度, $s_m$为最大的分类置信度, 其余参数均为作为缩放因子的超参数. 算法执行中系统计算该组内所有检测框置信度的总和, 当大于阈值时则认为包含真实目标, 进入后续的标准NMS; 当小于阈值时认为是虚警直接移除. </p><p>针对Precision指标, 文章的实验结果如下所示, 可以看出实现了理想的提升效果:</p><p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126233809.png" alt="20260126233809"></p><p>需要额外说明的是, 文章所定义的虚警框更倾向于false positive, 与SAR图像检测中出现的真实目标周围的多个预测框的场景还存在较大的差距. </p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>针对False Alarm这一关键词进行调研后初步的结论是对于目标检测任务而言, False Alarm还没有成为一种严格的研究主题(显著表现是没有针对性的评估指标)并获得广泛的关注, 同时由于NMS算法的设定以及检测模型的不断发展, False Alarm本身或许可以作为模型性能局限, 通过对mAP的提升来解决. 因为有监督模型的训练往往可以在足够数据量的前提下拟合到理想的标签分布, 当训练数据的标签质量得到保证时, 不应该存在明显的以出现大量检测框为特征的虚警现象. 但在SAR目标检测任务中确实出现了上述的情况(而在大规模光学数据集上类似问题并不显著), 因此可以首先通过实验确认这种现象的产生规律, 与对应数据以及分布的关联, 并给出合理的评估SAR目标检测任务中False Alarm问题的Evaluation Matrix. </p>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;&lt;p style=&quot;text-align: center;&quot;&gt;
+关于目标检测任务中的虚警(False Alarm)现象的相关论文的梳理
+&lt;/p&gt;&lt;br&gt;</summary>
+    
+    
+    
+    <category term="论文笔记" scheme="http://boremycin.github.io/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/"/>
+    
+    
+    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
+    
+    <category term="目标检测" scheme="http://boremycin.github.io/tags/%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B/"/>
+    
+  </entry>
   
   <entry>
     <title>结合SAR成像过程的图像形变失真模拟</title>
@@ -500,33 +527,6 @@ GAN模型相关的两篇笔记
     <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
     
     <category term="对抗样本" scheme="http://boremycin.github.io/tags/%E5%AF%B9%E6%8A%97%E6%A0%B7%E6%9C%AC/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>论文笔记：SARATRX</title>
-    <link href="http://boremycin.github.io/2025/01/14/paper1-saratrx/"/>
-    <id>http://boremycin.github.io/2025/01/14/paper1-saratrx/</id>
-    <published>2025-01-14T13:01:25.000Z</published>
-    <updated>2025-01-14T13:14:13.811Z</updated>
-    
-    <content type="html"><![CDATA[<div style="text-align: center;"> 关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  </div>  <span id="more"></span>  <h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p><h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p><p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p><p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p><h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p><p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p><p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p><p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p><h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p><figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    <h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p><figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  <script type="math/tex; mode=display">MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p><p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p><p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p><h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p><table>  <tr>    <td style="text-align: center;">      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">      <figcaption>实验结果1</figcaption>    </td>    <td style="text-align: center;">      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">      <figcaption>实验结果2</figcaption>    </td>  </tr></table>  <p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>]]></content>
-    
-    
-    <summary type="html">&lt;div style=&quot;text-align: center;&quot;&gt; 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
-&lt;/div&gt;</summary>
-    
-    
-    
-    <category term="论文笔记" scheme="http://boremycin.github.io/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/"/>
-    
-    
-    <category term="笔记" scheme="http://boremycin.github.io/tags/%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="论文" scheme="http://boremycin.github.io/tags/%E8%AE%BA%E6%96%87/"/>
-    
-    <category term="SAR" scheme="http://boremycin.github.io/tags/SAR/"/>
     
   </entry>
   
