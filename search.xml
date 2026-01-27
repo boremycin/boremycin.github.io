@@ -1,6 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>detectron2安装编译</title>
+    <url>/2025/08/19/code1/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+detectron安装编译时缺少torch依赖
+</div><br><span id="more"></span></p>
+<p>detectron2是facebook开源的目标检测依赖框架, 诸如sparcer-cnn的目标检测模型均依赖于其进行开发. 然而于诸如opencv-python等一般的python的cv依赖库不同, detectron2多出来了编译的步骤.官方的指导安装步骤是使用git clong源码后在setup.py所在路径下运行以下命令:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">pip install -e .</span><br></pre></td></tr></table></figure>
+<p>需要额外注意的是detectron2对torch库的版本依赖较为敏感. 我的CUDA version是12.1,使用的是如下torch版本.</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121</span><br></pre></td></tr></table></figure>
+<p>然而在后续的编译过程中反复遇到提示无法在虚拟环境中找到torch依赖的报错, 即使我确实已经正确安装了对应版本的torch库. 初步分析, 产生这个问题的原因在于使用<code>pip install -e .</code>时启动了PEP517隔离环境, 即创建了一个<strong>临时的</strong>,<strong>独立的</strong>虚拟环境, 而这个环境正好将外部的已安装torch的conda环境隔离在外, 根据路径下的<code>pyproject.toml</code>配置构建库函数所依赖的工具并加入到临时环境中. 但即使其中声明了对torch的依赖, 也可能因为境内的网络原因导致安装失败. 我所遇到的具体报错如下所示:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"> File <span class="string">&quot;/tmp/pip-build-env-h48lpsdh/overlay/lib/python3.9/site-packages/setuptools/build_meta.py&quot;</span>, line 317, <span class="keyword">in</span> run_setup</span><br><span class="line">      <span class="built_in">exec</span>(code, locals())</span><br><span class="line">      File <span class="string">&quot;&lt;string&gt;&quot;</span>, line 10, <span class="keyword">in</span> &lt;module&gt;</span><br><span class="line">      ModuleNotFoundError: No module named <span class="string">&#x27;torch&#x27;</span></span><br><span class="line">      [end of output]</span><br><span class="line">note: This error originates from a subprocess, and is likely not a problem with pip.</span><br><span class="line">error: subprocess-exited-with-error</span><br></pre></td></tr></table></figure>
+<p>对于这种情况, 有以下几种种常规的处理方法:  </p>
+<ul>
+<li>在pip命令后加入后缀<code>--no-build-isolation</code>, 来关闭上述的隔离功能, 使编译过程在conda环境中进行(conda本身已经对环境进行了隔离)</li>
+<li>直接强制使用setup.py进行编译安装. <code>python setup.py build develop</code>, 然而这种操作已不被pip推荐以避免可能的环境混乱.</li>
+<li>使用pip安装已经完成预编译的detectron2库, 命令为<code>pip install &#39;git+https://github.com/facebookresearch/detectron2.git&#39;</code>.</li>
+</ul>
+<p>然而, 前两种方法对上述报错并不奏效, 第三种方法在我所在的网络环境下几乎不可行 (即使我已经更换了诸如githubfast.com的镜像源或使用GitHub官方加速方法). 最后, 我发现了一种手动编译的方法成功解决的了detectron2的安装编译问题, 在定位到detectron2项目目录下, 构建好conda环境后执行以下两步即可.</p>
+<ol>
+<li><code>FORCE_CUDA=1 python setup.py build_ext --inplace</code></li>
+<li><code>python setup.py develop</code></li>
+</ol>
+<p>第1步首先通过<code>FORCE_CUDA=1</code>强制激活CUDA编译流程, 确保CUDA相关的cpp和.cu被正确编译; 接着运行setup.py, 这是标准的python包构建命令, <code>build_ext</code>是其子命令, 作用是告诉<code>setuptools</code>当前在执行构建拓展的操作. <code>--inplace</code>则是<code>build_ext</code>的子选项, 用于声明拓展文件的放置位置, 默认情况下编译完成的拓展文件会被放置于临时的<code>build/</code>目录下, 而<code>inplace</code>则覆盖该默认行为并将编译好的文件放置于于源文件相同的目录中. </p>
+<p>第2步则是用于构建<code>.egg-info</code>文件, 使pip工具能够正确的识别和管理当前的包, 其文件本身是旧格式的Python包元数据(metadata).</p>
+<p>至此, detectron2的编译安装问题就暂时解决了.</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>代码笔记</tag>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>vsc账号首次远程连接失败的问题与解决</title>
     <url>/2025/09/06/code3/</url>
     <content><![CDATA[<p><p style="text-align: center;">在服务器上的新建账号无法顺利使用vsc的ssh连接</p><br><span id="more"></span></p>
@@ -55,84 +90,6 @@
       </categories>
       <tags>
         <tag>代码笔记</tag>
-        <tag>工程开发</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>detectron2安装编译</title>
-    <url>/2025/08/19/code1/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-detectron安装编译时缺少torch依赖
-</div><br><span id="more"></span></p>
-<p>detectron2是facebook开源的目标检测依赖框架, 诸如sparcer-cnn的目标检测模型均依赖于其进行开发. 然而于诸如opencv-python等一般的python的cv依赖库不同, detectron2多出来了编译的步骤.官方的指导安装步骤是使用git clong源码后在setup.py所在路径下运行以下命令:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">pip install -e .</span><br></pre></td></tr></table></figure>
-<p>需要额外注意的是detectron2对torch库的版本依赖较为敏感. 我的CUDA version是12.1,使用的是如下torch版本.</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 torchaudio==2.5.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121</span><br></pre></td></tr></table></figure>
-<p>然而在后续的编译过程中反复遇到提示无法在虚拟环境中找到torch依赖的报错, 即使我确实已经正确安装了对应版本的torch库. 初步分析, 产生这个问题的原因在于使用<code>pip install -e .</code>时启动了PEP517隔离环境, 即创建了一个<strong>临时的</strong>,<strong>独立的</strong>虚拟环境, 而这个环境正好将外部的已安装torch的conda环境隔离在外, 根据路径下的<code>pyproject.toml</code>配置构建库函数所依赖的工具并加入到临时环境中. 但即使其中声明了对torch的依赖, 也可能因为境内的网络原因导致安装失败. 我所遇到的具体报错如下所示:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"> File <span class="string">&quot;/tmp/pip-build-env-h48lpsdh/overlay/lib/python3.9/site-packages/setuptools/build_meta.py&quot;</span>, line 317, <span class="keyword">in</span> run_setup</span><br><span class="line">      <span class="built_in">exec</span>(code, locals())</span><br><span class="line">      File <span class="string">&quot;&lt;string&gt;&quot;</span>, line 10, <span class="keyword">in</span> &lt;module&gt;</span><br><span class="line">      ModuleNotFoundError: No module named <span class="string">&#x27;torch&#x27;</span></span><br><span class="line">      [end of output]</span><br><span class="line">note: This error originates from a subprocess, and is likely not a problem with pip.</span><br><span class="line">error: subprocess-exited-with-error</span><br></pre></td></tr></table></figure>
-<p>对于这种情况, 有以下几种种常规的处理方法:  </p>
-<ul>
-<li>在pip命令后加入后缀<code>--no-build-isolation</code>, 来关闭上述的隔离功能, 使编译过程在conda环境中进行(conda本身已经对环境进行了隔离)</li>
-<li>直接强制使用setup.py进行编译安装. <code>python setup.py build develop</code>, 然而这种操作已不被pip推荐以避免可能的环境混乱.</li>
-<li>使用pip安装已经完成预编译的detectron2库, 命令为<code>pip install &#39;git+https://github.com/facebookresearch/detectron2.git&#39;</code>.</li>
-</ul>
-<p>然而, 前两种方法对上述报错并不奏效, 第三种方法在我所在的网络环境下几乎不可行 (即使我已经更换了诸如githubfast.com的镜像源或使用GitHub官方加速方法). 最后, 我发现了一种手动编译的方法成功解决的了detectron2的安装编译问题, 在定位到detectron2项目目录下, 构建好conda环境后执行以下两步即可.</p>
-<ol>
-<li><code>FORCE_CUDA=1 python setup.py build_ext --inplace</code></li>
-<li><code>python setup.py develop</code></li>
-</ol>
-<p>第1步首先通过<code>FORCE_CUDA=1</code>强制激活CUDA编译流程, 确保CUDA相关的cpp和.cu被正确编译; 接着运行setup.py, 这是标准的python包构建命令, <code>build_ext</code>是其子命令, 作用是告诉<code>setuptools</code>当前在执行构建拓展的操作. <code>--inplace</code>则是<code>build_ext</code>的子选项, 用于声明拓展文件的放置位置, 默认情况下编译完成的拓展文件会被放置于临时的<code>build/</code>目录下, 而<code>inplace</code>则覆盖该默认行为并将编译好的文件放置于于源文件相同的目录中. </p>
-<p>第2步则是用于构建<code>.egg-info</code>文件, 使pip工具能够正确的识别和管理当前的包, 其文件本身是旧格式的Python包元数据(metadata).</p>
-<p>至此, detectron2的编译安装问题就暂时解决了.</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>代码笔记</tag>
-        <tag>工程开发</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>局域网多设备协同与文件迁移</title>
-    <url>/2025/09/30/code5/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-如何优雅地在一个物理桌面空间中使用两台(win)电脑.
-</p><br><span id="more"></span></p>
-<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>新学期开学后老师为我配备了新的主机(花了8k大洋买了i7-14700 + 3050 8G + &lt;500w整机电源的主机…), 然而我的重要的学习资料, 工作软件和代码文件等都已经高度依赖本科时期的笔记本, 且自己是严重的多屏用户, 工位桌面往往需要3块(及以上)的屏幕. 有了新主机后为了更优雅地使用两台独立的win电脑, 同时尽可能的便利文件备份与屏幕协同, 我探索了下面的各类方案, 且在使用体验上目前来看还算不错, 故与诸君分享之.</p>
-<h1 id="配置与布局"><a href="#配置与布局" class="headerlink" title="配置与布局"></a>配置与布局</h1><p>两台电脑均为win系统, 通过一个路由器的两根网线组成LAN的局域网连接, 在物理布局上为主机配置一个单独显示器, 桌面中间放置多hdmi通道的显示器, 和笔记本和主机各连接一个hdmi信道, 左侧放置笔记本, 最终的桌面布局如下.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5e3f241a6880a876040a6b1b04915f00.jpg" alt="5e3f241a6880a876040a6b1b04915f00"></p>
-<h1 id="Act-as-One"><a href="#Act-as-One" class="headerlink" title="Act as One"></a>Act as One</h1><p>在部分场景下我还是会希望将笔记本作为唯一的主机并使另外两个屏幕作为拓展屏使用. 对于中间的屏幕, 只需要调整hdmi的通道; 如果想拓展连接到另一个主机的屏幕, 只需要借助ToDesk软件即可(这个软件在多设备协同方面真的非常完善). 将另一台设备加入到本地的ToDesk设备列表后, 使用基础连接中的拓展屏功能即可, 另一台屏幕就会作为通过网络连接进行映射的副屏, 在校园网环境下的延迟很低, 基本可以实现流畅使用. </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930110818.png" alt="20250930110818"></p>
-<h1 id="Make-Two-Act-as-One"><a href="#Make-Two-Act-as-One" class="headerlink" title="Make Two Act as One"></a>Make Two Act as One</h1><p>也有部分场景, 我希望两台电脑都保持开机并同时使用两个系统, 在同一个物理桌面中实现的关键在于两点: 1. 使用同一套键鼠在近乎无延迟的情况下操作两台电脑, 同时可以共享复制板; 2. 两台电脑的文件可以互相自由的访问, 实现局域网下的文件共同管理和操作. 幸运的是, 针对以上两个问题都有成熟且便捷的解决方案. </p>
-<h2 id="一套键鼠-多个设备"><a href="#一套键鼠-多个设备" class="headerlink" title="一套键鼠, 多个设备"></a>一套键鼠, 多个设备</h2><p>微软针对上述场景开发了名为<a href="https://www.microsoft.com/en-us/download/details.aspx?id=35460">无界鼠标</a>(Mouse without Borders)的成熟软件, 在两个设备上同时下载后进行简单配置即可实现同一套键鼠的跨屏操作. 下载完成后首先会出现选择当前设备为主设备或从设备的选项界面(实测后续connect成功后可以流畅双向控制), 界面如下所示:</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115522.png" alt="20250930115522"></p>
-<p>如果选择yes作为主设备, 会跳出填写界面用于写入从设备的信息; 选择no后则会自动显示对应信息. 输入完成后跳转出如下界面, 简要介绍了mwb软件的功能:</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115802.png" alt="20250930115802"></p>
-<p>连接完成后会出下如下界面, 可以进一步通过拖拽来映射屏幕间的排序关系并管理其他高级功能.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930120003.png" alt="20250930120003"></p>
-<h2 id="局域网下的文件共享"><a href="#局域网下的文件共享" class="headerlink" title="局域网下的文件共享"></a>局域网下的文件共享</h2><p>首先是文件的访问与共享, 在局域网环境下通过win的网络磁盘映射即可轻松实现. 首先找到例如桌面的目标文件夹, 右键文件夹-&gt;属性-&gt;共享, 由于局域网中可能有其他同学的多台设备, 出于安全考虑, 将<code>同时共享的用户数量</code>限制为1台, 设置权限为读取. 此外还需要在shell中通过<code>ipconfig</code>命令查找当前设备的ipv4地址用于另一台设备的连接. 在另一台设备中使用<code>win + R</code>调出运行框, 输入<code>\\IP</code>来打开对应设备文件夹, 其中的ip即为上述的ipv4地址. </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930125858.png" alt="20250930125858"></p>
-<p>完成以上操作后即可成功打开相应的文件夹并进行文件的跨设备管理. 此外, win11还提供了通过网络凭证进行局域网文件共享的方法, 在文件管理器的网络栏中选择目标设备(在初始化win电脑时建议起个名字, 会比默认编号更方便查找), 系统会提示输入网络凭证. 需要注意的是, 这里的凭证一般指本地凭证, 而非登入时所用的微软账号. 如果还没有创建本地凭证, 需要以管理员的方式打开cmd(在搜索栏中搜索cmd, 并选择管理员身份打开), 通过以下命令即可快速创建本机的网络凭证的用户名和密码, 其中的<code>xxxx</code>为设定的用户名, <code>yyyyyy</code>为对应密码. 连接成功后可以打开的仍仅为上述设置已共享的文件夹.</p>
-<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line"><span class="built_in">net</span> user xxxx yyyyyy /add</span><br></pre></td></tr></table></figure>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930133344.png" alt="20250930133344"></p>
-<h2 id="局域网下的文件同步"><a href="#局域网下的文件同步" class="headerlink" title="局域网下的文件同步"></a>局域网下的文件同步</h2><p>在完成文件共享后, 对于部分常用文件夹(如paper, blog等), 仍然希望可以自动化地进行同步. 这里微软也给出了成熟优雅的软件解决方案(win means WIN!). 使用<code>SyncToy</code>软件可以快速实现局域网下的文件夹同步, 虽然微软已不再提供官方下载渠道(且该软件已超10年没有更新, 可见其功能之完备), 但互联网上有许多下载资源. 需要注意的是该软件依赖<code>.NET3.5</code>框架, win11系统可能需要单独设置打开: 首先打开<code>控制面板</code>, 选择<code>程序</code>中的<code>启用或关闭Windows功能</code>, 最后勾选.NET3.5即可. </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140150.png" alt="20250930140150"></p>
-<p>在两台设备上的SyncToy均下载完成后, 启动软件并将本地文件夹和通过网络进行定位的目标文件夹创建为新的文件夹对(Folder Pair), 点击<code>Run</code>后就会自动进行配对和同步. 此外软件提供了三种文件同步的模式, 分别为镜像同步(即双向完全同步), 单向同步和增量同步(不进行删除操作), 一般选择镜像同步即可.  </p>
-<p> <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140921.png" alt="20250930140921"></p>
-<p>至此, 文件夹的同步仍需要每次手动运行SyncToy软件, 如需更加自动化的设置, 则需要借助win系统提供的<code>任务计划程序</code>. </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141521.png" alt="20250930141521"></p>
-<p>打开后创建基本任务, 触发器设定为<code>每天</code>. </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141643.png" alt="20250930141643"></p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141654.png" alt="20250930141654"></p>
-<p>设定<code>操作</code>为<code>启动程序</code>, 并加入SyncToy的exe可执行文件路径, 并在<code>添加参数</code>项中加入<code>-R</code>(会同步所有的Folder Pair), 至此即完成了自动化的设备文件夹同步.</p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930143314.png" alt="20250930143314"></p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>经过上述的折腾, 笔者目前已经是可以流畅地同时使用两台设备了, 看起来后期的操作便利性值得前期的时间投入成本. </p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
         <tag>工程开发</tag>
       </tags>
   </entry>
@@ -244,336 +201,6 @@ L = \begin{bmatrix}
       <tags>
         <tag>代码笔记</tag>
         <tag>算法复现</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PyTorch多卡训练初探</title>
-    <url>/2025/11/24/code6/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. 
-</p><br><span id="more"></span></p>
-<p>PyTorch DDP(Distributed Data Parallel)包括了三个核心概念, 分别为<code>rank</code>, <code>local_rank</code>和<code>node_rank</code>. </p>
-<ul>
-<li>rank: 即Gobal Rank, 为物理GPU的编号</li>
-<li>local_rank: 当前节点的进程编号. 每个节点GPU都从0开始编号</li>
-<li>node_rank: 当前节点的编号, 在多节点训练时使用</li>
-</ul>
-<p>需要注意的是, <code>local_rank</code>是<code>torchrun</code>自动传入的环境变量, 可以通过以下方式获取:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">local_rank = <span class="built_in">int</span>(os.environ.get(<span class="string">&#x27;LOCAL_RANK&#x27;</span>, <span class="number">0</span>))</span><br></pre></td></tr></table></figure>
-<p>此外pytorch的DDP中还有一些需要初始化的参数, 包括<code>world_size</code>, 为全局进程总数, 是所有节点上所有GPU进程的总数量; <code>nproc_per_node</code>是单节点进程数, 表示单个物理机上启动的训练进程的数量, <code>master_addr</code>是主节点IP地址, 用于初始化分布式进程组的rank=0进程所在机器的IP地址; <code>master_port</code>为主节点端口号, 用于初始化分布式进程组的协调进程所监听的TCP端口号, 与<code>master_addr</code>共同指定了协调服务的位置; <code>backend</code>为通信后端, 用于指定进程间通信所用协议, 常用nccl来进行GPU之间的高速通信. </p>
-<p>结合<code>torchrun</code>启动分布式训练的命令行如下:</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">CUDA_VISIBLE_DEVICES=1,2 torchrun --nproc_per_node=2 train.py</span><br></pre></td></tr></table></figure>
-<p>启动后首先需要对模型进行DDP场景下的加载, 对应代码如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 启用 SyncBatchNorm</span></span><br><span class="line">    model = nn.SyncBatchNorm.convert_sync_batchnorm(model) </span><br><span class="line">    model = model.to(config.device) </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 使用 DistributedDataParallel 封装模型</span></span><br><span class="line">    model = nn.parallel.DistributedDataParallel(</span><br><span class="line">        model,</span><br><span class="line">        device_ids=[<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>])],</span><br><span class="line">        output_device=<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]) </span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
-<p>以上代码中的<code>nn.SyncBatchNorm.convert_sync_batchnorm(model)</code>的核心作用是跨所有GPU聚合批次的统计信息, 用于共享GPU之间不同数据的计算结果. <code>nn.parallel.DistributedDataParallel(...)</code>在每个进程/GPU 上拥有一个完整的模型副本, 独立进行前向和反向传播. 在反向传播完成后, 它会自动协调(使用 All-Reduce 操作)所有副本的梯度, 并同步更新模型参数, 确保所有 GPU 上的模型保持一致. </p>
-<p>此外, 在进行分布式训练时需要对数据的加载进行对应处理, 使不同GPU读取到不同的训练或测试数据, 对应的代码实现如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) <span class="comment"># 创建分布式数据采样器</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    train_sampler = <span class="literal">None</span> </span><br><span class="line"><span class="comment"># train_loader = DataLoader(train_dataset, sampler=train_sampler, ...)</span></span><br></pre></td></tr></table></figure>
-<p>以上代码中的<code>torch.utils.data.distributed.DistributedSampler</code>为分布式采样器, 根据当前的rank和world_size自动将整个数据集逻辑地分割成world_size个不重叠的子集, 从而保证每个GPU在每个epoch中都能获取唯一且互不重叠的数据批次. </p>
-<p>在训练进行中, 同样需要对数据采集器进行必要的同步操作, 对应代码如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 在每个 epoch 开始时调用</span></span><br><span class="line">    train_loader.sampler.set_epoch(epoch)</span><br></pre></td></tr></table></figure>
-<p>以上代码中的epoch为当前轮次的编号, 该函数的核心功能是重新打乱数据, 确保每个epoch的数据划分都是随机且均匀的.</p>
-<p>对于模型的运行与训练结果保存, 在模型训练层面, DDP模式下训练循环和单卡类似, 在梯度反向传播中DDP机制会自动在所有进程之间同步梯度, 无需额外干预和对代码的修改. 对于训练权重的保存, DDP模式只在rank=0的进程上执行保存操作. </p>
-<p>通过以上操作即可实现多卡的模型训练与保存. </p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>工程开发</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>数据集分布相似度量化</title>
-    <url>/2025/12/20/code7/</url>
-    <content><![CDATA[<p><p style="text-align: center;">
-dataset similarity measure调研与简单复现
-</p><br><span id="more"></span></p>
-<h1 id="基于metafeature的距离与相似度度量"><a href="#基于metafeature的距离与相似度度量" class="headerlink" title="基于metafeature的距离与相似度度量"></a>基于metafeature的距离与相似度度量</h1><p>Feuer et al.[1]提出使用meta-learning来有效初始化Sequential Model-Based Bayesian Optimization(SMBO)过程. 所设定的前提是在待度量的数据集集合中的每个数据集$D^{(i)}$都可以用K个metafeature描述, 即 $m^i = (m^i_1, m^i_2, … \ ,m_k^i)$. 作者进而提出两种距离度量方法, 一种是直接度量metafeature集的距离作为数据集之间的距离:</p>
-<script type="math/tex; mode=display">
-D_{Fq}(D^{(i)}, D^{(j)}) = \| m^i - m^j \|_q \tag{1}</script><p>第二种度量方法通过negative Spearman correlation度量不同超参数设定的模型性能并将其作为metafeature集合, 对应表达形式如下:</p>
-<script type="math/tex; mode=display">
-D_{Fc}(D^{(i)}, D^{(j)}) = 1 - \mathcal{Cor}([g^{D^{(i)}}(\theta_1), g^{D^{(i)}}(\theta_2), ... , g^{D^{(i)}}(\theta_n)],[g^{D^{(j)}}(\theta_1), g^{D^{(j)}}(\theta_2), ... , g^{D^{(j)}}(\theta_n)]) \tag{2}</script><p>上式中$g^{D^{(i)}}(\cdot)$代表含参目标函数. 当需要在多个数据集中匹配最相似的数据集时, 由于参数无法固定下来, 因此需要借助mapping function在metafeature对$(m^i, m^j)$和$D_{Fc}(D^{(i)}, D^{(j)})$之间进行回归. 常用的metafeature可以归为以下几个大类:</p>
-<ul>
-<li>用于描述或者量化数据集的简单特征</li>
-<li>PCA metafeatures</li>
-<li>数据集的熵值</li>
-<li>统计特征, 包括数据集的峰度(kurtosis)或者标签的分布宽度(dispersion of label distribution)</li>
-<li>landmarking metafeatures(通过快速的ML算法获得, 如linear separability)</li>
-</ul>
-<p>上述中的峰度kurtosis是指用于描述概率分布曲线在平均值处峰值高低以及尾部厚度的统计量, 用于衡量数据特征的离散程度和异常值的存在情况. 对应数学表达如下:</p>
-<script type="math/tex; mode=display">
-K = \frac{\mu_4}{\sigma^4} = \frac{E[X - \mu]^4}{(E[(X-\mu)^2])^2} \tag{3}</script><p>上式中X为特征变量, $\mu$是均值, $E$是期望算子, $\sigma$是标准差, $\mu_4$是4阶中心矩. </p>
-<p>标签分布宽度则描述了类别分布的平衡程度或离散程度, 可以用类别概率标准差衡量, 对应数学表达形式如下:</p>
-<script type="math/tex; mode=display">
-\sigma_{labels} = \sqrt{\frac{1}{C}\sum_{i=1}^C(p_i - \frac{1}{C})^2} \tag{4}</script><p>上式中C是类别总数, $p_i$是第i类的样本比例. </p>
-<p>此外, 式(2)中所用的Spearman相关系数为范围在[-1,1]间的统计值, 用于度量两组排序(ranks)结果的相关强度, 该系数可以用于衡量数据和模型的契合程度, 对于n对原始分数对$(X_i, Y_i)$, 将其转换为ranks$R[X_i], R[Y_i]$, 令$R[X_i], R[Y_i] = (R_i, S_i)$, 对应的相关系数计算如下:</p>
-<script type="math/tex; mode=display">
-r_s = \rho[R[X], R[Y]] = \frac{cov[R[X], R[Y]]}{\sigma_{R[X]} \cdot \sigma_{R[Y]}} = \frac{\frac{1}{n} \sum_{i=1}^n R_i S_i - \bar{R}\bar{S}}{\sigma_{R[X]} \cdot \sigma_{R[Y]}}      \tag{5}</script><p>上式中的rank不是矩阵的秩, 给定$\{X_1, X_2, …, X_n \}$, 对其进行排序后rank的定义为$R(X_i)$为在排序序列中$X_i$的位置. 当不存在并列的情况时, 表达式可简化为:</p>
-<script type="math/tex; mode=display">
-r_s = 1 - \frac{6 \sum_{i=1}^{n}d_i^2}{n(n^2-1)}\tag{6}</script><p>以SAMPLE数据集以及光学的CIFAR10为例, 通过以下代码可以初步计算real和synth子数据集和光学CIFAR10数据集的峰度和标签分布差异.</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ImageClassificationDataset</span>(<span class="title class_ inherited__">Dataset</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, root_dir, transform=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="variable language_">self</span>.root_dir = root_dir</span><br><span class="line">        <span class="variable language_">self</span>.transform = transform</span><br><span class="line">        <span class="variable language_">self</span>.classes = <span class="built_in">sorted</span>(os.listdir(root_dir))</span><br><span class="line">        <span class="variable language_">self</span>.class_to_idx = &#123;cls: idx <span class="keyword">for</span> idx, cls <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="variable language_">self</span>.classes)&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.samples = []</span><br><span class="line">        <span class="keyword">for</span> class_name <span class="keyword">in</span> <span class="variable language_">self</span>.classes:</span><br><span class="line">            class_dir = os.path.join(root_dir, class_name)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> os.path.isdir(class_dir):</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            <span class="keyword">for</span> file_name <span class="keyword">in</span> os.listdir(class_dir):</span><br><span class="line">                file_path = os.path.join(class_dir, file_name)</span><br><span class="line">                <span class="variable language_">self</span>.samples.append((file_path, <span class="variable language_">self</span>.class_to_idx[class_name]))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__len__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(<span class="variable language_">self</span>.samples)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getitem__</span>(<span class="params">self, idx</span>):</span><br><span class="line">        img_path, label = <span class="variable language_">self</span>.samples[idx]</span><br><span class="line">        image = Image.<span class="built_in">open</span>(img_path).convert(<span class="string">&#x27;RGB&#x27;</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.transform:</span><br><span class="line">            image = <span class="variable language_">self</span>.transform(image)</span><br><span class="line">            </span><br><span class="line">        <span class="keyword">return</span> image, label</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>) <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    </span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data, label_data</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">calculate_kurtosis</span>(<span class="params">tensor</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    tensor: shape [n_samples, n_features]</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    mean = torch.mean(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    std = torch.std(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    </span><br><span class="line">    standardized = (tensor - mean) / (std + <span class="number">1e-8</span>)</span><br><span class="line">    fourth_moment = torch.mean(standardized ** <span class="number">4</span>, dim=<span class="number">0</span>)</span><br><span class="line">    kurtosis = fourth_moment - <span class="number">3</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> kurtosis</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_label_distribution</span>(<span class="params">labels</span>):</span><br><span class="line">    unique_labels = torch.unique(labels)</span><br><span class="line">    num_unique_labels = <span class="built_in">len</span>(unique_labels)</span><br><span class="line">    label_counts = torch.bincount(labels)</span><br><span class="line"></span><br><span class="line">    distribution_std = torch.std(label_counts.<span class="built_in">float</span>())</span><br><span class="line">    </span><br><span class="line">    probabilities = label_counts.<span class="built_in">float</span>() / torch.<span class="built_in">sum</span>(label_counts)</span><br><span class="line">    entropy = -torch.<span class="built_in">sum</span>(probabilities * torch.log(probabilities + <span class="number">1e-8</span>))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;num_unique_labels&#x27;</span>: num_unique_labels,</span><br><span class="line">        <span class="string">&#x27;label_counts&#x27;</span>: label_counts,</span><br><span class="line">        <span class="string">&#x27;distribution_std&#x27;</span>: distribution_std,</span><br><span class="line">        <span class="string">&#x27;entropy&#x27;</span>: entropy,</span><br><span class="line">        <span class="string">&#x27;probabilities&#x27;</span>: probabilities</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_dataset</span>(<span class="params">dataset_path, img_size=<span class="number">224</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    </span><br><span class="line">    pixel_data, label_data = extract_features_from_images(dataset, batch_size)  <span class="comment"># 提取特征和标签</span></span><br><span class="line">    </span><br><span class="line">    sample_indices = torch.randperm(pixel_data.shape[<span class="number">1</span>])[:<span class="number">10000</span>]  <span class="comment"># 计算峰度 (采样部分像素以减少计算量)</span></span><br><span class="line">    sampled_pixels = pixel_data[:, sample_indices]</span><br><span class="line">    kurtosis_values = calculate_kurtosis(sampled_pixels)</span><br><span class="line"></span><br><span class="line">    label_stats = analyze_label_distribution(label_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;kurtosis_mean&#x27;</span>: torch.mean(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;kurtosis_std&#x27;</span>: torch.std(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;label_distribution_std&#x27;</span>: label_stats[<span class="string">&#x27;distribution_std&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;label_entropy&#x27;</span>: label_stats[<span class="string">&#x27;entropy&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;num_classes&#x27;</span>: <span class="built_in">len</span>(dataset.classes),</span><br><span class="line">        <span class="string">&#x27;total_samples&#x27;</span>: <span class="built_in">len</span>(dataset)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    synth_dataset_path = <span class="string">&quot;./synth&quot;</span>  </span><br><span class="line">    real_dataset_path = <span class="string">&quot;./real&quot;</span>  </span><br><span class="line">    cifar10_dataset_path = <span class="string">&#x27;./cifar10&#x27;</span>  </span><br><span class="line">    synth_stats = analyze_dataset(synth_dataset_path)</span><br><span class="line">    real_stats = analyze_dataset(real_dataset_path)</span><br><span class="line">    cifar10_stats = analyze_dataset(cifar10_dataset_path)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;result&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Synth&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Real&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;CIFAR10&#x27;</span>:&lt;<span class="number">15</span>&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;-&quot;</span> * <span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;kurtosis_mean&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_std&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_entropy&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p>特征结果如下所示<br><figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line"><span class="section">result               Synth           Real            CIFAR10        </span></span><br><span class="line"><span class="section">-------------------------------------------------------------</span></span><br><span class="line">kurtosis<span class="emphasis">_mean        1.1260          0.9982          -0.7343        </span></span><br><span class="line"><span class="emphasis">label_std            30.2811         30.2811         0.0000</span></span><br><span class="line"><span class="emphasis">label_</span>entropy        2.2800          2.2800          2.3026</span><br></pre></td></tr></table></figure></p>
-<h1 id="Gromov-Wasserstein距离"><a href="#Gromov-Wasserstein距离" class="headerlink" title="Gromov-Wasserstein距离"></a>Gromov-Wasserstein距离</h1><p>文献[2]提出基于Gromov-Wasserstein metric来度量数据集之间的相关程度, 对应数学表达如下所示:</p>
-<script type="math/tex; mode=display">
-d_{GW}(\mathcal{X}, \mathcal{Y}) = \inf_{\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})}   \int_{\mathcal{X}^2 \times \mathcal{Y}^2} |d_{\mathcal{X}}(x, x') -d_{\mathcal{Y}}(y, y')|^q \cdot d\pi(x,y)d\pi(x',y') \tag{7}</script><p>上式实际度量了两个概率空间$\mathcal{X}$和$\mathcal{Y}$之间的距离, 其中的$\mathcal{X}$和$\mathcal{Y}$不仅包含距离结构$d_{\mathcal{X}}$, $d_{\mathcal{Y}}$, 还带有概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$. $\pi$为最优传输理论中的联合概率测度, 对应的$\Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$是所有满足边缘约束的耦合集合. 当用于度量给定的数据集$\mathcal{X}=\{x_1, …, x_n \}$和$\mathcal{Y}=\{y_1, …, y_m\}$时, 对于度量空间$(\mathcal{X}, d_{\mathcal{X}})$的定义,  $d_{\mathcal{X}}:\mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}_+$可以表示为如下形式:</p>
-<script type="math/tex; mode=display">
-d_{\mathcal{X}}(x_i, x_j) =  \| \phi(x_i) - \phi(x_j) \|_2 \tag{8}</script><p>其中的$\phi(\cdot)$为特征提取器. 对于概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$, 在有限数据集上使用经验分布:</p>
-<script type="math/tex; mode=display">
-\mu_{\mathcal{X}} = \frac{1}{n}\sum_{i=1}^n \delta_{x_i}, \quad \mu_{\mathcal{Y}} = \frac{1}{m}\sum_{j=1}^m \delta_{y_j} \tag{9}</script><p>其中的$\delta$为狄拉克测度, 可以简单理解为每个$x_i$在数据集中的比例. 联合概率测度$\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$则表示一个软匹配关系, 对应表达形式如下:</p>
-<script type="math/tex; mode=display">
-\pi_{ij} \geq 0, \quad  \sum_j \pi_{ij} = \frac{1}{n}, \quad \sum_i \pi_{ij} = \frac{1}{m} \tag{10}</script><p>GW距离并非衡量数据集中的点是否接近, 而是两个数据集的内部集合结构是否一致. 同上, 借助POT库(python optimal transport)可以实现GW的计算与可视化, 同样分别比较real-synth和real-cifar10, 代码如下:</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> scipy <span class="keyword">as</span> sp</span><br><span class="line"><span class="keyword">import</span> ot</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> TSNE</span><br><span class="line"><span class="keyword">from</span> method1 <span class="keyword">import</span> ImageClassificationDataset <span class="comment">#同上</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, </span><br><span class="line">                          shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>)  <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data.numpy(), label_data.numpy() </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">load_dataset_features</span>(<span class="params">dataset_path, img_size=<span class="number">32</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    features, labels = extract_features_from_images(dataset, batch_size)</span><br><span class="line">    <span class="keyword">return</span> features, labels</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">compute_and_visualize_gw_with_features</span>(<span class="params">real_path, synth_path, feature_method=<span class="string">&#x27;pixel&#x27;</span>, img_size=<span class="number">128</span></span>):</span><br><span class="line">    real_features, real_labels = load_dataset_features(real_path, img_size)</span><br><span class="line">    synth_features, synth_labels = load_dataset_features(synth_path, img_size)</span><br><span class="line">    </span><br><span class="line">    C1 = sp.spatial.distance.cdist(real_features, real_features)</span><br><span class="line">    C2 = sp.spatial.distance.cdist(synth_features, synth_features)</span><br><span class="line">    C1 /= C1.<span class="built_in">max</span>()</span><br><span class="line">    C2 /= C2.<span class="built_in">max</span>()</span><br><span class="line">    </span><br><span class="line">    n_real, n_synth = <span class="built_in">len</span>(real_features), <span class="built_in">len</span>(synth_features)</span><br><span class="line">    p = ot.unif(n_real)</span><br><span class="line">    q = ot.unif(n_synth)</span><br><span class="line">    </span><br><span class="line">    gw, log = ot.gromov.gromov_wasserstein(</span><br><span class="line">        C1, C2, p, q, <span class="string">&quot;square_loss&quot;</span>, verbose=<span class="literal">True</span>, log=<span class="literal">True</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">6</span>))</span><br><span class="line">    plt.imshow(gw, cmap=<span class="string">&#x27;Blues&#x27;</span>)</span><br><span class="line">    plt.title(<span class="string">f&#x27;GW Transport Matrix (<span class="subst">&#123;feature_method&#125;</span>)\nGW Distance: <span class="subst">&#123;log[<span class="string">&quot;gw_dist&quot;</span>]:<span class="number">.6</span>f&#125;</span>&#x27;</span>)</span><br><span class="line">    plt.colorbar()</span><br><span class="line">    plt.show()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;distance&#x27;</span>: log[<span class="string">&quot;gw_dist&quot;</span>],</span><br><span class="line">        <span class="string">&#x27;transport_plan&#x27;</span>: gw,</span><br><span class="line">        <span class="string">&#x27;real_features&#x27;</span>: real_features,</span><br><span class="line">        <span class="string">&#x27;synth_features&#x27;</span>: synth_features</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    results = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./synth&quot;</span>)</span><br><span class="line">    results2 = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./cifar10&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;Gromov-Wasserstein Distance Results:&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results2[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p>在分析实验结果之前, 首先对图像统计特征进行可视化. 将特征提取器设定为对图形简单一维展平, 获取特征集合的特征值分布图像和不同维度的方差分布, 结果从上至下分别为real-synth和real-cifar10, 下同. 对应可视化结果如下:</p>
-<figure style="text-align: center;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-</figure>
-
-<p>接着, 使用PCA对图像进行降维可视化, 分别按数据集和按类别进行着色区分, 可视化结果如下:</p>
-<figure style="text-align: center;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-</figure>
-
-<p>最终, 用t-SNE对展平的一维特征进行可视化处理, 对应结果如下所示:</p>
-<figure style="text-align: center;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-</figure>
-
-<p>接着使用GW距离进行数据集相似度统计, 首先可以对代价矩阵(即由$d_{\mathcal{X}}$或$d_{\mathcal{Y}}$构成的元数据点两两之间距离匹配矩阵)进行可视化, 对应结果如下:</p>
-<figure style="text-align: center;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4_cifar10.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
-</figure>
-
-<p>运行算法可得, 最终不同数据集对之间的GW距离结果如下:</p>
-<figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line">==================================================</span><br><span class="line">Gromov-Wasserstein Distance Results:</span><br><span class="line">==================================================</span><br><span class="line">GW distance: 0.003756</span><br><span class="line">GW distance: 0.011917</span><br></pre></td></tr></table></figure>
-<h1 id="Deep-Dataset-Dissimliarity-Measures-DeDiMs"><a href="#Deep-Dataset-Dissimliarity-Measures-DeDiMs" class="headerlink" title="Deep Dataset Dissimliarity Measures(DeDiMs)"></a>Deep Dataset Dissimliarity Measures(DeDiMs)</h1><p>文献[3]提出了一种融合数据和标签分布以及半监督深度学习的数据分布匹配评估方法, 主要通过设计4个特殊的距离函数实现, 给定两个数据集$D^a$和$D^b$, 对应步骤如下:</p>
-<ol>
-<li>对数据集进行随机采样, 在系数$\tau$的约束下获得两个对应的子集, 称为$D^{a,\tau}$和$D^{b,\tau}$</li>
-<li>通过特征提取器(feature extractor)获得子数据集对应的特征向量集$H^{a,\tau}$和$H^{b,\tau}$</li>
-</ol>
-<p>完成上述两个步骤后, 首先需要计算 Minkowski-based distance set, 对应的过程如下:</p>
-<ol>
-<li>选取Manhattan距离或欧式距离(q-norm取1或2)计算距离$d_i=min_k |h_i - h_k |_q$, $h_i$为从$H^{a, \tau}$中采集C个样本构成, $h_k$是$H^{b, \tau}$中与之最接近的向量, 通过该步骤获取一个距离列表$d_{l_q}(D^a,D^b, \tau, C) = \{ \hat{d_1}, …,\hat{d_C}\}$</li>
-<li>类似步骤1, 计算$D^a$的组内距离, 获得参考距离列表(reference distance list)$d_{l_q}(D^a,D^a, \tau, C) = \{ \check{d_1}, …,\check{d_C}\}$</li>
-<li>计算上述两个距离列表的差值绝对值, 同时计算各个距离列表与自身均值的离散分布以及Wilcoxon test的p-value</li>
-</ol>
-<p>上述方法可以视为基于比较密度方程(comparing density function)的数据集相似度评估算法, 计算过程同时评估的数据集内和不同数据集之间的距离差异, 可以更好地反映数据集之间的分布差异并提升半监督深度学习(semi-supervised deep learning ,SSDL)的性能.</p>
-<p>此外, 上述的Minkowski distance, 也被称为Minkowski metric, 是一种正则化向量空间, 可以视为曼哈顿距离和欧式距离的推广. 对于两个向量集合$X = (x_1, x_2, …, x_n)$和$Y = (y_1, y_2, …, y_n)$, 对应计算公式如下:</p>
-<script type="math/tex; mode=display">
-D(X,Y)=(\sum_{i=1}^n |x_i - y_i|^{p})^{\frac{1}{p}} \tag{11}</script><p>该距离的设计启发来自Minkowski不等式, 通常p被设定为1或2, 分别对应曼哈顿距离和欧式距离. 闵氏距离可以理解为两个向量集合之间的能量平均. 对于Wilcoxson test, 有两种常见的检验定义, 分别为Wilcoxon Signed-Rank Test(符号秩检验)和Wilcoxon Rank-Sum Test(秩和检验), 前者基于成对样本, 后者则适用于独立样本, 没有一一对应关系. 此处采用的是Wilcoxon符号检验.  </p>
-<p>Wilcoxon符号秩检验是一种非参数假设检验方法, 用于比较两个配对样本是否有显著差异. 这里的秩是指数据绝对值大小所带来的排名. 对于两组距离列表, 首先计算每对数据的差值$D_i = x_i - y_i$, 当$D_i = 0$时会将该数据从分析中提出并对样本总数-1; 接着计算绝对值的秩, 对所有非零差值绝对值进行排序并从小至大赋予秩次$R_i$.</p>
-<script type="math/tex; mode=display">
-R_i = Rank(|D_i|) \tag{12}</script><p>此外需要定义相应的符号函数$sgn(\cdot)$以规定差值的方向, 对应表达形式如下:</p>
-<script type="math/tex; mode=display">
-sgn(D_i) = 
-
-\begin{cases}
-+1 \quad if D_i > 0 \\
--1 \quad if D_i < 0
-\end{cases}
-\tag{13}</script><p>最终将符号秩总和作为检验结果:</p>
-<script type="math/tex; mode=display">
-W_{sum} = \sum_{i=1}^n sgn(D_i)\cdot R_i \tag{14}</script><p>对于上述假设检验或其他任意假设检验, 还可以用p值刻画分布的内涵. 其统一的定义为:</p>
-<script type="math/tex; mode=display">
-p = \mathbb{P}_{H_0}(T(X) \sim T(x_{obs})) \tag{15}</script><p>其中X为随机样本, $x_{obs}$为观测样本, $T(\cdot)$为检验统计量, $\mathbb{P}_{H_0}$为在原假设$H_0$成立条件下的概率. 对于Wilcoxon检验, 原假设为差值的中值为0, 即数据分布呈现中心对称.</p>
-<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]: Initializing Bayesian Hyperparameter Optimization via Meta-Learning, AAAI</p>
-<p>[2]: Modern approaches to discrete curvature, Book</p>
-<p>[3]: Dataset Similarity to Assess Semisupervised Learning Under Distribution Mismatch Between the Labeled and Unlabeled Datasets, IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>review</tag>
-        <tag>代码复现</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>再站在新世界的门前</title>
-    <url>/2025/08/16/essay1/</url>
-    <content><![CDATA[<p><p style="text-align: center;">研一正式开始前的一些胡思乱想</p><br><span id="more"></span></p>
-<h1 id="站在新世界的门前"><a href="#站在新世界的门前" class="headerlink" title="站在新世界的门前"></a>站在新世界的门前</h1><p>这是由宋春丹发表在中国新闻周刊的新闻报道, 回顾了复旦77级数学系同学的青年时期的复旦生活和多年以后的人生轨迹. 现将全文摘录, 如下:</p>
-<div class="note default" style="max-height:500px; overflow:auto;">
-  <pre style="white-space: pre-wrap;">
-1978年3月第一个星期六的下午，复旦数学系180多位新生坐在600号教学楼的阶梯大教室里，聆听校长、著名数学家苏步青的开学讲话.  
-
-这是10年来，首次有人通过高考走进大学校门。“你们要把自己小看10年。但是数学上要出成绩，必须在30岁之前。”苏校长说。数学一班的过硬一听不妙。他是1966届高中生，开学时已年满31周岁。全班年纪最大的他是班上三个“老三届”之一，另外两个是29岁的金山和27岁的李源潮。主持开学典礼的数学系副系主任胡立鹏的讲话更不客气。他说，我们的任务就是通过四年的学习，把你们带到数学的大门口。你们自己看看进得去吧？进得去就进去，进不去看着转行。又说：“你们这一届中，只要有一个人进去，我就心满意足了！其他人都是陪读的，当然陪读也有好处，能够经历数学思维的训练，以后改行随便做什么都可以做得很出色。” 数学二班的陈大康听后不以为然，心想：“进得去吧？”而今，他成了华东师范大学中文系教授。李源潮则在多年后有感而发：“你本来想走进这个房间，结果却走进了另一个房间。” 
-
-1978年2月28日，是复旦新生三天报到日的第一天。
-
-吴宗敏记得，这天是个阳光明媚的好天气。他本已定好第二天来报到，但按捺不住心痒，第一天就来寝室踩点。他被分到3号楼的223号寝室。寝室向阳，约15平方米，四张上下铺木床，中间是一张长条桌。他到时，已有同学将右侧靠窗的下铺收拾妥当。彼此做了自我介绍，他在左侧靠窗下铺贴上了写有自己名字的纸条，占了一个位置就离开了。第二天，上海市无线电八厂副厂长亲自带队，保卫处处长开着大卡车，工会主席带着十来个工人随行，一路敲锣打鼓把胸戴大红花的吴宗敏送到了学校。他1975年中学毕业后分配到该厂，这次高考，这家100多人的工厂中有包括他在内的4名工人被录取。卡车停在复旦大学3号男生宿舍楼前，工人们拿着他的行李——其实也只有一个小包，簇拥着他上了二楼，七手八脚帮着整理好行李，铺好床铺。
-
-22岁的张来武从安徽铜陵来到数学二班报到。他已经想不起来寝室的门牌号，只记得寝室地板的质量不错。因为他是寝室中唯一的外地人，每到周末，就只剩下他一个人，他总把寝室的地擦得干干净净。刚来时，他看到一位室友拿着一本全英文的小说在看，大为惊异，因为自己连英文字母还认不全。一楼的132号寝室里，计算数学班的沈文海坐了整整一天的火车，从北京风尘仆仆而至。他是全寝室最后一位入住者，大家自我介绍一番后，便陷入了沉默。寝室年纪最小的男生李刚打开了收音机，跟随广播里的领读大声念起英文：“Yes, it is. Yes, they are.” 
-
-陈晓亮也被分到计算数学班。他很奇怪，因为之前报考的明明是物理系。后来他听说，去杭州的招生老师是数学系主任，他把这个地区所有第一志愿报考复旦的上线考生全部招到了数学系。虽然未能如愿就读物理系，但陈晓亮还是觉得颇为幸运，因为数学系是复旦大学最好的系，考分最高。
-
-数学系77级被媒体称为状元班。数学一班的何宁卡是湖南省高考状元，李克难是湖南省第二名，计算数学班的李乐德是上海市高考状元，姚大卫是洛阳市高考状元。
-
-4个班中，数学一班平均年龄最小，被称为“小班”。17岁的李克难在小学时跳了两级，汉语拼音还没来得及学会，大学时要补习汉语拼音。15岁的朱一新跳了三级，从崇明农村考入复旦，被媒体称为“最年轻的大学生”。数学二班和计算数学班入校时就各有十多位“老三届”，入学时大都已婚。上学期间时不时传来谁家孩子出生的消息，名字多叫“欢”或“乐”。3月底，一批高考成绩出色但年纪偏大的学生经补招入校，成为走读生。数学一班新招了8人，最大的已36岁；计算数学班新增了7人，全都是30岁。陈晓亮听到大家私下议论，是不是有“走后门”的。他有朋友在上海交通大学，就没有补招的事。但后来发现，班上的走读生都很优秀。其实，这是根据国家的新政补招的。开学后，国家紧急下发了《关于普通高等学校试行招收走读生和增加招生名额的通知》，允许高等学校在完成招生计划的前提下试行招收走读生，并要求注意招收1966届、1967届高中毕业生。
-
-5月27日是复旦校庆，下午是各系参观日。新生们对这一天期待已久。  223寝室结伴参观，到计算机楼时，吴宗敏第一次见到了计算机，体积比一个寝室还大。数学系的展览则门庭冷落。几排桌子上，整齐陈列着刊有该系师生论文的国内外著名学术期刊。新生们尚不能理解其中含金量，只觉得呆板沉闷，转了一圈就匆匆离去。  
-
-开学第一周，考虑到从前工农兵学员入学时水平参差不齐，数学系决定先对新生做一次摸底考试。考场设在学校大礼堂，彼此间至少隔二三个空座，以免抄袭。考试内容为初等数学。分数当天就下来了，沈文海只考了63分。但他的成绩并不算最差的，最高分也不到90，成绩相对较好的多为“老三届”。数学系决定暂停教学计划，腾出四周时间专门补习初等数学。四周后再次测试，全系基本通过。大学课程正式开始。
-
-600号楼是数学系所在地，其中611教室是可以容纳200人的阶梯教室，数学系的公共课大都在这里上。
-
-77级是仓促考试和开学的，一开始教材供应跟不上，很多课本还是油印的，第二学期才恢复正常。开学后不久，老师告诫他们，以他们现在的水平，千万不能碰哥德巴赫猜想，“这东西害人的”。数学系常收到声称解决了哥德巴赫猜想的“民科”们的来信，就会把信发给学生，考他们能不能看出问题来。
-
-数学分析是公认最难的一门基础课，考验逻辑推导能力，很多同学都喜欢这门课，尤其喜欢听何成奇讲这门课。因为他不但讲出了数学之用，还讲出了数学之美，“让你觉得不仅是进入了一个科学殿堂，也是进入了一个艺术殿堂”。数学分析课辅导老师孙芳烈也是数学一班的第一任班主任，是班上同学公认的大学期间对大家帮助最大的一位老师。在同学的记忆中，她有一颗“母仪之心”，宽爱所有的学生，非常认真负责，一心扑在学生身上。
-
-现已83岁的孙芳烈头发花白，思维清晰。她极其低调，一再推辞采访，好不容易接受了，又一再强调，记不清多少事情了。大学班主任跟中小学班主任不同，学生们基本均已成年，有自觉性，能力强，都是自己管理自己。她告诉《中国新闻周刊》，77级是她带过的最优秀的一届学生，很有集体观念，不是只关心自己。她是复旦大学1953级数学系学生，带班时已年过40，工资刚从拿了二十几年的60块钱调到72块钱。她和在浙江大学工作的丈夫长期分居两地，两个孩子小的只有3岁，工作很忙，她只能把孩子全托。她设身处地想，过去自己上学时遇到问题经常找不到老师，就每天下班后都留在学校。为了保证答疑质量，她把《吉米多维奇习题集》从头到尾做了一遍。《吉米多维奇习题集》是数学分析的经典题集，同学们都争相去图书馆排队借阅。书上只有习题，没有答案，不少人解题上瘾。
-
-沈文海的下铺黄忠强将做过的习题装订成册，珍藏起来。封面上用正楷写道：“习题之真谛所在，欲知者智穷而后启之。” 在第一学年的数学分析考试中，数学一班有14人得了100分。苏步青连连称赞这个班“不得了”。数学系是苏校长的“宠儿”，77级更是他的骄傲。数学系学子们也均以“校长门生”而自得。苏校长作讲座，有学生迟到，分辩说自己只迟到了一两分钟，他说，根据数学归纳法，等于1时成立、等于2时成立、等于n＋1时成立，那么结论就成立。同理，迟到一分钟不算迟到、迟到两分钟不算迟到，那迟到多久也不算迟到了。
-
-经过“文革”时期的停滞，当时数学系只有苏步青和谷超豪两位教授，夏道行是副教授，其余授课老师都是讲师或助教。谷超豪不拿教授工资，拿副教授工资，他说，什么时候夏道行拿了教授工资了，他才拿教授工资。谷超豪有一种老派的绅士派头，待人彬彬有礼，讲课循循善诱。他曾给数学系上过一学期选修课“统一场论”。下课后他总会留下来，和学生聊天交流。陈晓亮记得，有一晚下课后，谷超豪和几个学生一起离开教室，在路口分手时，他停下来，等学生先走了，自己才走。  
-
-夏道行教实变函数，考试极难，考前也不给复习范围。考试时，一共只考一道半题目，一道是证明一个书上用了二十多页来证明的定理，半道是送分题。两个小时过了，一直到吃饭，也没人交卷。不过，他严是严，但并不会真的难为大家，还是会让大家及格的。
-
-数学系有一门计算机课。当时的计算机没有显示屏和键盘，运算结果只能打印出来。打印纸尺寸大，质地好，能当草稿纸，还能糊墙壁、包书皮、垫抽屉、做信纸。个别学生故意将打印结果排得很稀，原本一张纸就能打印完的用了五六张。
-
-大一时，最受追捧的课程并不是专业课，而是政治课“中共党史”。学子们都关心时事政治，老师讲党内“十次路线斗争”讲得声情并茂，阶梯教室座无虚席，下课时全体鼓掌。
-
-教了几十年书的老师从没见过这么勤奋的一届学生。
-
-校图书馆阅览室一座难求，常有人用书包占位子。很多学生熬夜甚至通宵学习，恨不得一天能当两天用，晚上能当白天用。由于学习高度紧张，开学三个月沈文海就开始失眠，有时通宵不能入睡，满脑子定理习题。直到大学最后一学期，他开始冬泳，失眠才痊愈。
-
-入学后的第一个夏天，上海酷热难耐，没有电风扇的寝室里像蒸笼一样。沈文海每隔一阵就要爬下床，跑到水房里，用凉水浑身上下一遍一遍地浇。那个期末，学校决定提前放假，开学后补考期末考试。
-
-考虑到学生的身体，校方决定执行“熄灯令”：图书馆晚上9∶30熄灯，教学楼9∶40清场、10点熄灯，宿舍楼10∶40熄灯。  “熄灯令”招致一片反对之声。学生代表找苏步青反映：同学们无法完成课业，希望延长供电时间。苏步青说，来日方长，既要学习，也要健康。不过，熄灯时间被延迟为教室10∶30，寝室11点。于是，熄灯后，宿舍楼就会响起一片“轰隆轰隆”声，那是从寝室往走廊拖板凳的声音。不久，为了争夺走廊灯正下方光线最好的位置，一些学生不等熄灯就用板凳占位。楼前的路灯下也总是站满人，都是数学系的学生，大部分人都在读外语。李源潮后来说，他工作后外语一直不错，很多人以为他出国留学过，其实完全是“路灯底下的外语”。
-
-不过，也有学习轻松的。计算数学班的李乐德、姚大卫、顾大维三位“老三届”都已成家，每天下课后都要回家做家务，但成绩却很是出色。陈晓亮学习十分紧张，很好奇这几位老大哥是什么时候做的作业，后来听说是在骑自行车回家的路上就在脑子里做完了。刚开学时大部分人的英语都是从26个字母学起，姚大卫已经能用英文交流。
-
-1978年，国家恢复研究生考试。上海交通大学刚设立的研究生院急需人才，李乐德、姚大卫、顾大维被要求报考上交大的研究生，并被录取，只读了3个学期就离开了复旦，一学期后又都赴美留学。
-
-每天早上5点，戴晓波准时起床，拎上几个空的暖水瓶，奔赴运动队参加训练。他曾获复旦大学中长跑比赛第三名，从大一起就加入了运动队，一直到七年后从复旦研究生毕业。7点多，他训练完毕，在食堂吃过早餐，给晚起的室友捎上馒头，拎上打好的开水，跑回寝室。他的下铺吴宗敏常常会在第一遍铃打过之后、离上课只有5分钟时才匆匆爬下床，抓起馒头，一边咬一边往教室跑。
-
-王向东入学时肝病未愈，面色蜡黄，每天早睡。室友就寝时间不一，免不了互相干扰，但从未有人表示过不满。
-
-223寝室的7名男生中，27岁的李源潮是寝室的大哥。因为年龄比其他人大了好几岁，阅历丰富，性格稳重，室友们多敬他几分，不像其他人之间时有玩笑和打闹。当时规定，工作5年以上可以带薪上大学，每次一起在外吃饭，有收入的他总是抢着买单。他爱打桥牌，曾和吴宗敏组队参加学校的桥牌比赛。
-
-21岁的戴晓波性格活跃，喜欢创新，由于身处运动队，他的课余生活比起“两耳不闻窗外事”的数学系同窗们算得上丰富多彩，过得不亦乐乎。运动队会发运动服，他的衣服也总是全班最漂亮的。
-
-19岁的何宁卡性格成熟，在中学时是学校的团总支书记，善于处理人际关系，是223的寝室长。他对时事很敏感，聊天时，谈起时事新闻和历史，他都如数家珍。21岁的吴宗敏和18岁的王向东是好友，第一学期时一直出双入对，总去图书馆里钻书堆。吴宗敏考试经常第一个交卷，比其他同学能提前半小时；王向东记忆力超群，过目不忘，笔记和作业极为整洁，考试常拿100分，99分都很少见。18岁的陈跃斌喜欢围棋，没事时就打棋谱。16岁的毛怀遂年纪最小，性格却很沉稳，他擅长长跑，曾是西安市长跑比赛第二名。
-
-吴宗敏觉得，这也是他们寝室的总体特点：不是冲刺型，而是耐力型。室友间的关系也是，看似平淡，不是称兄道弟，但从没红过一次脸。戴晓波说，当时觉得很简单，回头看才知道很不容易，是一笔最大的财富。
-
-宿舍楼二楼中间学生会活动室里，有一台20寸黑白电视机，每天的固定节目是《新闻联播》，偶尔会放《敌营十八年》《大西洋底来的人》《加里森敢死队》《无名英雄》等电视连续剧。每逢重大体育赛事，就到了男生们的节日了。1981年，中国女排参加世界锦标赛，首次夺冠，举国欢腾。复旦的学生们兴奋得不知所措，四五百人叫嚷着涌出校门，直到后半夜才筋疲力竭回校睡觉。也是这一年，在西班牙世界杯足球预选赛上，中国对阵科威特，点球被中国队门将扑出，男生宿舍瞬间沸腾，有人点着褥子挂在窗外，有人举起装满开水的暖壶从窗口摔下。中国队本来有望冲出亚洲，却因沙特故意放水给新西兰而最终失之交臂，男生们揭竿而起，有人甚至点着扫把冲到楼下。那几年，这种“游行”屡见不鲜。
-
-223室的男生们虽然也爱看球，但很少参与。吴宗敏说，寝室大多数人的思想好像比较偏中道。每周末，李源潮从家返校，总会光顾书店，买回各类书籍，放在寝室的小书架上。他还从家里带来一台模样特别的小机器，大家才第一次知道，这就是录音机。寝室里开始有交响乐和流行歌曲的旋律飘出，但最主要的用途是学外语。大二时，寝室里有人提议，靠窗和靠门的铺位应该轮换住，于是李源潮和吴宗敏就换到了进门右手边那张床，住上下铺。
-
-311寝室里通常都在安静地自习。周末赶上下雨天凉，过硬的妻子会带上衣服来学校接他回家。但她从不进寝室，就在门口等着，如果有人出来就请其帮忙给过硬带个话。寝室里静得“一根针掉在地上都能听见”，她怕敲门会打断大家解题的思路。3号楼的对面是文科生的男生宿舍楼，陈晓亮常常听到楼里传来小提琴声和播放的音乐声，跟3号楼的沉闷静谧对比极为鲜明。大二结束后，最后两届工农兵学员陆续毕业离校，数学系77级男生宿舍升至三楼。3号楼寝室门牌号奇数朝阳，偶数背阴，上海天气潮湿，阴面阳面差别很大。为公平起见，数学系规定，以一年为期，寝室南北互换。于是，吴宗敏等从223寝室搬到了328（后来又搬到了308），沈文海等则从132搬到了333室，和328室是斜对门。
-
-跟数学一班相比，计算数学班“老三届”较多，气氛也相对活跃。沈文海作为寝室最早起床的人，开学后不久就被推选为室长，除了每天早上给室友带馒头，还要收发作业本，代领粮票、购物券，打扫卫生。终日泡在图书馆或教学楼里苦读的他很羡慕寝室的几个老大哥——姜叙伦、於崇华、曹沅。他们学习轻松，爱好棋牌，晚上在寝室听着收音机聊着天就把作业做完了，然后就冲着其他寝室吆喝，不一会儿就组成了棋牌局。张来武和安徽同乡的陈晓漫在数学二班成绩出色，被称为“安徽两霸”。张来武记得，大约半年后，开学时摸底测试成绩靠前的“老三届”学习上优势不再明显。他觉得，这可能是因为被耽搁多年，过了学数学的黄金年龄。
-
-600号楼611教室不光用来上大课，很多讲座也在这里举行，几乎每周都有一到两个晚上，内容五花八门。
-
-在《中国青年》就潘晓的一封来信“人生的路为何越走越窄”展开大讨论前后，数学系学生会请了一位学者来座谈人生的意义。与当时革命化的人生观主旋律不同，这位学者却强调小确幸：“生活的意义就在于每天的上班下班、每天的柴米油盐酱醋茶、每天早晨的送孩子上学、每天晚上的与家人一道共进晚餐、每天夜里临睡前的与家人互道晚安……以及每天的家长里短、每天的解决邻里纠纷、每天的喜怒哀乐等等。” 最受欢迎的是交谊舞讲座，每次都人满为患。中年女老师用一台卡式录放机放起音乐，讲解之余，经常挑两个男生上台，手把手示范，男生们既兴奋又害羞，台下笑声不止。  
-
-每周六晚上，学校食堂都挪开桌椅，举行舞会。系里也组织舞会，地点多在600号楼的礼堂。虞锦国擅长交谊舞，有时在寝室里教同学用凳子练习。交际舞讲座沈文海很少参加，但诗歌类讲座几乎场场必到。沈文海在北京44中读书时语文成绩出色，作文经常被当成范文。一次开会，他和李源潮坐在会场最后面，两个喜欢文学的青年开始在笔记本上手谈。李源潮一言不发地写下一串书名，每写一个，如《毁灭》《南行记》《死水微澜》《生死场》等，就询问地看看他，他时而点点头，表示读过或听过，但大多数时候都是一脸惘然。李源潮整整写满了一页，这些书里，他看过的不到十分之一，至少有三分之一没听说过。
-
-1981年，复旦大学组建诗社，杨荫稚加入了这个几乎都是文科生的社团。一首《我走近这陌生的一群——给诗社，也给你们》保留至今： 我走近这陌生的一群 因为，我期望 漂浮的心 能靠上一片稳妥的云 我小心地走近这陌生的一群 因为，我害怕 梦幻的薄冰过早地消融 我曾一千次地追求 可许多回 抓住的 只是一片浮云 所以，我来了 走近这陌生的一群 做第一千零一次的追寻 为一颗不安宁的灵魂 寻一片拍岸的惊涛 
-
-校学生会组织赛诗会，数学系常由沈文海、杨荫稚、张来武等人组队上阵。张来武不知道是因为自己的诗真的太受欢迎呢，还是因为自己普通话说得不够好，反正他在台上朗诵时，台下总是掌声笑声不断。不过，他很快就认定自己成不了好的诗人，他觉得自己的思维太严谨，缺少诗情画意。他还是数学系的体育健将，大三时在运动会上拿下五项全能第二名，被授以“宝刀不老”的称号，让年纪尚轻的他感觉莫名其妙。数学一班的马进是数学系团总支文艺委员，在系里是少有的多才多艺者。与大部分男生千篇一律的白衬衫、中山裤不同，他穿着时髦，戴金色边框眼镜。他画画功底扎实，擅长拉手风琴，会跳迪斯科，班上男生的迪斯科都是他教的。文艺汇演时，他经常拉手风琴伴奏，集合一批爱唱歌的男生搞小合唱。百科知识竞赛是数学系大出风头的领域。在校学生会举办的竞赛中，计算数学班的宋伟铭夺冠，前十名里数学系占了三个。
-
-当时，各种社会思潮风起云涌。伤痕文学、民主竞选、四五英雄、N大美女，各领风骚一阵。路边的板报栏经常张贴着小字报，展开辩论。一天，大家突然发现一篇书法流畅、见地老到的小字报，署名竟是“夏征农”。当时，经常能看到校党委书记夏征农一个人拿副碗筷在食堂打饭，然后坐下来和学生边吃边聊。用同学的话说，当时整个大学里面弥漫着一种处变不惊的氛围，什么事情都可以做，做了什么事情也没什么了不起。这是一个思想解放的场所，包容活跃，自由进取，这在社会上的其他地方是看不到的。
-
-毕业时，数学系很多同学决定考研。
-
-1981年暑假，沈文海没有回北京，留在学校复习，准备参加大连工学院的研究生考试。李源潮也没有回家，在校复习。他报考的是复旦大学管理科学系数量经济专业研究生。系里希望他不要考研究生，毕业后留在数学系，做分管学生工作的老师，但他没有接受。他一向对经济很感兴趣，十一届三中全会之前就和世经系的王战一起成立了社会经济体制改革研究小组，大四时常去管理系旁听。假期的校园很冷清，两人常常结伴复习。图书馆阅览室和教室大多不开放，寝室里则酷热难耐，他们常在下午去宿舍楼二楼中间的活动室复习。活动室没风时异常闷热，两人一人一把蒲扇，一手摇扇一手翻书，挥汗如雨。每隔半小时，就得去用脸盆打清水回来往地上洒。下午4点后，校园东北角的游泳池开始下午场，两人就结伴去泳池消暑。经过了艰苦复习的这个苦夏，后来让他们觉得什么都无所畏惧了似的。
-
-最终，数学系（力学专业除外）共18人读研。戴晓波考取了复旦大学管理科学系数量经济专业研究生，这一专业的5个研究生都来自数学系。吴宗敏报考了本系研究生，看到报考表格中有一项“你是否愿意成为出国预备生”，就顺手打了勾。结果，毕业分配前一个月，他得到通知，学校将选派他到国际著名的联邦德国哥廷根大学数学系留学。作为教育部和国外签订的交流项目，1982年，复旦数学系共有6名学生公派出国留学。吴宗敏和室友王向东去德国，杨平、邓波和雍烱敏去美国，毛裕新去法国。吴宗敏到上海图书馆查阅自己导师Schaback的研究方向，结果发现是自己原来不怎么喜欢的计算数学。谷超豪访问德国时，吴宗敏曾恳请他通过关系帮助换一下专业，但谷超豪认为签好协议再换导师有失尊重，吴宗敏只能接受这一现实。
-
-1982年1月底的一个下午，数学系77级全年级180余人聚集在600号楼611阶梯教室，听宣读毕业分配结果。由于此前保密工作做得很严，大部分人事先都不知道结果。教室里十分安静，老师按班级一个一个地念，大家的心都提到了嗓子眼，紧张到手心出汗。“过硬，上海市杨浦高级中学；李源潮，复旦大学管理科学系；杨荫稚，上海旅游专科学院；陈跃斌，上海社科院；陈大康，上海纺织专科学校；周舜培，少儿出版社；李刚，石油部石油勘探开发设计院；沈文海，中央气象局气象科学研究院；陈晓亮，上海电力成套设备研究所…… ” 约两小时后，名单才念完。一散会，大家就纷纷跑向距学校最近的五角场邮局，发电报向家人报信，一时间邮局已经人满为患。
-
-毕业前夕，举行了两个婚礼和一个葬礼。举行婚礼的是数学一班的两个老三届，婚礼在俱乐部举行，邀请全班同学参加，每人发一点喜糖。结婚时床不够用，就问过硬家借了一张小钢丝床，这张床至今被过硬的夫人保存在老房子里，她说“一辈子都不会丢掉”。毕业前，力学班班长、25岁左右的慈力远因癌症去世。数学二班班长奚树林、计算数学班班长姜叙伦与系学生会一起，出面筹办了慈力远的追悼会。全年级同学几乎悉数到场。慈力远的老父抑制不住悲痛，突然放声大哭。很多同学随之泪如雨下。年轻生命骤然凋谢带来的震动、告别学生时代的不舍和即将走向社会的忐忑，让沈文海的心情难以言表。一天晚饭后，他路过一栋教学楼，里面正在举行毕业生联欢会，《毕业歌》《年轻的朋友来相会》的歌声忽高忽低地飘出，他无法自持，泪流满面。  
-
-1985年，国家提出了“支持留学、鼓励回国、来去自由”的方针，一场史无前例的出国热潮席卷全国，第二年自费留学的人数就突破了10万人。在此前后，数学一班26人相继出国。从此，同学们风流云散。
-
-倏忽30年。
-
-2010年底，在河南洛阳国企担任老总的数学一班同学赵滨海发出倡议，在毕业30年之际举行同学聚会。戴晓波找到老班长过硬，联系了在上海的几位同学，筹备工作很快提上日程。同学们早已星散全球。杨荫稚利用在上海师范大学旅游学院的优势，请学生通过各种线索寻人。经过一年多的努力，全班46人，联系上了43个，34人参加。杨荫稚还主持收集了大量上学时期的老照片，扫描成电子版，装订成纪念册。这些旧照多是大家当年DIY的作品。2011年12月23日到25日，数学一班同学历史性齐聚上海。一些同学已经退休，年纪最小的也已年过半百，入校时只有17岁的蔡进一已是满头银丝。前两天的活动主要在校外举行，远在美国的赵建民和毛昭林通过大屏幕与大家远程视频，大家还向四十多岁英年早逝的王向东等同学献上哀思。第三天是重返母校的重头戏，李源潮参加。经过协商，时任复旦大学常务副校长陈晓漫、时任科技部副部长张来武等7位数学二班同学，作为外班同学代表，受邀参加了这次聚会。
-
-12月25日早晨8点多，在600号楼会议室召开的座谈会上，本来事先安排好了发言的同学和次序，结果说着说着就成了自由发言。11点，座谈会结束，大家到600号楼门前拍合影。如何站位的问题得到了巧妙的解决。毕业前夕，数学一班和老师们就在这座楼前照了一张合影，这次也按原来的站位拍摄。毕业照中的全班46位同学，这次到了34人。照片上原有6位老师——第一任班主任孙芳烈、第二任班主任王芬、教控制理论的李训经、教数学分析的何成奇、教代数拓扑的李元熹、教数学分析的陈天平，这次，除了已经去世的李训经，5位老师悉数到场。李训经的位置则由指导员杨浣明代替。中午，在学校大食堂聚餐，席开四桌。吃饭时，吴宗敏突然宣布了当天的特别节目——这一天是过硬的65周岁生日，黄超成、虞锦国、周伟良的生日也分别在前后一天。4位寿星一起吹灭了生日大蛋糕的蜡烛。过硬在蛋糕上切下第一刀，一时间百感交集，心情不可名状。最后一个节目是参观复旦，木制的老校门早已不再通行，600号楼内的611、602两个教室已不复存在。3号楼男生宿舍还是灰色墙壁的三层小楼，却已变成女生宿舍，门口的牌子上写着“男士止步”。
-
-计算数学班的大聚，在2006年毕业25周年之际就已举行。当年在寝室里念着“Yes, it is. Yes, they are.”的15岁小男孩李刚已变成富态的水产公司老板，40多岁就提前退休，姜叙伦一见面差点没认出他来。而姜叙伦自己，这个当年被公认为极有数学天赋和管理才能的老班长，在90年代初放弃十年基业，携全家赴美重新开始，如今在一家小公司做着一名普通的程序员。沈文海现在已是国家气象信息中心总工程师。333寝室7人中，独缺於崇华。2000年12月7日下午，已是复旦大学数学系常务副主任兼博士生导师的於崇华骑自行车去学校讲课，在横穿马路进校门时被一辆小客车撞倒而离世。王元生带来了寝室最后一次聚会时於崇华的录音。沈文海想听又不敢听，犹豫了很久，终究还是放弃了。那是毕业前夕的一天下午，寝室自发搞了一次茶话会。大家围坐谈天，憧憬未来。最后，於崇华冲着一部砖头式录放机喊道：“我们的口号是：十年后计算数学年会上见！” 如今，参加学术年会早已是再寻常不过的事情。甚至于，网上流传着“史上最牛班”的传说。严格地说，这份名单是复旦数学系77级、78级两个年级精英的合集。
-
-其中，哈佛大学研究生院院长孟晓犁、牛津大学数学教授陈贵强、普林斯顿大学冠名金融讲座教授范剑青、斯坦福大学数学系教授李骏 、斯坦福大学生物统计系教授陆盈、哥伦比亚大学统计系教授应志良、加州大学戴维斯分校计算机系教授柏兆俊、德意志银行原执行董事徐幼于等均出自78级。77级同学中，计算数学班的姚大卫在加拿大多伦多大学博士毕业后担任哥伦比亚大学工业工程和运筹系教授，曾在哈佛大学和耶鲁大学执教，并在香港中文大学以及清华大学兼任讲座教授。2015年，他当选美国工程院院士，这是美国工程技术领域的最高专业荣誉。数学一班的蔡进一在康奈尔大学获得计算机科学博士学位后，担任威斯康星大学麦迪逊分校计算机系教授，在理论计算机科学领域成就卓著；雍炯敏获美国普渡大学博士学位后回到复旦，成为中国最年轻的数学家之一，后来担任了复旦大学数学系主任，现在在美国佛罗里达大学任教，是国家杰出青年科学基金获得者和“长江学者”特聘教授；马进 1985年从复旦大学数学系硕士毕业，留校两年后赴美就读明尼苏达大学，1992年博士毕业后开始在普渡大学任教，自2007年起在南加州大学任教，在金融数学领域成就斐然。
-
-但更多的人选择了转行。尤其平均年龄偏大的数学二班和计算数学班，很少有人继续在专业内做学术。陈大康认为班上的陈晓漫和张来武是为数不多适合从事数学研究的人，但是陈晓漫和张来武后来都担任了行政职务。张来武从复旦数学系毕业后考取北京大学数学系研究生，后在美国纽约州立大学奥本尼分校经济系经济学专业获博士学位。1999年，他被派至宁夏回族自治区任政府主席助理，本来以为只是短暂挂职，没想到不久后西部大开发开始了，他在宁夏一干就是10年。2008年，张来武离任宁夏回族自治区政府副主席，担任了科技部副部长。陈大康自己，更成为数学系的传奇。他在上海纺织专科学校当数学老师期间，致力于用数理统计方法研究《红楼梦》的语言风格。在没有计算机的情况下，他先用一年多时间手工统计了该书中各种字、词出现频率等数据，又经过三个月的计算，推算出《红楼梦》后40回非曹雪芹所作。此后他考入华东师范大学中文系攻读博士学位，后留校从事中国古典文学的教学与研究，曾担任该校中文系主任，现在是终身教授。将数学思想、方法运用于人文科学研究，成了他的独特优势，为学界所瞩目。他的研究风格与一般文科学者不同。他常说，搞研究第一是发现问题，第二是解决问题。写论文就像证明几何题，已知和证明写清即可结束，无需任何矫饰。
-
-过硬记得，刚进大学时苏步青对他们说，你们当中应该有不少人到中学当老师，以提高中学的教学质量。没想到，日后这真的成了他的毕生事业。他认为自己不可能出数学成绩了，就专注教学，久而久之，成了上海的名牌数学教师，退休时已是中学最高级别的五级教授职衔。308寝室7人，王向东在德国研究生毕业后担任了一家软件公司的总裁，已去世。毛怀遂在老家西安创业，成了化工公司的老板。陈跃斌在上海市财政局研究所工作。李源潮和何宁卡走了从政的路。戴晓波则横跨学、官、商三道。研究生毕业后，他被分配到上海市计划经济研究所担任副所长；1991年，作为上海住房改革方案组组长，在时任市长朱镕基的领导下，主笔起草了住房制度改革和公积金方案；随后又担任上海市计委长远规划处处长，在时任市长徐匡迪领导下，编制了上海2020年城市规划和国民经济“九五”计划。他还做过风险投资公司老总。现在，他是上海社科院应用经济研究所城市与房地产研究中心主任、研究员，已完成上海2050年发展方向研究。他不爱讲过去，喜欢谈未来。
-
-只有吴宗敏一人仍然在数学界坚守。他卸任复旦大学数学系主任一职后，现在是数学学院教授、博士生导师、长江学者特聘教授。当初，他遗憾自己对于未来的规划不够清晰。现在，他会告诉学生，不必太刻意，环境日新月异，每个人都需要终身成长，重要的是，学到理念和方法。
-
-因为，只有具备独立之精神、理性之思维，才是真正的登堂入室。
-  </pre>
-</div>
-
-<p>大二时第一次在树洞读到这篇文章,后面又三番五次地读完,每次都心情久久不能平复,长叹世事无常,命途难断.我们往往难以决定自己的生活的走向,人生的走向,哪怕当初坚定不移地朝着坐标与目标之间的最短路径前进,走到重点时也可能发现与当初的规划大相径庭,因为在历史与时代的坐标下,我们所看到的所有目标都是时变的;同时,每个人生阶段的走向,又被所有经历过的人生阶段所界定,</p>
-]]></content>
-      <categories>
-        <category>随笔</category>
-      </categories>
-      <tags>
-        <tag>随笔</tag>
-        <tag>杂谈</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>建站记录</title>
-    <url>/2025/01/09/hello-world/</url>
-    <content><![CDATA[<p><div style="text-align: center;"> 
-这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
-</div><br><span id="more"></span></p>
-<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
-<ul>
-<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
-<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
-<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
-<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
-<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
-</ul>
-<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
-<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
-<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
-<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
-<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
-<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
-<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
-<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
-<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
-<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
-<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
-<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
-<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
-<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
-<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
-<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
-            <p>我为什么需要一个博客？ </p>
-          </div>  
-<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
-<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
-<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
-<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
-]]></content>
-      <categories>
-        <category>笔记</category>
-      </categories>
-      <tags>
-        <tag>建站</tag>
-        <tag>笔记</tag>
       </tags>
   </entry>
   <entry>
@@ -747,6 +374,248 @@ r_{img}=\alpha\cdot\tau_{true},\ \ \alpha=\frac{K_r^{true}}{K_r^{img}} \tag{9}</
       </tags>
   </entry>
   <entry>
+    <title>数据集分布相似度量化</title>
+    <url>/2025/12/20/code7/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+dataset similarity measure调研与简单复现
+</p><br><span id="more"></span></p>
+<h1 id="基于metafeature的距离与相似度度量"><a href="#基于metafeature的距离与相似度度量" class="headerlink" title="基于metafeature的距离与相似度度量"></a>基于metafeature的距离与相似度度量</h1><p>Feuer et al.[1]提出使用meta-learning来有效初始化Sequential Model-Based Bayesian Optimization(SMBO)过程. 所设定的前提是在待度量的数据集集合中的每个数据集$D^{(i)}$都可以用K个metafeature描述, 即 $m^i = (m^i_1, m^i_2, … \ ,m_k^i)$. 作者进而提出两种距离度量方法, 一种是直接度量metafeature集的距离作为数据集之间的距离:</p>
+<script type="math/tex; mode=display">
+D_{Fq}(D^{(i)}, D^{(j)}) = \| m^i - m^j \|_q \tag{1}</script><p>第二种度量方法通过negative Spearman correlation度量不同超参数设定的模型性能并将其作为metafeature集合, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+D_{Fc}(D^{(i)}, D^{(j)}) = 1 - \mathcal{Cor}([g^{D^{(i)}}(\theta_1), g^{D^{(i)}}(\theta_2), ... , g^{D^{(i)}}(\theta_n)],[g^{D^{(j)}}(\theta_1), g^{D^{(j)}}(\theta_2), ... , g^{D^{(j)}}(\theta_n)]) \tag{2}</script><p>上式中$g^{D^{(i)}}(\cdot)$代表含参目标函数. 当需要在多个数据集中匹配最相似的数据集时, 由于参数无法固定下来, 因此需要借助mapping function在metafeature对$(m^i, m^j)$和$D_{Fc}(D^{(i)}, D^{(j)})$之间进行回归. 常用的metafeature可以归为以下几个大类:</p>
+<ul>
+<li>用于描述或者量化数据集的简单特征</li>
+<li>PCA metafeatures</li>
+<li>数据集的熵值</li>
+<li>统计特征, 包括数据集的峰度(kurtosis)或者标签的分布宽度(dispersion of label distribution)</li>
+<li>landmarking metafeatures(通过快速的ML算法获得, 如linear separability)</li>
+</ul>
+<p>上述中的峰度kurtosis是指用于描述概率分布曲线在平均值处峰值高低以及尾部厚度的统计量, 用于衡量数据特征的离散程度和异常值的存在情况. 对应数学表达如下:</p>
+<script type="math/tex; mode=display">
+K = \frac{\mu_4}{\sigma^4} = \frac{E[X - \mu]^4}{(E[(X-\mu)^2])^2} \tag{3}</script><p>上式中X为特征变量, $\mu$是均值, $E$是期望算子, $\sigma$是标准差, $\mu_4$是4阶中心矩. </p>
+<p>标签分布宽度则描述了类别分布的平衡程度或离散程度, 可以用类别概率标准差衡量, 对应数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+\sigma_{labels} = \sqrt{\frac{1}{C}\sum_{i=1}^C(p_i - \frac{1}{C})^2} \tag{4}</script><p>上式中C是类别总数, $p_i$是第i类的样本比例. </p>
+<p>此外, 式(2)中所用的Spearman相关系数为范围在[-1,1]间的统计值, 用于度量两组排序(ranks)结果的相关强度, 该系数可以用于衡量数据和模型的契合程度, 对于n对原始分数对$(X_i, Y_i)$, 将其转换为ranks$R[X_i], R[Y_i]$, 令$R[X_i], R[Y_i] = (R_i, S_i)$, 对应的相关系数计算如下:</p>
+<script type="math/tex; mode=display">
+r_s = \rho[R[X], R[Y]] = \frac{cov[R[X], R[Y]]}{\sigma_{R[X]} \cdot \sigma_{R[Y]}} = \frac{\frac{1}{n} \sum_{i=1}^n R_i S_i - \bar{R}\bar{S}}{\sigma_{R[X]} \cdot \sigma_{R[Y]}}      \tag{5}</script><p>上式中的rank不是矩阵的秩, 给定$\{X_1, X_2, …, X_n \}$, 对其进行排序后rank的定义为$R(X_i)$为在排序序列中$X_i$的位置. 当不存在并列的情况时, 表达式可简化为:</p>
+<script type="math/tex; mode=display">
+r_s = 1 - \frac{6 \sum_{i=1}^{n}d_i^2}{n(n^2-1)}\tag{6}</script><p>以SAMPLE数据集以及光学的CIFAR10为例, 通过以下代码可以初步计算real和synth子数据集和光学CIFAR10数据集的峰度和标签分布差异.</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ImageClassificationDataset</span>(<span class="title class_ inherited__">Dataset</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, root_dir, transform=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="variable language_">self</span>.root_dir = root_dir</span><br><span class="line">        <span class="variable language_">self</span>.transform = transform</span><br><span class="line">        <span class="variable language_">self</span>.classes = <span class="built_in">sorted</span>(os.listdir(root_dir))</span><br><span class="line">        <span class="variable language_">self</span>.class_to_idx = &#123;cls: idx <span class="keyword">for</span> idx, cls <span class="keyword">in</span> <span class="built_in">enumerate</span>(<span class="variable language_">self</span>.classes)&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.samples = []</span><br><span class="line">        <span class="keyword">for</span> class_name <span class="keyword">in</span> <span class="variable language_">self</span>.classes:</span><br><span class="line">            class_dir = os.path.join(root_dir, class_name)</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> os.path.isdir(class_dir):</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            <span class="keyword">for</span> file_name <span class="keyword">in</span> os.listdir(class_dir):</span><br><span class="line">                file_path = os.path.join(class_dir, file_name)</span><br><span class="line">                <span class="variable language_">self</span>.samples.append((file_path, <span class="variable language_">self</span>.class_to_idx[class_name]))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__len__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">len</span>(<span class="variable language_">self</span>.samples)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getitem__</span>(<span class="params">self, idx</span>):</span><br><span class="line">        img_path, label = <span class="variable language_">self</span>.samples[idx]</span><br><span class="line">        image = Image.<span class="built_in">open</span>(img_path).convert(<span class="string">&#x27;RGB&#x27;</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.transform:</span><br><span class="line">            image = <span class="variable language_">self</span>.transform(image)</span><br><span class="line">            </span><br><span class="line">        <span class="keyword">return</span> image, label</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>) <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    </span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data, label_data</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">calculate_kurtosis</span>(<span class="params">tensor</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    tensor: shape [n_samples, n_features]</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    mean = torch.mean(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    std = torch.std(tensor, dim=<span class="number">0</span>)</span><br><span class="line">    </span><br><span class="line">    standardized = (tensor - mean) / (std + <span class="number">1e-8</span>)</span><br><span class="line">    fourth_moment = torch.mean(standardized ** <span class="number">4</span>, dim=<span class="number">0</span>)</span><br><span class="line">    kurtosis = fourth_moment - <span class="number">3</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> kurtosis</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_label_distribution</span>(<span class="params">labels</span>):</span><br><span class="line">    unique_labels = torch.unique(labels)</span><br><span class="line">    num_unique_labels = <span class="built_in">len</span>(unique_labels)</span><br><span class="line">    label_counts = torch.bincount(labels)</span><br><span class="line"></span><br><span class="line">    distribution_std = torch.std(label_counts.<span class="built_in">float</span>())</span><br><span class="line">    </span><br><span class="line">    probabilities = label_counts.<span class="built_in">float</span>() / torch.<span class="built_in">sum</span>(label_counts)</span><br><span class="line">    entropy = -torch.<span class="built_in">sum</span>(probabilities * torch.log(probabilities + <span class="number">1e-8</span>))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;num_unique_labels&#x27;</span>: num_unique_labels,</span><br><span class="line">        <span class="string">&#x27;label_counts&#x27;</span>: label_counts,</span><br><span class="line">        <span class="string">&#x27;distribution_std&#x27;</span>: distribution_std,</span><br><span class="line">        <span class="string">&#x27;entropy&#x27;</span>: entropy,</span><br><span class="line">        <span class="string">&#x27;probabilities&#x27;</span>: probabilities</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">analyze_dataset</span>(<span class="params">dataset_path, img_size=<span class="number">224</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    </span><br><span class="line">    pixel_data, label_data = extract_features_from_images(dataset, batch_size)  <span class="comment"># 提取特征和标签</span></span><br><span class="line">    </span><br><span class="line">    sample_indices = torch.randperm(pixel_data.shape[<span class="number">1</span>])[:<span class="number">10000</span>]  <span class="comment"># 计算峰度 (采样部分像素以减少计算量)</span></span><br><span class="line">    sampled_pixels = pixel_data[:, sample_indices]</span><br><span class="line">    kurtosis_values = calculate_kurtosis(sampled_pixels)</span><br><span class="line"></span><br><span class="line">    label_stats = analyze_label_distribution(label_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;kurtosis_mean&#x27;</span>: torch.mean(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;kurtosis_std&#x27;</span>: torch.std(kurtosis_values),</span><br><span class="line">        <span class="string">&#x27;label_distribution_std&#x27;</span>: label_stats[<span class="string">&#x27;distribution_std&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;label_entropy&#x27;</span>: label_stats[<span class="string">&#x27;entropy&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;num_classes&#x27;</span>: <span class="built_in">len</span>(dataset.classes),</span><br><span class="line">        <span class="string">&#x27;total_samples&#x27;</span>: <span class="built_in">len</span>(dataset)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    synth_dataset_path = <span class="string">&quot;./synth&quot;</span>  </span><br><span class="line">    real_dataset_path = <span class="string">&quot;./real&quot;</span>  </span><br><span class="line">    cifar10_dataset_path = <span class="string">&#x27;./cifar10&#x27;</span>  </span><br><span class="line">    synth_stats = analyze_dataset(synth_dataset_path)</span><br><span class="line">    real_stats = analyze_dataset(real_dataset_path)</span><br><span class="line">    cifar10_stats = analyze_dataset(cifar10_dataset_path)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;result&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Synth&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;Real&#x27;</span>:&lt;<span class="number">15</span>&#125;</span> <span class="subst">&#123;<span class="string">&#x27;CIFAR10&#x27;</span>:&lt;<span class="number">15</span>&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;-&quot;</span> * <span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;kurtosis_mean&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;kurtosis_mean&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_std&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_distribution_std&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;<span class="string">&#x27;label_entropy&#x27;</span>:&lt;<span class="number">20</span>&#125;</span> <span class="subst">&#123;synth_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;real_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span> <span class="subst">&#123;cifar10_stats[<span class="string">&#x27;label_entropy&#x27;</span>]:&lt;<span class="number">15.4</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>特征结果如下所示<br><figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line"><span class="section">result               Synth           Real            CIFAR10        </span></span><br><span class="line"><span class="section">-------------------------------------------------------------</span></span><br><span class="line">kurtosis<span class="emphasis">_mean        1.1260          0.9982          -0.7343        </span></span><br><span class="line"><span class="emphasis">label_std            30.2811         30.2811         0.0000</span></span><br><span class="line"><span class="emphasis">label_</span>entropy        2.2800          2.2800          2.3026</span><br></pre></td></tr></table></figure></p>
+<h1 id="Gromov-Wasserstein距离"><a href="#Gromov-Wasserstein距离" class="headerlink" title="Gromov-Wasserstein距离"></a>Gromov-Wasserstein距离</h1><p>文献[2]提出基于Gromov-Wasserstein metric来度量数据集之间的相关程度, 对应数学表达如下所示:</p>
+<script type="math/tex; mode=display">
+d_{GW}(\mathcal{X}, \mathcal{Y}) = \inf_{\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})}   \int_{\mathcal{X}^2 \times \mathcal{Y}^2} |d_{\mathcal{X}}(x, x') -d_{\mathcal{Y}}(y, y')|^q \cdot d\pi(x,y)d\pi(x',y') \tag{7}</script><p>上式实际度量了两个概率空间$\mathcal{X}$和$\mathcal{Y}$之间的距离, 其中的$\mathcal{X}$和$\mathcal{Y}$不仅包含距离结构$d_{\mathcal{X}}$, $d_{\mathcal{Y}}$, 还带有概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$. $\pi$为最优传输理论中的联合概率测度, 对应的$\Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$是所有满足边缘约束的耦合集合. 当用于度量给定的数据集$\mathcal{X}=\{x_1, …, x_n \}$和$\mathcal{Y}=\{y_1, …, y_m\}$时, 对于度量空间$(\mathcal{X}, d_{\mathcal{X}})$的定义,  $d_{\mathcal{X}}:\mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}_+$可以表示为如下形式:</p>
+<script type="math/tex; mode=display">
+d_{\mathcal{X}}(x_i, x_j) =  \| \phi(x_i) - \phi(x_j) \|_2 \tag{8}</script><p>其中的$\phi(\cdot)$为特征提取器. 对于概率测度$\mu_{\mathcal{X}}$和$\mu_{\mathcal{Y}}$, 在有限数据集上使用经验分布:</p>
+<script type="math/tex; mode=display">
+\mu_{\mathcal{X}} = \frac{1}{n}\sum_{i=1}^n \delta_{x_i}, \quad \mu_{\mathcal{Y}} = \frac{1}{m}\sum_{j=1}^m \delta_{y_j} \tag{9}</script><p>其中的$\delta$为狄拉克测度, 可以简单理解为每个$x_i$在数据集中的比例. 联合概率测度$\pi \in \Pi(\mu_{\mathcal{X}}, \mu_{\mathcal{Y}})$则表示一个软匹配关系, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+\pi_{ij} \geq 0, \quad  \sum_j \pi_{ij} = \frac{1}{n}, \quad \sum_i \pi_{ij} = \frac{1}{m} \tag{10}</script><p>GW距离并非衡量数据集中的点是否接近, 而是两个数据集的内部集合结构是否一致. 同上, 借助POT库(python optimal transport)可以实现GW的计算与可视化, 同样分别比较real-synth和real-cifar10, 代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torchvision.transforms <span class="keyword">as</span> transforms</span><br><span class="line"><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader, Dataset</span><br><span class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> scipy <span class="keyword">as</span> sp</span><br><span class="line"><span class="keyword">import</span> ot</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.decomposition <span class="keyword">import</span> PCA</span><br><span class="line"><span class="keyword">from</span> sklearn.manifold <span class="keyword">import</span> TSNE</span><br><span class="line"><span class="keyword">from</span> method1 <span class="keyword">import</span> ImageClassificationDataset <span class="comment">#同上</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_features_from_images</span>(<span class="params">dataset, batch_size=<span class="number">32</span>, num_workers=<span class="number">4</span></span>):</span><br><span class="line">    dataloader = DataLoader(dataset, batch_size=batch_size, </span><br><span class="line">                          shuffle=<span class="literal">False</span>, num_workers=num_workers)</span><br><span class="line">    all_pixels = []</span><br><span class="line">    all_labels = []</span><br><span class="line">    <span class="keyword">for</span> images, labels <span class="keyword">in</span> dataloader:</span><br><span class="line">        pixels = images.view(images.size(<span class="number">0</span>), -<span class="number">1</span>)  <span class="comment"># 将图像展平为像素值向量</span></span><br><span class="line">        all_pixels.append(pixels)</span><br><span class="line">        all_labels.append(labels)</span><br><span class="line">    pixel_data = torch.cat(all_pixels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples, n_pixels]</span></span><br><span class="line">    label_data = torch.cat(all_labels, dim=<span class="number">0</span>)  <span class="comment"># [n_samples]</span></span><br><span class="line">    <span class="keyword">return</span> pixel_data.numpy(), label_data.numpy() </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">load_dataset_features</span>(<span class="params">dataset_path, img_size=<span class="number">32</span>, batch_size=<span class="number">256</span></span>):</span><br><span class="line">    transform = transforms.Compose([</span><br><span class="line">        transforms.Resize((img_size, img_size)),</span><br><span class="line">        transforms.ToTensor(),</span><br><span class="line">    ])</span><br><span class="line">    dataset = ImageClassificationDataset(dataset_path, transform=transform)</span><br><span class="line">    features, labels = extract_features_from_images(dataset, batch_size)</span><br><span class="line">    <span class="keyword">return</span> features, labels</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">compute_and_visualize_gw_with_features</span>(<span class="params">real_path, synth_path, feature_method=<span class="string">&#x27;pixel&#x27;</span>, img_size=<span class="number">128</span></span>):</span><br><span class="line">    real_features, real_labels = load_dataset_features(real_path, img_size)</span><br><span class="line">    synth_features, synth_labels = load_dataset_features(synth_path, img_size)</span><br><span class="line">    </span><br><span class="line">    C1 = sp.spatial.distance.cdist(real_features, real_features)</span><br><span class="line">    C2 = sp.spatial.distance.cdist(synth_features, synth_features)</span><br><span class="line">    C1 /= C1.<span class="built_in">max</span>()</span><br><span class="line">    C2 /= C2.<span class="built_in">max</span>()</span><br><span class="line">    </span><br><span class="line">    n_real, n_synth = <span class="built_in">len</span>(real_features), <span class="built_in">len</span>(synth_features)</span><br><span class="line">    p = ot.unif(n_real)</span><br><span class="line">    q = ot.unif(n_synth)</span><br><span class="line">    </span><br><span class="line">    gw, log = ot.gromov.gromov_wasserstein(</span><br><span class="line">        C1, C2, p, q, <span class="string">&quot;square_loss&quot;</span>, verbose=<span class="literal">True</span>, log=<span class="literal">True</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">6</span>))</span><br><span class="line">    plt.imshow(gw, cmap=<span class="string">&#x27;Blues&#x27;</span>)</span><br><span class="line">    plt.title(<span class="string">f&#x27;GW Transport Matrix (<span class="subst">&#123;feature_method&#125;</span>)\nGW Distance: <span class="subst">&#123;log[<span class="string">&quot;gw_dist&quot;</span>]:<span class="number">.6</span>f&#125;</span>&#x27;</span>)</span><br><span class="line">    plt.colorbar()</span><br><span class="line">    plt.show()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&#x27;distance&#x27;</span>: log[<span class="string">&quot;gw_dist&quot;</span>],</span><br><span class="line">        <span class="string">&#x27;transport_plan&#x27;</span>: gw,</span><br><span class="line">        <span class="string">&#x27;real_features&#x27;</span>: real_features,</span><br><span class="line">        <span class="string">&#x27;synth_features&#x27;</span>: synth_features</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    results = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./synth&quot;</span>)</span><br><span class="line">    results2 = compute_and_visualize_gw_with_features(<span class="string">&quot;./real&quot;</span>, <span class="string">&quot;./cifar10&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;Gromov-Wasserstein Distance Results:&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;=&quot;</span>*<span class="number">50</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;GW distance: <span class="subst">&#123;results2[<span class="string">&#x27;distance&#x27;</span>]:<span class="number">.6</span>f&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<p>在分析实验结果之前, 首先对图像统计特征进行可视化. 将特征提取器设定为对图形简单一维展平, 获取特征集合的特征值分布图像和不同维度的方差分布, 结果从上至下分别为real-synth和real-cifar10, 下同. 对应可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_1_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着, 使用PCA对图像进行降维可视化, 分别按数据集和按类别进行着色区分, 可视化结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_2_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>最终, 用t-SNE对展平的一维特征进行可视化处理, 对应结果如下所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_3_cifar.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>接着使用GW距离进行数据集相似度统计, 首先可以对代价矩阵(即由$d_{\mathcal{X}}$或$d_{\mathcal{Y}}$构成的元数据点两两之间距离匹配矩阵)进行可视化, 对应结果如下:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4.png" alt="Figure_1" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/Figure_4_cifar10.png" alt="Figure_1_cifar" style="display: block; margin: 0 auto; width: 700px; height: auto;">
+</figure>
+
+<p>运行算法可得, 最终不同数据集对之间的GW距离结果如下:</p>
+<figure class="highlight asciidoc"><table><tr><td class="code"><pre><span class="line">==================================================</span><br><span class="line">Gromov-Wasserstein Distance Results:</span><br><span class="line">==================================================</span><br><span class="line">GW distance: 0.003756</span><br><span class="line">GW distance: 0.011917</span><br></pre></td></tr></table></figure>
+<h1 id="Deep-Dataset-Dissimliarity-Measures-DeDiMs"><a href="#Deep-Dataset-Dissimliarity-Measures-DeDiMs" class="headerlink" title="Deep Dataset Dissimliarity Measures(DeDiMs)"></a>Deep Dataset Dissimliarity Measures(DeDiMs)</h1><p>文献[3]提出了一种融合数据和标签分布以及半监督深度学习的数据分布匹配评估方法, 主要通过设计4个特殊的距离函数实现, 给定两个数据集$D^a$和$D^b$, 对应步骤如下:</p>
+<ol>
+<li>对数据集进行随机采样, 在系数$\tau$的约束下获得两个对应的子集, 称为$D^{a,\tau}$和$D^{b,\tau}$</li>
+<li>通过特征提取器(feature extractor)获得子数据集对应的特征向量集$H^{a,\tau}$和$H^{b,\tau}$</li>
+</ol>
+<p>完成上述两个步骤后, 首先需要计算 Minkowski-based distance set, 对应的过程如下:</p>
+<ol>
+<li>选取Manhattan距离或欧式距离(q-norm取1或2)计算距离$d_i=min_k |h_i - h_k |_q$, $h_i$为从$H^{a, \tau}$中采集C个样本构成, $h_k$是$H^{b, \tau}$中与之最接近的向量, 通过该步骤获取一个距离列表$d_{l_q}(D^a,D^b, \tau, C) = \{ \hat{d_1}, …,\hat{d_C}\}$</li>
+<li>类似步骤1, 计算$D^a$的组内距离, 获得参考距离列表(reference distance list)$d_{l_q}(D^a,D^a, \tau, C) = \{ \check{d_1}, …,\check{d_C}\}$</li>
+<li>计算上述两个距离列表的差值绝对值, 同时计算各个距离列表与自身均值的离散分布以及Wilcoxon test的p-value</li>
+</ol>
+<p>上述方法可以视为基于比较密度方程(comparing density function)的数据集相似度评估算法, 计算过程同时评估的数据集内和不同数据集之间的距离差异, 可以更好地反映数据集之间的分布差异并提升半监督深度学习(semi-supervised deep learning ,SSDL)的性能.</p>
+<p>此外, 上述的Minkowski distance, 也被称为Minkowski metric, 是一种正则化向量空间, 可以视为曼哈顿距离和欧式距离的推广. 对于两个向量集合$X = (x_1, x_2, …, x_n)$和$Y = (y_1, y_2, …, y_n)$, 对应计算公式如下:</p>
+<script type="math/tex; mode=display">
+D(X,Y)=(\sum_{i=1}^n |x_i - y_i|^{p})^{\frac{1}{p}} \tag{11}</script><p>该距离的设计启发来自Minkowski不等式, 通常p被设定为1或2, 分别对应曼哈顿距离和欧式距离. 闵氏距离可以理解为两个向量集合之间的能量平均. 对于Wilcoxson test, 有两种常见的检验定义, 分别为Wilcoxon Signed-Rank Test(符号秩检验)和Wilcoxon Rank-Sum Test(秩和检验), 前者基于成对样本, 后者则适用于独立样本, 没有一一对应关系. 此处采用的是Wilcoxon符号检验.  </p>
+<p>Wilcoxon符号秩检验是一种非参数假设检验方法, 用于比较两个配对样本是否有显著差异. 这里的秩是指数据绝对值大小所带来的排名. 对于两组距离列表, 首先计算每对数据的差值$D_i = x_i - y_i$, 当$D_i = 0$时会将该数据从分析中提出并对样本总数-1; 接着计算绝对值的秩, 对所有非零差值绝对值进行排序并从小至大赋予秩次$R_i$.</p>
+<script type="math/tex; mode=display">
+R_i = Rank(|D_i|) \tag{12}</script><p>此外需要定义相应的符号函数$sgn(\cdot)$以规定差值的方向, 对应表达形式如下:</p>
+<script type="math/tex; mode=display">
+sgn(D_i) = 
+
+\begin{cases}
++1 \quad if D_i > 0 \\
+-1 \quad if D_i < 0
+\end{cases}
+\tag{13}</script><p>最终将符号秩总和作为检验结果:</p>
+<script type="math/tex; mode=display">
+W_{sum} = \sum_{i=1}^n sgn(D_i)\cdot R_i \tag{14}</script><p>对于上述假设检验或其他任意假设检验, 还可以用p值刻画分布的内涵. 其统一的定义为:</p>
+<script type="math/tex; mode=display">
+p = \mathbb{P}_{H_0}(T(X) \sim T(x_{obs})) \tag{15}</script><p>其中X为随机样本, $x_{obs}$为观测样本, $T(\cdot)$为检验统计量, $\mathbb{P}_{H_0}$为在原假设$H_0$成立条件下的概率. 对于Wilcoxon检验, 原假设为差值的中值为0, 即数据分布呈现中心对称.</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1]: Initializing Bayesian Hyperparameter Optimization via Meta-Learning, AAAI</p>
+<p>[2]: Modern approaches to discrete curvature, Book</p>
+<p>[3]: Dataset Similarity to Assess Semisupervised Learning Under Distribution Mismatch Between the Labeled and Unlabeled Datasets, IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>review</tag>
+        <tag>代码复现</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>局域网多设备协同与文件迁移</title>
+    <url>/2025/09/30/code5/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+如何优雅地在一个物理桌面空间中使用两台(win)电脑.
+</p><br><span id="more"></span></p>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>新学期开学后老师为我配备了新的主机(花了8k大洋买了i7-14700 + 3050 8G + &lt;500w整机电源的主机…), 然而我的重要的学习资料, 工作软件和代码文件等都已经高度依赖本科时期的笔记本, 且自己是严重的多屏用户, 工位桌面往往需要3块(及以上)的屏幕. 有了新主机后为了更优雅地使用两台独立的win电脑, 同时尽可能的便利文件备份与屏幕协同, 我探索了下面的各类方案, 且在使用体验上目前来看还算不错, 故与诸君分享之.</p>
+<h1 id="配置与布局"><a href="#配置与布局" class="headerlink" title="配置与布局"></a>配置与布局</h1><p>两台电脑均为win系统, 通过一个路由器的两根网线组成LAN的局域网连接, 在物理布局上为主机配置一个单独显示器, 桌面中间放置多hdmi通道的显示器, 和笔记本和主机各连接一个hdmi信道, 左侧放置笔记本, 最终的桌面布局如下.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/5e3f241a6880a876040a6b1b04915f00.jpg" alt="5e3f241a6880a876040a6b1b04915f00"></p>
+<h1 id="Act-as-One"><a href="#Act-as-One" class="headerlink" title="Act as One"></a>Act as One</h1><p>在部分场景下我还是会希望将笔记本作为唯一的主机并使另外两个屏幕作为拓展屏使用. 对于中间的屏幕, 只需要调整hdmi的通道; 如果想拓展连接到另一个主机的屏幕, 只需要借助ToDesk软件即可(这个软件在多设备协同方面真的非常完善). 将另一台设备加入到本地的ToDesk设备列表后, 使用基础连接中的拓展屏功能即可, 另一台屏幕就会作为通过网络连接进行映射的副屏, 在校园网环境下的延迟很低, 基本可以实现流畅使用. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930110818.png" alt="20250930110818"></p>
+<h1 id="Make-Two-Act-as-One"><a href="#Make-Two-Act-as-One" class="headerlink" title="Make Two Act as One"></a>Make Two Act as One</h1><p>也有部分场景, 我希望两台电脑都保持开机并同时使用两个系统, 在同一个物理桌面中实现的关键在于两点: 1. 使用同一套键鼠在近乎无延迟的情况下操作两台电脑, 同时可以共享复制板; 2. 两台电脑的文件可以互相自由的访问, 实现局域网下的文件共同管理和操作. 幸运的是, 针对以上两个问题都有成熟且便捷的解决方案. </p>
+<h2 id="一套键鼠-多个设备"><a href="#一套键鼠-多个设备" class="headerlink" title="一套键鼠, 多个设备"></a>一套键鼠, 多个设备</h2><p>微软针对上述场景开发了名为<a href="https://www.microsoft.com/en-us/download/details.aspx?id=35460">无界鼠标</a>(Mouse without Borders)的成熟软件, 在两个设备上同时下载后进行简单配置即可实现同一套键鼠的跨屏操作. 下载完成后首先会出现选择当前设备为主设备或从设备的选项界面(实测后续connect成功后可以流畅双向控制), 界面如下所示:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115522.png" alt="20250930115522"></p>
+<p>如果选择yes作为主设备, 会跳出填写界面用于写入从设备的信息; 选择no后则会自动显示对应信息. 输入完成后跳转出如下界面, 简要介绍了mwb软件的功能:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930115802.png" alt="20250930115802"></p>
+<p>连接完成后会出下如下界面, 可以进一步通过拖拽来映射屏幕间的排序关系并管理其他高级功能.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930120003.png" alt="20250930120003"></p>
+<h2 id="局域网下的文件共享"><a href="#局域网下的文件共享" class="headerlink" title="局域网下的文件共享"></a>局域网下的文件共享</h2><p>首先是文件的访问与共享, 在局域网环境下通过win的网络磁盘映射即可轻松实现. 首先找到例如桌面的目标文件夹, 右键文件夹-&gt;属性-&gt;共享, 由于局域网中可能有其他同学的多台设备, 出于安全考虑, 将<code>同时共享的用户数量</code>限制为1台, 设置权限为读取. 此外还需要在shell中通过<code>ipconfig</code>命令查找当前设备的ipv4地址用于另一台设备的连接. 在另一台设备中使用<code>win + R</code>调出运行框, 输入<code>\\IP</code>来打开对应设备文件夹, 其中的ip即为上述的ipv4地址. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930125858.png" alt="20250930125858"></p>
+<p>完成以上操作后即可成功打开相应的文件夹并进行文件的跨设备管理. 此外, win11还提供了通过网络凭证进行局域网文件共享的方法, 在文件管理器的网络栏中选择目标设备(在初始化win电脑时建议起个名字, 会比默认编号更方便查找), 系统会提示输入网络凭证. 需要注意的是, 这里的凭证一般指本地凭证, 而非登入时所用的微软账号. 如果还没有创建本地凭证, 需要以管理员的方式打开cmd(在搜索栏中搜索cmd, 并选择管理员身份打开), 通过以下命令即可快速创建本机的网络凭证的用户名和密码, 其中的<code>xxxx</code>为设定的用户名, <code>yyyyyy</code>为对应密码. 连接成功后可以打开的仍仅为上述设置已共享的文件夹.</p>
+<figure class="highlight cmd"><table><tr><td class="code"><pre><span class="line"><span class="built_in">net</span> user xxxx yyyyyy /add</span><br></pre></td></tr></table></figure>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930133344.png" alt="20250930133344"></p>
+<h2 id="局域网下的文件同步"><a href="#局域网下的文件同步" class="headerlink" title="局域网下的文件同步"></a>局域网下的文件同步</h2><p>在完成文件共享后, 对于部分常用文件夹(如paper, blog等), 仍然希望可以自动化地进行同步. 这里微软也给出了成熟优雅的软件解决方案(win means WIN!). 使用<code>SyncToy</code>软件可以快速实现局域网下的文件夹同步, 虽然微软已不再提供官方下载渠道(且该软件已超10年没有更新, 可见其功能之完备), 但互联网上有许多下载资源. 需要注意的是该软件依赖<code>.NET3.5</code>框架, win11系统可能需要单独设置打开: 首先打开<code>控制面板</code>, 选择<code>程序</code>中的<code>启用或关闭Windows功能</code>, 最后勾选.NET3.5即可. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140150.png" alt="20250930140150"></p>
+<p>在两台设备上的SyncToy均下载完成后, 启动软件并将本地文件夹和通过网络进行定位的目标文件夹创建为新的文件夹对(Folder Pair), 点击<code>Run</code>后就会自动进行配对和同步. 此外软件提供了三种文件同步的模式, 分别为镜像同步(即双向完全同步), 单向同步和增量同步(不进行删除操作), 一般选择镜像同步即可.  </p>
+<p> <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930140921.png" alt="20250930140921"></p>
+<p>至此, 文件夹的同步仍需要每次手动运行SyncToy软件, 如需更加自动化的设置, 则需要借助win系统提供的<code>任务计划程序</code>. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141521.png" alt="20250930141521"></p>
+<p>打开后创建基本任务, 触发器设定为<code>每天</code>. </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141643.png" alt="20250930141643"></p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930141654.png" alt="20250930141654"></p>
+<p>设定<code>操作</code>为<code>启动程序</code>, 并加入SyncToy的exe可执行文件路径, 并在<code>添加参数</code>项中加入<code>-R</code>(会同步所有的Folder Pair), 至此即完成了自动化的设备文件夹同步.</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20250930143314.png" alt="20250930143314"></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>经过上述的折腾, 笔者目前已经是可以流畅地同时使用两台设备了, 看起来后期的操作便利性值得前期的时间投入成本. </p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>建站记录</title>
+    <url>/2025/01/09/hello-world/</url>
+    <content><![CDATA[<p><div style="text-align: center;"> 
+这里简要记录我如何使用<a href="https://hexo.io/">Hexo</a>开源框架和<a href="https://github.com/next-theme/hexo-theme-next">NexT</a>主题结合<a href="https://pages.github.com/">Github Pages</a>搭建了第一个个人博客
+</div><br><span id="more"></span></p>
+<h2 id="他山之石"><a href="#他山之石" class="headerlink" title="他山之石"></a>他山之石</h2><p>Hexo和Next都是相当成熟的博客模板并对中文有较好的支持，此外中文互联网上也有大量且详细的博客搭建指导贴。在这里就不再赘述从0到1的博客搭建与部署细节，而是列出对自己帮助较大，且更新日期较新的建站说明。    </p>
+<ul>
+<li><a href="https://blog.csdn.net/jj6666djdbbd/article/details/129321783">CSDN建站贴</a>，细致清晰！  </li>
+<li><a href="https://hexo-next.readthedocs.io/zh-cn/latest/hexo/base/%E5%88%9D%E8%AF%86Hexo/">Hexo-Next中文文档</a>，不确定是否为官方文档，但涵盖了大部分内容的说明。</li>
+<li><a href="https://zxblog.eu.org/posts/5a75/">高级说明</a>，Next博客博主的建站记录贴，记录了更多的高阶优化内容。  </li>
+<li><a href="https://michaelxoxo.github.io/2019/05/19/hexo-blog-full-note/">博客说明</a>，另一位博主的hexo-next建站记录贴，额外给出了许多hexo博客写作技巧。</li>
+<li><a href="https://hexo.io/docs/configuration.html">Hexo</a>与<a href="https://theme-next.js.org/docs/getting-started/">NexT</a>官方文档，最权威的建站参考资料。</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><p>在上述帖子的基础上博客搭建的大部分过程都非常顺利，但仍然有一些相对麻烦的部分，在此进行单独记录。  </p>
+<h3 id="npm换源"><a href="#npm换源" class="headerlink" title="npm换源"></a>npm换源</h3><p>我在使用npm下载hexo时及时挂了梯子依然会很慢很卡，在换了对应的镜像源后丝滑解决问题！powershell换源脚本如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#查询当前使用的下载源</span></span><br><span class="line">npm get registry  </span><br><span class="line"><span class="comment">#更换为淘宝源  </span></span><br><span class="line">npm config <span class="built_in">set</span> registry https://registry.npmmirror.com/</span><br></pre></td></tr></table></figure>
+<h3 id="NexT主题下载与命名"><a href="#NexT主题下载与命名" class="headerlink" title="NexT主题下载与命名"></a>NexT主题下载与命名</h3><p>通过<code>git clone</code>下载相应仓库代码后，仓库名称为<code>hexo-theme-next</code>，设置hexo的config中的theme项为next后无法正确显示主题，这种情况下需要将该文件夹重命名为<code>next</code>，更改之后就可以正常调用NexT主题了。</p>
+<h3 id="GitHub-Pages部署过程中的username设置问题"><a href="#GitHub-Pages部署过程中的username设置问题" class="headerlink" title="GitHub Pages部署过程中的username设置问题"></a>GitHub Pages部署过程中的username设置问题</h3><p>我原本GitHub的username为<code>YM-ZHANG-Adv</code>，在以此为基础进行GitHub Pages部署的结果就是创建的仓库为<code>YM-ZHANG-Adv.github.io</code>，而实际浏览器读取的地址为<code>ym-zhang-adv.github.io</code>，虽然这个问题可能有解决的办法，但我还是不想再多花时间解决这个问题，而且自己的第一个username确实蠢得离谱。后续就用了一个自己在其他平台用了好久的username<code>Boremycin</code>来当作GitHub的username，一通改名之后顺利完成了博客网站部署。  </p>
+<p>另外，改username是一件非常需要谨慎考虑的事情，很多依赖github username但容易被遗忘的链接都需要重写，例如我作为图床的PicGO。  </p>
+<h3 id="Markdown中的Latex渲染"><a href="#Markdown中的Latex渲染" class="headerlink" title="Markdown中的Latex渲染"></a>Markdown中的Latex渲染</h3><p>Hexo的原生Latex数学公式渲染器并不友好，与常用的md数学语言相比差距较大，因此需要重新设置相应的渲染器和部署文件。以下内容基本按照<a href="https://readmengk90.github.io/2024/12/15/Hexo+Next%E7%9A%84Typora%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F%E6%98%BE%E7%A4%BA%E9%97%AE%E9%A2%98/">该博客贴</a>进行优化。  </p>
+<p>首先，Hexo默认使用”hexo-renderer-marked”引擎渲染网页，该引擎会把一些特殊的markdown符号转换为相应的html标签，比如在markdown语法中，下划线 <code>_</code> 代表斜体，会被渲染引擎处理为<code>&lt;em&gt;</code>标签。因为类Latex格式书写的数学公式下划线 <code>_</code> 表示下标，有特殊的含义，如果被强制转换为<code>&lt;em&gt;</code>标签，那么MathJax引擎在渲染数学公式的时候就会出错。例如$x_i$在开始被渲染的时候，处理为 $x<em>i</em>$，这样MathJax引擎就认为该公式有语法错误，因为不会渲染。类似的语义冲突的符号还包括 <code>*</code>, <code>&#123;</code>, <code>&#125;</code>, <code>\</code>等。  </p>
+<p>通过更换markdown中的latex渲染引擎可以轻易地解决该问题，这次采用hexo-renderer-kramed引擎。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-renderer-marked --save <span class="comment">#卸载原引擎，否侧可能会出现错误</span></span><br><span class="line">npm install hexo-renderer-kramed --save</span><br></pre></td></tr></table></figure>
+<p>但hexo-renderer-kramed引擎也存在行内冲突的问题，因此需要对相应的js文件做进一步修改，目标文件的路径为<code>blog/node_modules\kramed\lib\rules\inline.js</code>，更改其中的部分代码。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="comment">//  escape: /^\\([\\`*&#123;&#125;\[\]()#$+\-.!_&gt;])/,</span></span><br><span class="line">  <span class="attr">escape</span>: <span class="regexp">/^\\([`*\[\]()#$+\-.!_&gt;])/</span></span><br><span class="line"><span class="comment">//  em: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,</span></span><br><span class="line">  <span class="attr">em</span>: <span class="regexp">/^\*((?:\*\*|[\s\S])+?)\*(?!\*)/</span></span><br></pre></td></tr></table></figure>
+<p>最后，在主题中开启mathjex开关，进入到<code>theme/next/_config.yml</code>，将mathjax项的默认false改为true即可。  </p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">MathJax</span></span><br><span class="line">mathjax:</span><br><span class="line">    enable: true</span><br><span class="line">    per_page: true</span><br></pre></td></tr></table></figure>
+<p>完成上述配置后，需要在post的md文件开头手动选择是否开启该文章的latex渲染。鉴于可能会需要写较多的数学公式，因此希望每个文章都默认渲染，将上述yml配置文件中math选项的per_page改为true即可实现，源代码中也给出了相应的注释说明。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">math:</span><br><span class="line">    # Default (true) will load mathjax / katex script on demand.</span><br><span class="line">    # That is it only render those page which has `mathjax: true` in Front-matter.</span><br><span class="line">    # If you set it to false, it will load mathjax / katex srcipt EVERY PAGE.</span><br><span class="line">    per_page: false</span><br></pre></td></tr></table></figure>
+<h3 id="实现文章置顶"><a href="#实现文章置顶" class="headerlink" title="实现文章置顶"></a>实现文章置顶</h3><p>原始的主题模板提供了<code>sticky</code>的置顶功能，但再三摸索后仍没有成功实现，因此选择改动模板实现文章置顶功能。  </p>
+<p>首先，需要更改hexo的generate插件，卸载原有的index插件并安装新插件，脚本如下：  </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">npm uninstall hexo-generator-index --save</span><br><span class="line">npm install hexo-generator-index-pin-top --save</span><br></pre></td></tr></table></figure>
+<p>接着，修改<code>blog/node_modules/hexo-generator-index/lib/generator.js</code>中的内容，可直接复制替换的完整代码如下：  </p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="meta">&#x27;use strict&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pagination = <span class="built_in">require</span>(<span class="string">&#x27;hexo-pagination&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">function</span>(<span class="params">locals</span>) &#123;</span><br><span class="line">  <span class="keyword">var</span> config = <span class="variable language_">this</span>.<span class="property">config</span>;</span><br><span class="line">  <span class="keyword">var</span> posts = locals.<span class="property">posts</span>.<span class="title function_">sort</span>(config.<span class="property">index_generator</span>.<span class="property">order_by</span>);</span><br><span class="line"></span><br><span class="line">  posts.<span class="property">data</span> = posts.<span class="property">data</span>.<span class="title function_">sort</span>(<span class="keyword">function</span>(<span class="params">a, b</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(a.<span class="property">top</span> == b.<span class="property">top</span>) <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">          <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">top</span> - a.<span class="property">top</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(a.<span class="property">top</span> &amp;&amp; !b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span>(!a.<span class="property">top</span> &amp;&amp; b.<span class="property">top</span>) &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">return</span> b.<span class="property">date</span> - a.<span class="property">date</span>;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> paginationDir = config.<span class="property">pagination_dir</span> || <span class="string">&#x27;page&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">pagination</span>(<span class="string">&#x27;&#x27;</span>, posts, &#123;</span><br><span class="line">    <span class="attr">perPage</span>: config.<span class="property">index_generator</span>.<span class="property">per_page</span>,</span><br><span class="line">    <span class="attr">layout</span>: [<span class="string">&#x27;index&#x27;</span>, <span class="string">&#x27;archive&#x27;</span>],</span><br><span class="line">    <span class="attr">format</span>: paginationDir + <span class="string">&#x27;/%d/&#x27;</span>,</span><br><span class="line">    <span class="attr">data</span>: &#123;</span><br><span class="line">      <span class="attr">__index</span>: <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>然后，需要在主题模板中添加置顶标志，修改<code>/blog/themes/next/layout/_macro/post.swig</code>文件，在<code>&lt;div class=&quot;post-meta&quot;&gt;</code>标签下插入如下代码：  </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/f4bb7b9b0d5953981c43dd5704cb22a7" alt="f4bb7b9b0d5953981c43dd5704cb22a7"></p>
+<p>完成上述步骤后，只需在每篇文章的Front-matter中加入<code>top: true</code>或<code>top: x</code>，即可实现文章的置顶。  </p>
+<h2 id="回顾与总结"><a href="#回顾与总结" class="headerlink" title="回顾与总结"></a>回顾与总结</h2><div class="note [default] [icon]">
+            <p>我为什么需要一个博客？ </p>
+          </div>  
+<p>这个博客可能是本应一年前就该完成的工作，当时还是大三的自己已经收藏了不知道多少个大佬的博客，也懵懵懂懂写了一些代码，自以为可以像完成课程PJ一样完成这么一个项目，但一开始就踏入了<code>Django</code>的无底洞，几乎是从零开始手搓前端，这显然不是我希望的结果，于是只能将其搁置。过了大三大四两学期整整一年，才想起来自己还曾经有这么个念想，于是在寒假马不停蹄地把这个博客搭了起来（当然绝大部分是依赖现有的成熟模板）。可能这就是<em>念念不忘，必有回响</em> 吧。  </p>
+<p>此外，我也希望通过这个博客改改自己好高骛远，眼高手低的毛病，后面读了什么论文或者跑了什么代码和算法，都会在这个博客上留下记录，而不是在脑子里过一遍了事，这个博客既是一个公开的笔记，也是一种督促。  </p>
+<p>再从功利的角度出发，有一个不断更新的技术博客本身就是互联网求职的加分项，加分权重依照博客维护者的年龄或者学历层次逐渐递减。抛开内容不谈，一个完成度高的高中生博客给人的印象深刻程度一定是远远大于一个博士研究生的博客的，所以希望抓住自己本科的尾巴，把自己的博客搭起来，这样就可以在简历里大肆宣扬<del>本科阶段建立个人博客并不断维护</del>。    </p>
+<p>最后如果真的要回答搭建博客到底对自己的学习，对当下的任务有什么促进的话，那显然是没有的。不过自己还是本科，这就是所有的<strong>自由而无用</strong>的事情发生的充分理由。</p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>建站</tag>
+        <tag>笔记</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PyTorch多卡训练初探</title>
+    <url>/2025/11/24/code6/</url>
+    <content><![CDATA[<p><p style="text-align: center;">
+在自己当前的分类模型集成框架里加入了多卡训练, 借此梳理相关的概念. 
+</p><br><span id="more"></span></p>
+<p>PyTorch DDP(Distributed Data Parallel)包括了三个核心概念, 分别为<code>rank</code>, <code>local_rank</code>和<code>node_rank</code>. </p>
+<ul>
+<li>rank: 即Gobal Rank, 为物理GPU的编号</li>
+<li>local_rank: 当前节点的进程编号. 每个节点GPU都从0开始编号</li>
+<li>node_rank: 当前节点的编号, 在多节点训练时使用</li>
+</ul>
+<p>需要注意的是, <code>local_rank</code>是<code>torchrun</code>自动传入的环境变量, 可以通过以下方式获取:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">local_rank = <span class="built_in">int</span>(os.environ.get(<span class="string">&#x27;LOCAL_RANK&#x27;</span>, <span class="number">0</span>))</span><br></pre></td></tr></table></figure>
+<p>此外pytorch的DDP中还有一些需要初始化的参数, 包括<code>world_size</code>, 为全局进程总数, 是所有节点上所有GPU进程的总数量; <code>nproc_per_node</code>是单节点进程数, 表示单个物理机上启动的训练进程的数量, <code>master_addr</code>是主节点IP地址, 用于初始化分布式进程组的rank=0进程所在机器的IP地址; <code>master_port</code>为主节点端口号, 用于初始化分布式进程组的协调进程所监听的TCP端口号, 与<code>master_addr</code>共同指定了协调服务的位置; <code>backend</code>为通信后端, 用于指定进程间通信所用协议, 常用nccl来进行GPU之间的高速通信. </p>
+<p>结合<code>torchrun</code>启动分布式训练的命令行如下:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">CUDA_VISIBLE_DEVICES=1,2 torchrun --nproc_per_node=2 train.py</span><br></pre></td></tr></table></figure>
+<p>启动后首先需要对模型进行DDP场景下的加载, 对应代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 启用 SyncBatchNorm</span></span><br><span class="line">    model = nn.SyncBatchNorm.convert_sync_batchnorm(model) </span><br><span class="line">    model = model.to(config.device) </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 使用 DistributedDataParallel 封装模型</span></span><br><span class="line">    model = nn.parallel.DistributedDataParallel(</span><br><span class="line">        model,</span><br><span class="line">        device_ids=[<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>])],</span><br><span class="line">        output_device=<span class="built_in">int</span>(config.device.split(<span class="string">&quot;:&quot;</span>)[<span class="number">1</span>]) </span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
+<p>以上代码中的<code>nn.SyncBatchNorm.convert_sync_batchnorm(model)</code>的核心作用是跨所有GPU聚合批次的统计信息, 用于共享GPU之间不同数据的计算结果. <code>nn.parallel.DistributedDataParallel(...)</code>在每个进程/GPU 上拥有一个完整的模型副本, 独立进行前向和反向传播. 在反向传播完成后, 它会自动协调(使用 All-Reduce 操作)所有副本的梯度, 并同步更新模型参数, 确保所有 GPU 上的模型保持一致. </p>
+<p>此外, 在进行分布式训练时需要对数据的加载进行对应处理, 使不同GPU读取到不同的训练或测试数据, 对应的代码实现如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) <span class="comment"># 创建分布式数据采样器</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    train_sampler = <span class="literal">None</span> </span><br><span class="line"><span class="comment"># train_loader = DataLoader(train_dataset, sampler=train_sampler, ...)</span></span><br></pre></td></tr></table></figure>
+<p>以上代码中的<code>torch.utils.data.distributed.DistributedSampler</code>为分布式采样器, 根据当前的rank和world_size自动将整个数据集逻辑地分割成world_size个不重叠的子集, 从而保证每个GPU在每个epoch中都能获取唯一且互不重叠的数据批次. </p>
+<p>在训练进行中, 同样需要对数据采集器进行必要的同步操作, 对应代码如下:</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> config.train.distributed:</span><br><span class="line">    <span class="comment"># 在每个 epoch 开始时调用</span></span><br><span class="line">    train_loader.sampler.set_epoch(epoch)</span><br></pre></td></tr></table></figure>
+<p>以上代码中的epoch为当前轮次的编号, 该函数的核心功能是重新打乱数据, 确保每个epoch的数据划分都是随机且均匀的.</p>
+<p>对于模型的运行与训练结果保存, 在模型训练层面, DDP模式下训练循环和单卡类似, 在梯度反向传播中DDP机制会自动在所有进程之间同步梯度, 无需额外干预和对代码的修改. 对于训练权重的保存, DDP模式只在rank=0的进程上执行保存操作. </p>
+<p>通过以上操作即可实现多卡的模型训练与保存. </p>
+]]></content>
+      <categories>
+        <category>笔记</category>
+      </categories>
+      <tags>
+        <tag>工程开发</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记：SAR Conditional Random Field Attack</title>
     <url>/2025/08/11/paper-CRF/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -849,6 +718,137 @@ E(Y|X) = \sum_{i \in V} \phi_i(y_i,X) + \gamma \sum_{i \in V , \ j \in N_i} \phi
       </tags>
   </entry>
   <entry>
+    <title>再站在新世界的门前</title>
+    <url>/2025/08/16/essay1/</url>
+    <content><![CDATA[<p><p style="text-align: center;">研一正式开始前的一些胡思乱想</p><br><span id="more"></span></p>
+<h1 id="站在新世界的门前"><a href="#站在新世界的门前" class="headerlink" title="站在新世界的门前"></a>站在新世界的门前</h1><p>这是由宋春丹发表在中国新闻周刊的新闻报道, 回顾了复旦77级数学系同学的青年时期的复旦生活和多年以后的人生轨迹. 现将全文摘录, 如下:</p>
+<div class="note default" style="max-height:500px; overflow:auto;">
+  <pre style="white-space: pre-wrap;">
+1978年3月第一个星期六的下午，复旦数学系180多位新生坐在600号教学楼的阶梯大教室里，聆听校长、著名数学家苏步青的开学讲话.  
+
+这是10年来，首次有人通过高考走进大学校门。“你们要把自己小看10年。但是数学上要出成绩，必须在30岁之前。”苏校长说。数学一班的过硬一听不妙。他是1966届高中生，开学时已年满31周岁。全班年纪最大的他是班上三个“老三届”之一，另外两个是29岁的金山和27岁的李源潮。主持开学典礼的数学系副系主任胡立鹏的讲话更不客气。他说，我们的任务就是通过四年的学习，把你们带到数学的大门口。你们自己看看进得去吧？进得去就进去，进不去看着转行。又说：“你们这一届中，只要有一个人进去，我就心满意足了！其他人都是陪读的，当然陪读也有好处，能够经历数学思维的训练，以后改行随便做什么都可以做得很出色。” 数学二班的陈大康听后不以为然，心想：“进得去吧？”而今，他成了华东师范大学中文系教授。李源潮则在多年后有感而发：“你本来想走进这个房间，结果却走进了另一个房间。” 
+
+1978年2月28日，是复旦新生三天报到日的第一天。
+
+吴宗敏记得，这天是个阳光明媚的好天气。他本已定好第二天来报到，但按捺不住心痒，第一天就来寝室踩点。他被分到3号楼的223号寝室。寝室向阳，约15平方米，四张上下铺木床，中间是一张长条桌。他到时，已有同学将右侧靠窗的下铺收拾妥当。彼此做了自我介绍，他在左侧靠窗下铺贴上了写有自己名字的纸条，占了一个位置就离开了。第二天，上海市无线电八厂副厂长亲自带队，保卫处处长开着大卡车，工会主席带着十来个工人随行，一路敲锣打鼓把胸戴大红花的吴宗敏送到了学校。他1975年中学毕业后分配到该厂，这次高考，这家100多人的工厂中有包括他在内的4名工人被录取。卡车停在复旦大学3号男生宿舍楼前，工人们拿着他的行李——其实也只有一个小包，簇拥着他上了二楼，七手八脚帮着整理好行李，铺好床铺。
+
+22岁的张来武从安徽铜陵来到数学二班报到。他已经想不起来寝室的门牌号，只记得寝室地板的质量不错。因为他是寝室中唯一的外地人，每到周末，就只剩下他一个人，他总把寝室的地擦得干干净净。刚来时，他看到一位室友拿着一本全英文的小说在看，大为惊异，因为自己连英文字母还认不全。一楼的132号寝室里，计算数学班的沈文海坐了整整一天的火车，从北京风尘仆仆而至。他是全寝室最后一位入住者，大家自我介绍一番后，便陷入了沉默。寝室年纪最小的男生李刚打开了收音机，跟随广播里的领读大声念起英文：“Yes, it is. Yes, they are.” 
+
+陈晓亮也被分到计算数学班。他很奇怪，因为之前报考的明明是物理系。后来他听说，去杭州的招生老师是数学系主任，他把这个地区所有第一志愿报考复旦的上线考生全部招到了数学系。虽然未能如愿就读物理系，但陈晓亮还是觉得颇为幸运，因为数学系是复旦大学最好的系，考分最高。
+
+数学系77级被媒体称为状元班。数学一班的何宁卡是湖南省高考状元，李克难是湖南省第二名，计算数学班的李乐德是上海市高考状元，姚大卫是洛阳市高考状元。
+
+4个班中，数学一班平均年龄最小，被称为“小班”。17岁的李克难在小学时跳了两级，汉语拼音还没来得及学会，大学时要补习汉语拼音。15岁的朱一新跳了三级，从崇明农村考入复旦，被媒体称为“最年轻的大学生”。数学二班和计算数学班入校时就各有十多位“老三届”，入学时大都已婚。上学期间时不时传来谁家孩子出生的消息，名字多叫“欢”或“乐”。3月底，一批高考成绩出色但年纪偏大的学生经补招入校，成为走读生。数学一班新招了8人，最大的已36岁；计算数学班新增了7人，全都是30岁。陈晓亮听到大家私下议论，是不是有“走后门”的。他有朋友在上海交通大学，就没有补招的事。但后来发现，班上的走读生都很优秀。其实，这是根据国家的新政补招的。开学后，国家紧急下发了《关于普通高等学校试行招收走读生和增加招生名额的通知》，允许高等学校在完成招生计划的前提下试行招收走读生，并要求注意招收1966届、1967届高中毕业生。
+
+5月27日是复旦校庆，下午是各系参观日。新生们对这一天期待已久。  223寝室结伴参观，到计算机楼时，吴宗敏第一次见到了计算机，体积比一个寝室还大。数学系的展览则门庭冷落。几排桌子上，整齐陈列着刊有该系师生论文的国内外著名学术期刊。新生们尚不能理解其中含金量，只觉得呆板沉闷，转了一圈就匆匆离去。  
+
+开学第一周，考虑到从前工农兵学员入学时水平参差不齐，数学系决定先对新生做一次摸底考试。考场设在学校大礼堂，彼此间至少隔二三个空座，以免抄袭。考试内容为初等数学。分数当天就下来了，沈文海只考了63分。但他的成绩并不算最差的，最高分也不到90，成绩相对较好的多为“老三届”。数学系决定暂停教学计划，腾出四周时间专门补习初等数学。四周后再次测试，全系基本通过。大学课程正式开始。
+
+600号楼是数学系所在地，其中611教室是可以容纳200人的阶梯教室，数学系的公共课大都在这里上。
+
+77级是仓促考试和开学的，一开始教材供应跟不上，很多课本还是油印的，第二学期才恢复正常。开学后不久，老师告诫他们，以他们现在的水平，千万不能碰哥德巴赫猜想，“这东西害人的”。数学系常收到声称解决了哥德巴赫猜想的“民科”们的来信，就会把信发给学生，考他们能不能看出问题来。
+
+数学分析是公认最难的一门基础课，考验逻辑推导能力，很多同学都喜欢这门课，尤其喜欢听何成奇讲这门课。因为他不但讲出了数学之用，还讲出了数学之美，“让你觉得不仅是进入了一个科学殿堂，也是进入了一个艺术殿堂”。数学分析课辅导老师孙芳烈也是数学一班的第一任班主任，是班上同学公认的大学期间对大家帮助最大的一位老师。在同学的记忆中，她有一颗“母仪之心”，宽爱所有的学生，非常认真负责，一心扑在学生身上。
+
+现已83岁的孙芳烈头发花白，思维清晰。她极其低调，一再推辞采访，好不容易接受了，又一再强调，记不清多少事情了。大学班主任跟中小学班主任不同，学生们基本均已成年，有自觉性，能力强，都是自己管理自己。她告诉《中国新闻周刊》，77级是她带过的最优秀的一届学生，很有集体观念，不是只关心自己。她是复旦大学1953级数学系学生，带班时已年过40，工资刚从拿了二十几年的60块钱调到72块钱。她和在浙江大学工作的丈夫长期分居两地，两个孩子小的只有3岁，工作很忙，她只能把孩子全托。她设身处地想，过去自己上学时遇到问题经常找不到老师，就每天下班后都留在学校。为了保证答疑质量，她把《吉米多维奇习题集》从头到尾做了一遍。《吉米多维奇习题集》是数学分析的经典题集，同学们都争相去图书馆排队借阅。书上只有习题，没有答案，不少人解题上瘾。
+
+沈文海的下铺黄忠强将做过的习题装订成册，珍藏起来。封面上用正楷写道：“习题之真谛所在，欲知者智穷而后启之。” 在第一学年的数学分析考试中，数学一班有14人得了100分。苏步青连连称赞这个班“不得了”。数学系是苏校长的“宠儿”，77级更是他的骄傲。数学系学子们也均以“校长门生”而自得。苏校长作讲座，有学生迟到，分辩说自己只迟到了一两分钟，他说，根据数学归纳法，等于1时成立、等于2时成立、等于n＋1时成立，那么结论就成立。同理，迟到一分钟不算迟到、迟到两分钟不算迟到，那迟到多久也不算迟到了。
+
+经过“文革”时期的停滞，当时数学系只有苏步青和谷超豪两位教授，夏道行是副教授，其余授课老师都是讲师或助教。谷超豪不拿教授工资，拿副教授工资，他说，什么时候夏道行拿了教授工资了，他才拿教授工资。谷超豪有一种老派的绅士派头，待人彬彬有礼，讲课循循善诱。他曾给数学系上过一学期选修课“统一场论”。下课后他总会留下来，和学生聊天交流。陈晓亮记得，有一晚下课后，谷超豪和几个学生一起离开教室，在路口分手时，他停下来，等学生先走了，自己才走。  
+
+夏道行教实变函数，考试极难，考前也不给复习范围。考试时，一共只考一道半题目，一道是证明一个书上用了二十多页来证明的定理，半道是送分题。两个小时过了，一直到吃饭，也没人交卷。不过，他严是严，但并不会真的难为大家，还是会让大家及格的。
+
+数学系有一门计算机课。当时的计算机没有显示屏和键盘，运算结果只能打印出来。打印纸尺寸大，质地好，能当草稿纸，还能糊墙壁、包书皮、垫抽屉、做信纸。个别学生故意将打印结果排得很稀，原本一张纸就能打印完的用了五六张。
+
+大一时，最受追捧的课程并不是专业课，而是政治课“中共党史”。学子们都关心时事政治，老师讲党内“十次路线斗争”讲得声情并茂，阶梯教室座无虚席，下课时全体鼓掌。
+
+教了几十年书的老师从没见过这么勤奋的一届学生。
+
+校图书馆阅览室一座难求，常有人用书包占位子。很多学生熬夜甚至通宵学习，恨不得一天能当两天用，晚上能当白天用。由于学习高度紧张，开学三个月沈文海就开始失眠，有时通宵不能入睡，满脑子定理习题。直到大学最后一学期，他开始冬泳，失眠才痊愈。
+
+入学后的第一个夏天，上海酷热难耐，没有电风扇的寝室里像蒸笼一样。沈文海每隔一阵就要爬下床，跑到水房里，用凉水浑身上下一遍一遍地浇。那个期末，学校决定提前放假，开学后补考期末考试。
+
+考虑到学生的身体，校方决定执行“熄灯令”：图书馆晚上9∶30熄灯，教学楼9∶40清场、10点熄灯，宿舍楼10∶40熄灯。  “熄灯令”招致一片反对之声。学生代表找苏步青反映：同学们无法完成课业，希望延长供电时间。苏步青说，来日方长，既要学习，也要健康。不过，熄灯时间被延迟为教室10∶30，寝室11点。于是，熄灯后，宿舍楼就会响起一片“轰隆轰隆”声，那是从寝室往走廊拖板凳的声音。不久，为了争夺走廊灯正下方光线最好的位置，一些学生不等熄灯就用板凳占位。楼前的路灯下也总是站满人，都是数学系的学生，大部分人都在读外语。李源潮后来说，他工作后外语一直不错，很多人以为他出国留学过，其实完全是“路灯底下的外语”。
+
+不过，也有学习轻松的。计算数学班的李乐德、姚大卫、顾大维三位“老三届”都已成家，每天下课后都要回家做家务，但成绩却很是出色。陈晓亮学习十分紧张，很好奇这几位老大哥是什么时候做的作业，后来听说是在骑自行车回家的路上就在脑子里做完了。刚开学时大部分人的英语都是从26个字母学起，姚大卫已经能用英文交流。
+
+1978年，国家恢复研究生考试。上海交通大学刚设立的研究生院急需人才，李乐德、姚大卫、顾大维被要求报考上交大的研究生，并被录取，只读了3个学期就离开了复旦，一学期后又都赴美留学。
+
+每天早上5点，戴晓波准时起床，拎上几个空的暖水瓶，奔赴运动队参加训练。他曾获复旦大学中长跑比赛第三名，从大一起就加入了运动队，一直到七年后从复旦研究生毕业。7点多，他训练完毕，在食堂吃过早餐，给晚起的室友捎上馒头，拎上打好的开水，跑回寝室。他的下铺吴宗敏常常会在第一遍铃打过之后、离上课只有5分钟时才匆匆爬下床，抓起馒头，一边咬一边往教室跑。
+
+王向东入学时肝病未愈，面色蜡黄，每天早睡。室友就寝时间不一，免不了互相干扰，但从未有人表示过不满。
+
+223寝室的7名男生中，27岁的李源潮是寝室的大哥。因为年龄比其他人大了好几岁，阅历丰富，性格稳重，室友们多敬他几分，不像其他人之间时有玩笑和打闹。当时规定，工作5年以上可以带薪上大学，每次一起在外吃饭，有收入的他总是抢着买单。他爱打桥牌，曾和吴宗敏组队参加学校的桥牌比赛。
+
+21岁的戴晓波性格活跃，喜欢创新，由于身处运动队，他的课余生活比起“两耳不闻窗外事”的数学系同窗们算得上丰富多彩，过得不亦乐乎。运动队会发运动服，他的衣服也总是全班最漂亮的。
+
+19岁的何宁卡性格成熟，在中学时是学校的团总支书记，善于处理人际关系，是223的寝室长。他对时事很敏感，聊天时，谈起时事新闻和历史，他都如数家珍。21岁的吴宗敏和18岁的王向东是好友，第一学期时一直出双入对，总去图书馆里钻书堆。吴宗敏考试经常第一个交卷，比其他同学能提前半小时；王向东记忆力超群，过目不忘，笔记和作业极为整洁，考试常拿100分，99分都很少见。18岁的陈跃斌喜欢围棋，没事时就打棋谱。16岁的毛怀遂年纪最小，性格却很沉稳，他擅长长跑，曾是西安市长跑比赛第二名。
+
+吴宗敏觉得，这也是他们寝室的总体特点：不是冲刺型，而是耐力型。室友间的关系也是，看似平淡，不是称兄道弟，但从没红过一次脸。戴晓波说，当时觉得很简单，回头看才知道很不容易，是一笔最大的财富。
+
+宿舍楼二楼中间学生会活动室里，有一台20寸黑白电视机，每天的固定节目是《新闻联播》，偶尔会放《敌营十八年》《大西洋底来的人》《加里森敢死队》《无名英雄》等电视连续剧。每逢重大体育赛事，就到了男生们的节日了。1981年，中国女排参加世界锦标赛，首次夺冠，举国欢腾。复旦的学生们兴奋得不知所措，四五百人叫嚷着涌出校门，直到后半夜才筋疲力竭回校睡觉。也是这一年，在西班牙世界杯足球预选赛上，中国对阵科威特，点球被中国队门将扑出，男生宿舍瞬间沸腾，有人点着褥子挂在窗外，有人举起装满开水的暖壶从窗口摔下。中国队本来有望冲出亚洲，却因沙特故意放水给新西兰而最终失之交臂，男生们揭竿而起，有人甚至点着扫把冲到楼下。那几年，这种“游行”屡见不鲜。
+
+223室的男生们虽然也爱看球，但很少参与。吴宗敏说，寝室大多数人的思想好像比较偏中道。每周末，李源潮从家返校，总会光顾书店，买回各类书籍，放在寝室的小书架上。他还从家里带来一台模样特别的小机器，大家才第一次知道，这就是录音机。寝室里开始有交响乐和流行歌曲的旋律飘出，但最主要的用途是学外语。大二时，寝室里有人提议，靠窗和靠门的铺位应该轮换住，于是李源潮和吴宗敏就换到了进门右手边那张床，住上下铺。
+
+311寝室里通常都在安静地自习。周末赶上下雨天凉，过硬的妻子会带上衣服来学校接他回家。但她从不进寝室，就在门口等着，如果有人出来就请其帮忙给过硬带个话。寝室里静得“一根针掉在地上都能听见”，她怕敲门会打断大家解题的思路。3号楼的对面是文科生的男生宿舍楼，陈晓亮常常听到楼里传来小提琴声和播放的音乐声，跟3号楼的沉闷静谧对比极为鲜明。大二结束后，最后两届工农兵学员陆续毕业离校，数学系77级男生宿舍升至三楼。3号楼寝室门牌号奇数朝阳，偶数背阴，上海天气潮湿，阴面阳面差别很大。为公平起见，数学系规定，以一年为期，寝室南北互换。于是，吴宗敏等从223寝室搬到了328（后来又搬到了308），沈文海等则从132搬到了333室，和328室是斜对门。
+
+跟数学一班相比，计算数学班“老三届”较多，气氛也相对活跃。沈文海作为寝室最早起床的人，开学后不久就被推选为室长，除了每天早上给室友带馒头，还要收发作业本，代领粮票、购物券，打扫卫生。终日泡在图书馆或教学楼里苦读的他很羡慕寝室的几个老大哥——姜叙伦、於崇华、曹沅。他们学习轻松，爱好棋牌，晚上在寝室听着收音机聊着天就把作业做完了，然后就冲着其他寝室吆喝，不一会儿就组成了棋牌局。张来武和安徽同乡的陈晓漫在数学二班成绩出色，被称为“安徽两霸”。张来武记得，大约半年后，开学时摸底测试成绩靠前的“老三届”学习上优势不再明显。他觉得，这可能是因为被耽搁多年，过了学数学的黄金年龄。
+
+600号楼611教室不光用来上大课，很多讲座也在这里举行，几乎每周都有一到两个晚上，内容五花八门。
+
+在《中国青年》就潘晓的一封来信“人生的路为何越走越窄”展开大讨论前后，数学系学生会请了一位学者来座谈人生的意义。与当时革命化的人生观主旋律不同，这位学者却强调小确幸：“生活的意义就在于每天的上班下班、每天的柴米油盐酱醋茶、每天早晨的送孩子上学、每天晚上的与家人一道共进晚餐、每天夜里临睡前的与家人互道晚安……以及每天的家长里短、每天的解决邻里纠纷、每天的喜怒哀乐等等。” 最受欢迎的是交谊舞讲座，每次都人满为患。中年女老师用一台卡式录放机放起音乐，讲解之余，经常挑两个男生上台，手把手示范，男生们既兴奋又害羞，台下笑声不止。  
+
+每周六晚上，学校食堂都挪开桌椅，举行舞会。系里也组织舞会，地点多在600号楼的礼堂。虞锦国擅长交谊舞，有时在寝室里教同学用凳子练习。交际舞讲座沈文海很少参加，但诗歌类讲座几乎场场必到。沈文海在北京44中读书时语文成绩出色，作文经常被当成范文。一次开会，他和李源潮坐在会场最后面，两个喜欢文学的青年开始在笔记本上手谈。李源潮一言不发地写下一串书名，每写一个，如《毁灭》《南行记》《死水微澜》《生死场》等，就询问地看看他，他时而点点头，表示读过或听过，但大多数时候都是一脸惘然。李源潮整整写满了一页，这些书里，他看过的不到十分之一，至少有三分之一没听说过。
+
+1981年，复旦大学组建诗社，杨荫稚加入了这个几乎都是文科生的社团。一首《我走近这陌生的一群——给诗社，也给你们》保留至今： 我走近这陌生的一群 因为，我期望 漂浮的心 能靠上一片稳妥的云 我小心地走近这陌生的一群 因为，我害怕 梦幻的薄冰过早地消融 我曾一千次地追求 可许多回 抓住的 只是一片浮云 所以，我来了 走近这陌生的一群 做第一千零一次的追寻 为一颗不安宁的灵魂 寻一片拍岸的惊涛 
+
+校学生会组织赛诗会，数学系常由沈文海、杨荫稚、张来武等人组队上阵。张来武不知道是因为自己的诗真的太受欢迎呢，还是因为自己普通话说得不够好，反正他在台上朗诵时，台下总是掌声笑声不断。不过，他很快就认定自己成不了好的诗人，他觉得自己的思维太严谨，缺少诗情画意。他还是数学系的体育健将，大三时在运动会上拿下五项全能第二名，被授以“宝刀不老”的称号，让年纪尚轻的他感觉莫名其妙。数学一班的马进是数学系团总支文艺委员，在系里是少有的多才多艺者。与大部分男生千篇一律的白衬衫、中山裤不同，他穿着时髦，戴金色边框眼镜。他画画功底扎实，擅长拉手风琴，会跳迪斯科，班上男生的迪斯科都是他教的。文艺汇演时，他经常拉手风琴伴奏，集合一批爱唱歌的男生搞小合唱。百科知识竞赛是数学系大出风头的领域。在校学生会举办的竞赛中，计算数学班的宋伟铭夺冠，前十名里数学系占了三个。
+
+当时，各种社会思潮风起云涌。伤痕文学、民主竞选、四五英雄、N大美女，各领风骚一阵。路边的板报栏经常张贴着小字报，展开辩论。一天，大家突然发现一篇书法流畅、见地老到的小字报，署名竟是“夏征农”。当时，经常能看到校党委书记夏征农一个人拿副碗筷在食堂打饭，然后坐下来和学生边吃边聊。用同学的话说，当时整个大学里面弥漫着一种处变不惊的氛围，什么事情都可以做，做了什么事情也没什么了不起。这是一个思想解放的场所，包容活跃，自由进取，这在社会上的其他地方是看不到的。
+
+毕业时，数学系很多同学决定考研。
+
+1981年暑假，沈文海没有回北京，留在学校复习，准备参加大连工学院的研究生考试。李源潮也没有回家，在校复习。他报考的是复旦大学管理科学系数量经济专业研究生。系里希望他不要考研究生，毕业后留在数学系，做分管学生工作的老师，但他没有接受。他一向对经济很感兴趣，十一届三中全会之前就和世经系的王战一起成立了社会经济体制改革研究小组，大四时常去管理系旁听。假期的校园很冷清，两人常常结伴复习。图书馆阅览室和教室大多不开放，寝室里则酷热难耐，他们常在下午去宿舍楼二楼中间的活动室复习。活动室没风时异常闷热，两人一人一把蒲扇，一手摇扇一手翻书，挥汗如雨。每隔半小时，就得去用脸盆打清水回来往地上洒。下午4点后，校园东北角的游泳池开始下午场，两人就结伴去泳池消暑。经过了艰苦复习的这个苦夏，后来让他们觉得什么都无所畏惧了似的。
+
+最终，数学系（力学专业除外）共18人读研。戴晓波考取了复旦大学管理科学系数量经济专业研究生，这一专业的5个研究生都来自数学系。吴宗敏报考了本系研究生，看到报考表格中有一项“你是否愿意成为出国预备生”，就顺手打了勾。结果，毕业分配前一个月，他得到通知，学校将选派他到国际著名的联邦德国哥廷根大学数学系留学。作为教育部和国外签订的交流项目，1982年，复旦数学系共有6名学生公派出国留学。吴宗敏和室友王向东去德国，杨平、邓波和雍烱敏去美国，毛裕新去法国。吴宗敏到上海图书馆查阅自己导师Schaback的研究方向，结果发现是自己原来不怎么喜欢的计算数学。谷超豪访问德国时，吴宗敏曾恳请他通过关系帮助换一下专业，但谷超豪认为签好协议再换导师有失尊重，吴宗敏只能接受这一现实。
+
+1982年1月底的一个下午，数学系77级全年级180余人聚集在600号楼611阶梯教室，听宣读毕业分配结果。由于此前保密工作做得很严，大部分人事先都不知道结果。教室里十分安静，老师按班级一个一个地念，大家的心都提到了嗓子眼，紧张到手心出汗。“过硬，上海市杨浦高级中学；李源潮，复旦大学管理科学系；杨荫稚，上海旅游专科学院；陈跃斌，上海社科院；陈大康，上海纺织专科学校；周舜培，少儿出版社；李刚，石油部石油勘探开发设计院；沈文海，中央气象局气象科学研究院；陈晓亮，上海电力成套设备研究所…… ” 约两小时后，名单才念完。一散会，大家就纷纷跑向距学校最近的五角场邮局，发电报向家人报信，一时间邮局已经人满为患。
+
+毕业前夕，举行了两个婚礼和一个葬礼。举行婚礼的是数学一班的两个老三届，婚礼在俱乐部举行，邀请全班同学参加，每人发一点喜糖。结婚时床不够用，就问过硬家借了一张小钢丝床，这张床至今被过硬的夫人保存在老房子里，她说“一辈子都不会丢掉”。毕业前，力学班班长、25岁左右的慈力远因癌症去世。数学二班班长奚树林、计算数学班班长姜叙伦与系学生会一起，出面筹办了慈力远的追悼会。全年级同学几乎悉数到场。慈力远的老父抑制不住悲痛，突然放声大哭。很多同学随之泪如雨下。年轻生命骤然凋谢带来的震动、告别学生时代的不舍和即将走向社会的忐忑，让沈文海的心情难以言表。一天晚饭后，他路过一栋教学楼，里面正在举行毕业生联欢会，《毕业歌》《年轻的朋友来相会》的歌声忽高忽低地飘出，他无法自持，泪流满面。  
+
+1985年，国家提出了“支持留学、鼓励回国、来去自由”的方针，一场史无前例的出国热潮席卷全国，第二年自费留学的人数就突破了10万人。在此前后，数学一班26人相继出国。从此，同学们风流云散。
+
+倏忽30年。
+
+2010年底，在河南洛阳国企担任老总的数学一班同学赵滨海发出倡议，在毕业30年之际举行同学聚会。戴晓波找到老班长过硬，联系了在上海的几位同学，筹备工作很快提上日程。同学们早已星散全球。杨荫稚利用在上海师范大学旅游学院的优势，请学生通过各种线索寻人。经过一年多的努力，全班46人，联系上了43个，34人参加。杨荫稚还主持收集了大量上学时期的老照片，扫描成电子版，装订成纪念册。这些旧照多是大家当年DIY的作品。2011年12月23日到25日，数学一班同学历史性齐聚上海。一些同学已经退休，年纪最小的也已年过半百，入校时只有17岁的蔡进一已是满头银丝。前两天的活动主要在校外举行，远在美国的赵建民和毛昭林通过大屏幕与大家远程视频，大家还向四十多岁英年早逝的王向东等同学献上哀思。第三天是重返母校的重头戏，李源潮参加。经过协商，时任复旦大学常务副校长陈晓漫、时任科技部副部长张来武等7位数学二班同学，作为外班同学代表，受邀参加了这次聚会。
+
+12月25日早晨8点多，在600号楼会议室召开的座谈会上，本来事先安排好了发言的同学和次序，结果说着说着就成了自由发言。11点，座谈会结束，大家到600号楼门前拍合影。如何站位的问题得到了巧妙的解决。毕业前夕，数学一班和老师们就在这座楼前照了一张合影，这次也按原来的站位拍摄。毕业照中的全班46位同学，这次到了34人。照片上原有6位老师——第一任班主任孙芳烈、第二任班主任王芬、教控制理论的李训经、教数学分析的何成奇、教代数拓扑的李元熹、教数学分析的陈天平，这次，除了已经去世的李训经，5位老师悉数到场。李训经的位置则由指导员杨浣明代替。中午，在学校大食堂聚餐，席开四桌。吃饭时，吴宗敏突然宣布了当天的特别节目——这一天是过硬的65周岁生日，黄超成、虞锦国、周伟良的生日也分别在前后一天。4位寿星一起吹灭了生日大蛋糕的蜡烛。过硬在蛋糕上切下第一刀，一时间百感交集，心情不可名状。最后一个节目是参观复旦，木制的老校门早已不再通行，600号楼内的611、602两个教室已不复存在。3号楼男生宿舍还是灰色墙壁的三层小楼，却已变成女生宿舍，门口的牌子上写着“男士止步”。
+
+计算数学班的大聚，在2006年毕业25周年之际就已举行。当年在寝室里念着“Yes, it is. Yes, they are.”的15岁小男孩李刚已变成富态的水产公司老板，40多岁就提前退休，姜叙伦一见面差点没认出他来。而姜叙伦自己，这个当年被公认为极有数学天赋和管理才能的老班长，在90年代初放弃十年基业，携全家赴美重新开始，如今在一家小公司做着一名普通的程序员。沈文海现在已是国家气象信息中心总工程师。333寝室7人中，独缺於崇华。2000年12月7日下午，已是复旦大学数学系常务副主任兼博士生导师的於崇华骑自行车去学校讲课，在横穿马路进校门时被一辆小客车撞倒而离世。王元生带来了寝室最后一次聚会时於崇华的录音。沈文海想听又不敢听，犹豫了很久，终究还是放弃了。那是毕业前夕的一天下午，寝室自发搞了一次茶话会。大家围坐谈天，憧憬未来。最后，於崇华冲着一部砖头式录放机喊道：“我们的口号是：十年后计算数学年会上见！” 如今，参加学术年会早已是再寻常不过的事情。甚至于，网上流传着“史上最牛班”的传说。严格地说，这份名单是复旦数学系77级、78级两个年级精英的合集。
+
+其中，哈佛大学研究生院院长孟晓犁、牛津大学数学教授陈贵强、普林斯顿大学冠名金融讲座教授范剑青、斯坦福大学数学系教授李骏 、斯坦福大学生物统计系教授陆盈、哥伦比亚大学统计系教授应志良、加州大学戴维斯分校计算机系教授柏兆俊、德意志银行原执行董事徐幼于等均出自78级。77级同学中，计算数学班的姚大卫在加拿大多伦多大学博士毕业后担任哥伦比亚大学工业工程和运筹系教授，曾在哈佛大学和耶鲁大学执教，并在香港中文大学以及清华大学兼任讲座教授。2015年，他当选美国工程院院士，这是美国工程技术领域的最高专业荣誉。数学一班的蔡进一在康奈尔大学获得计算机科学博士学位后，担任威斯康星大学麦迪逊分校计算机系教授，在理论计算机科学领域成就卓著；雍炯敏获美国普渡大学博士学位后回到复旦，成为中国最年轻的数学家之一，后来担任了复旦大学数学系主任，现在在美国佛罗里达大学任教，是国家杰出青年科学基金获得者和“长江学者”特聘教授；马进 1985年从复旦大学数学系硕士毕业，留校两年后赴美就读明尼苏达大学，1992年博士毕业后开始在普渡大学任教，自2007年起在南加州大学任教，在金融数学领域成就斐然。
+
+但更多的人选择了转行。尤其平均年龄偏大的数学二班和计算数学班，很少有人继续在专业内做学术。陈大康认为班上的陈晓漫和张来武是为数不多适合从事数学研究的人，但是陈晓漫和张来武后来都担任了行政职务。张来武从复旦数学系毕业后考取北京大学数学系研究生，后在美国纽约州立大学奥本尼分校经济系经济学专业获博士学位。1999年，他被派至宁夏回族自治区任政府主席助理，本来以为只是短暂挂职，没想到不久后西部大开发开始了，他在宁夏一干就是10年。2008年，张来武离任宁夏回族自治区政府副主席，担任了科技部副部长。陈大康自己，更成为数学系的传奇。他在上海纺织专科学校当数学老师期间，致力于用数理统计方法研究《红楼梦》的语言风格。在没有计算机的情况下，他先用一年多时间手工统计了该书中各种字、词出现频率等数据，又经过三个月的计算，推算出《红楼梦》后40回非曹雪芹所作。此后他考入华东师范大学中文系攻读博士学位，后留校从事中国古典文学的教学与研究，曾担任该校中文系主任，现在是终身教授。将数学思想、方法运用于人文科学研究，成了他的独特优势，为学界所瞩目。他的研究风格与一般文科学者不同。他常说，搞研究第一是发现问题，第二是解决问题。写论文就像证明几何题，已知和证明写清即可结束，无需任何矫饰。
+
+过硬记得，刚进大学时苏步青对他们说，你们当中应该有不少人到中学当老师，以提高中学的教学质量。没想到，日后这真的成了他的毕生事业。他认为自己不可能出数学成绩了，就专注教学，久而久之，成了上海的名牌数学教师，退休时已是中学最高级别的五级教授职衔。308寝室7人，王向东在德国研究生毕业后担任了一家软件公司的总裁，已去世。毛怀遂在老家西安创业，成了化工公司的老板。陈跃斌在上海市财政局研究所工作。李源潮和何宁卡走了从政的路。戴晓波则横跨学、官、商三道。研究生毕业后，他被分配到上海市计划经济研究所担任副所长；1991年，作为上海住房改革方案组组长，在时任市长朱镕基的领导下，主笔起草了住房制度改革和公积金方案；随后又担任上海市计委长远规划处处长，在时任市长徐匡迪领导下，编制了上海2020年城市规划和国民经济“九五”计划。他还做过风险投资公司老总。现在，他是上海社科院应用经济研究所城市与房地产研究中心主任、研究员，已完成上海2050年发展方向研究。他不爱讲过去，喜欢谈未来。
+
+只有吴宗敏一人仍然在数学界坚守。他卸任复旦大学数学系主任一职后，现在是数学学院教授、博士生导师、长江学者特聘教授。当初，他遗憾自己对于未来的规划不够清晰。现在，他会告诉学生，不必太刻意，环境日新月异，每个人都需要终身成长，重要的是，学到理念和方法。
+
+因为，只有具备独立之精神、理性之思维，才是真正的登堂入室。
+  </pre>
+</div>
+
+<p>大二时第一次在树洞读到这篇文章,后面又三番五次地读完,每次都心情久久不能平复,长叹世事无常,命途难断.我们往往难以决定自己的生活的走向,人生的走向,哪怕当初坚定不移地朝着坐标与目标之间的最短路径前进,走到重点时也可能发现与当初的规划大相径庭,因为在历史与时代的坐标下,我们所看到的所有目标都是时变的;同时,每个人生阶段的走向,又被所有经历过的人生阶段所界定,</p>
+]]></content>
+      <categories>
+        <category>随笔</category>
+      </categories>
+      <tags>
+        <tag>随笔</tag>
+        <tag>杂谈</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记:DeCoWa</title>
     <url>/2025/06/10/paper-decowa/</url>
     <content><![CDATA[<p><div style="text-align: center;"> 
@@ -895,58 +895,6 @@ g_{t+1} = \mu \cdot g_t + \frac{\hat{g}_{t+1}}{\|\hat{g}_{t+1}\|_1}</script><h1 
         <tag>论文</tag>
         <tag>对抗样本</tag>
         <tag>迁移攻击</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：SARATRX</title>
-    <url>/2025/01/14/paper1-saratrx/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
-</div>  
-
-<span id="more"></span>  
-<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
-<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
-<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
-<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
-<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
-<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
-<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
-<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
-<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
-<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
-<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
-
-<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
-<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
-
-<script type="math/tex; mode=display">
-MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
-<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
-<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
-<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
-<table>
-  <tr>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果1</figcaption>
-    </td>
-    <td style="text-align: center;">
-      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
-      <figcaption>实验结果2</figcaption>
-    </td>
-  </tr>
-</table>  
-
-<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>SAR</tag>
       </tags>
   </entry>
   <entry>
@@ -1079,6 +1027,58 @@ T_{final} = L(T \copyright T_{attended}) \ , \quad I_{final} = L(I \copyright I_
       </tags>
   </entry>
   <entry>
+    <title>论文笔记：SARATRX</title>
+    <url>/2025/01/14/paper1-saratrx/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于《SARATR-X: Towards Building A Foundation Model for SAR Target Recognition》的论文笔记  
+</div>  
+
+<span id="more"></span>  
+<h1 id="发表去向"><a href="#发表去向" class="headerlink" title="发表去向"></a>发表去向</h1><p>论文最终被TIP2025接收  </p>
+<h1 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h1><h2 id="论文摘要总结"><a href="#论文摘要总结" class="headerlink" title="论文摘要总结"></a>论文摘要总结</h2><p>论文从SAR-ATR任务的基座模型（foundation models，FMs）缺失这一现状出发，提出了融合现有光学图像模型（HiViT），加入针对SAR图像任务优化的pre-train方法，通过无标签的自监督学习方式（self supervise learning，SSL）实现了较为理想的ATR性能。文中的ATR任务包括了SAR图像分类和SAR目标检测两大主流任务。此外，论文的另一主要贡献是整理了当前主流的SAR分类和检测数据集来作为基座模型SSL训练的预训练数据集（预训练过程不加入标签），并进行了大量的实验验证了多个主流模型的相应性能。  </p>
+<p>个人理解的论文不足之处在于没有对模型本身有任何创新，大部分的贡献在于光学光学前沿方法的调研、整合和针对SAR图像downstream任务的微调。  </p>
+<p>在模型规模仍与光学基座大模型有较大差距，模型微调过程中SAR训练数据量明显不足等问题外，该论文仍然是SAR基座大模型的第一篇相关研究，同时也成功实现了通过一个模型解决分类和检测两个SAR-ATR任务。   </p>
+<h2 id="pre-train方法"><a href="#pre-train方法" class="headerlink" title="pre-train方法"></a>pre-train方法</h2><h3 id="自监督学习"><a href="#自监督学习" class="headerlink" title="自监督学习"></a>自监督学习</h3><p>设计针对SAR图像的SSL方法的难度要比针对光学图像更高，主要的原因是SAR图像成像过程中会受到斑点噪声（speckle noise）的影响，该噪声会导致图像中纹理和边缘信息的失真；此外SAR图像的语义信息也远不及光学图像丰富和独立。因此，作者提出SAR图像的SSL预训练的首要任务是提高图像质量。  </p>
+<p>此外，针对ViT模型，做作者使用MIM（Masked Image Modeling）作为SSL方法。MIM通过对输入图像进行部分遮掩（mask），要求模型从未遮掩的部分中学习和推断被遮掩部分的信息，以此捕获图像的深层特征。MIM中模型被要求重建的内容被称为目标特征（Target Features），可以设置为原始的输入图像像素值，也可根据下游任务的特点与属性设置更高级特征。引导信号（Guided Signal）由目标特征生成，用于指导模型优化。  </p>
+<p>在MIM中引导信号的选择上以往的论文已经由较为充分的研究和比较，主要的目标特征包括了CannyEdge、HOG、Haar-like，SAR-HOG和SAR-SIFT。本文作者则在以往工作SAR-JEPA的基础上，选择了较为简单的MGFs（Mutil-scale Gradient Features）来抑制斑点噪声与提取目标信息。    </p>
+<p>由于SAR的成像机理，图像中的目标会包含乘性散点噪声（multiplicative speckle noise），导致目标，尤其是金属目标，周围会出现不同方向的强弱间纹理。因此，在特定区域中施加梯度比率（gradient ratio）可以提升模型的稳定性。  </p>
+<h3 id="数据集准备"><a href="#数据集准备" class="headerlink" title="数据集准备"></a>数据集准备</h3><p>对于预训练过程，作者进行实验对比了只使用SAR数据集进行预训练与在光学大规模数据集开源数据集ImageNet上预训练后的权重基础之上在基于SAR数据集进行预训练两种情况。实验表明后者会有更好的表现。鉴于作者选用的基础模型为Transformer架构，使用ImageNet（包含约140万张图像，场景和类别相较于作者构建的SAR图像数据集都更加丰富）预训练权重来初始化可以实现注意力head分布更加分散，使模型的bottom layer学习的到信息更加多元并避免SAR图像中的斑点噪声对模型早期训练的影响。    </p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/36b1b01fea8e48a46797142bca56c208" alt="36b1b01fea8e48a46797142bca56c208">  </p>
+<figcaption style="text-align: center;">论文中列举的SAR数据集</figcaption>    
+
+<h3 id="MGF方法说明"><a href="#MGF方法说明" class="headerlink" title="MGF方法说明"></a>MGF方法说明</h3><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/34f876795c0d2fb37da23878d995cb6f" alt="34f876795c0d2fb37da23878d995cb6f">  </p>
+<figcaption style="text-align: center;">论文二阶段预训练示意图</figcaption>  
+
+<script type="math/tex; mode=display">
+MGF = concat(G_{m1},G_{m2},G_{m3})</script><p>论文中采用的MGF方式是独立的数字图像处理方法，与HiViT模型没有任何关系，只挖掘了SAR图像中的信息。其中 $G_{mi}$ 之间的区别是对应的scale-kernel的大小 $\tau$ 不同，分别为9，13，17。从图中最左侧可以看出，选取 $M_i(1)$ 会提取横向信息；选取 $M_i(3)$ 会提取纵向信息,同理2，4会提取不同对角线方向的信息。M下标值只是说明从图像的不同起点构建卷积核。通过输入图像和4张固定的卷积核就能够获取图像中的梯度信息（不是图像在模型中的梯度信息！）  </p>
+<p>假定输入的图像为单通道图像且进行填零操作，对于整个图像矩阵（不放设为m*n）而言，每个像素点坐标(a,b)都有对应的 $M_i(j)$ ，因此矩阵R、G大小均为均为m*n。  </p>
+<p>即便MGF的思想和方法出现时间较早，其仍在论文中实现了满意的效果。    </p>
+<h2 id="部分实验结果"><a href="#部分实验结果" class="headerlink" title="部分实验结果"></a>部分实验结果</h2><p>这里主要关注实验中的分类任务结果。对于分类任务，论文作者进行了1-shot，2-shot和5-shot等小样本实验，同时进行了SOC和EOC等操作来验证模型的泛化性能。</p>
+<table>
+  <tr>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/52a6415778a08092ff2279bca8cf9d8c" alt="论文中列举的SAR数据集" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果1</figcaption>
+    </td>
+    <td style="text-align: center;">
+      <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a0cb400ea8da3882a6027a0376c3420" alt="论文二阶段预训练示意图" style="max-height: 300px; width: auto;"">
+      <figcaption>实验结果2</figcaption>
+    </td>
+  </tr>
+</table>  
+
+<p>实验结果显示文中的FM已经有了较好的SAR图像分类泛化性能</p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>SAR</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>论文笔记：LoRa-PGD Attack</title>
     <url>/2025/11/19/paper11/</url>
     <content><![CDATA[<p><p style="text-align: center;">
@@ -1202,6 +1202,43 @@ X = clamp(X + \tau \cdot {normalize}(\delta U_{k+1} \otimes_{C} \delta V_{k+1}))
       </tags>
   </entry>
   <entry>
+    <title>论文笔记：One-Pixel-Attack</title>
+    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
+    <content><![CDATA[<div style="text-align: center;"> 
+关于One-Pixel-Attack的论文笔记  
+</div>  
+
+<span id="more"></span>
+<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
+<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
+<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
+<script type="math/tex; mode=display">
+\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
+subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
+<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
+<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
+<script type="math/tex; mode=display">
+x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
+r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
+<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
+<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
+<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
+<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
+]]></content>
+      <categories>
+        <category>论文笔记</category>
+      </categories>
+      <tags>
+        <tag>笔记</tag>
+        <tag>论文</tag>
+        <tag>对抗样本</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>目标检测中的虚警问题调研</title>
     <url>/2026/01/27/paper12/</url>
     <content><![CDATA[<p><p style="text-align: center;">
@@ -1217,7 +1254,7 @@ Recall = \frac{TP}{TP + FN} \tag{3}</script><p>为了调和Recall和Precision, �
 <script type="math/tex; mode=display">
 AP = \sum_n (R_n - R_{n-1}) \cdot p_n \tag{4}</script><p>此外F1也是对Precision和Recall 的调和指标, 希望通过平衡二者来真实反映模型的检测性能, 对应数学表达形式如下:</p>
 <script type="math/tex; mode=display">
-F1 = 2 \cdot \frac{P \cdot R}{ P + R} \quad or \quad F1 = \frac{2TP}{2TP + FP + FN} \tag{5}</script><h2 id="红外小目标分割任务中的漏检和虚警"><a href="#红外小目标分割任务中的漏检和虚警" class="headerlink" title="红外小目标分割任务中的漏检和虚警"></a>红外小目标分割任务中的漏检和虚警</h2><p>论文 <strong>Miss Detection vs. False Alarm: Adversarial Learning for Small Object<br>Segmentation in Infrared Images</strong> 发表在2019ICCV, 在题目中明确提出了漏检(Miss Detection, MD)和虚警(False Alarm, FA)的问题, 虽然是针对语义分割任务, 但也给SAR图像的目标检测的虚警问题以定义和解决思路的启发. </p>
+F1 = 2 \cdot \frac{P \cdot R}{ P + R} \quad or \quad F1 = \frac{2TP}{2TP + FP + FN} \tag{5}</script><h2 id="红外小目标分割任务中的漏检和虚警"><a href="#红外小目标分割任务中的漏检和虚警" class="headerlink" title="红外小目标分割任务中的漏检和虚警"></a>红外小目标分割任务中的漏检和虚警</h2><p>论文 <strong>Miss Detection vs. False Alarm: Adversarial Learning for Small Object Segmentation in Infrared Images</strong> 发表在2019ICCV, 在题目中明确提出了漏检(Miss Detection, MD)和虚警(False Alarm, FA)的问题, 虽然是针对语义分割任务, 但也给SAR图像的目标检测的虚警问题以定义和解决思路的启发. </p>
 <p>作者提出针对红外小目标语义分割(infrared samll object segmentation, ISOS)任务, 一个关键的挑战即为MD和FA的平衡, 因为针对这两类问题的性能改善往往需要通过相反的策略并导致FA和MD难以在同一个改进策略下同时抑制. 在文章中作者则受cGAN网络的启发, 将MD和FA设定为了两个同等地位的子任务 ,设置了一种对抗训练策略来实现对MD和FA的平衡(Nash equilibrium). 具体的网络则是在cGAN的基础上引入了两个生成器和一个判别器, 并设置了不同的损失函数, 实验结果显示作者提出的网络超越的论文发表时的SOTA模型. 对应的改进模型架构如下图所示. </p>
 <p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126212406.png" alt="20260126212406"></p>
 <p>两个生成器对应两个子任务, 分别用于最小化MD损失或者FA损失. 相应的判别器D则改为三分类, 用于区分两个生成器和结果和对应的真实标签. 对于损失函数的设定, 作者设置了Adversarial Loss, Generator Consistency Loss和Data Loss三类. 对于第一项AL, 其综合了两个生成器的损失项, 优化目标为让两个子生成器的输出都尽可能逼近真实标签, 对应的数学表达形式如下:</p>
@@ -1264,7 +1301,7 @@ f(d, s_m, \alpha, \beta, \gamma) = \beta \cdot e^{-s_m} \cdot d^{1 - \alpha \cdo
 <p>针对Precision指标, 文章的实验结果如下所示, 可以看出实现了理想的提升效果:</p>
 <p><img src="https://cdn.jsdelivr.net/gh/boremycin/ImageBed@master/20260126233809.png" alt="20260126233809"></p>
 <p>需要额外说明的是, 文章所定义的虚警框更倾向于false positive, 与SAR图像检测中出现的真实目标周围的多个预测框的场景还存在较大的差距. </p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>针对False Alarm这一关键词进行调研后初步的结论是对于目标检测任务而言, False Alarm还没有成为一种严格的研究主题(显著表现是没有针对性的评估指标)并获得广泛的关注, 同时由于NMS算法的设定以及检测模型的不断发展, False Alarm本身或许可以作为模型性能局限, 通过对mAP的提升来解决. 因为有监督模型的训练往往可以在足够数据量的前提下拟合到理想的标签分布, 当训练数据的标签质量得到保证时, 不应该存在明显的以出现大量检测框为特征的虚警现象. 但在SAR目标检测任务中确实出现了上述的情况(而在大规模光学数据集上类似问题并不显著), 因此可以首先通过实验确认这种现象的产生规律, 与对应数据以及分布的关联, 并给出合理的评估SAR目标检测任务中False Alarm问题的Evaluation Matrix. </p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>针对False Alarm这一关键词进行调研后初步的结论是对于目标检测任务而言, False Alarm还没有成为一种严格的研究主题(显著表现是没有针对性的评估指标)并获得广泛的关注, 同时由于NMS算法的设定以及检测模型的不断发展, False Alarm本身或许可以作为模型性能局限, 通过对mAP的提升来解决. 因为有监督模型的训练往往可以在足够数据量的前提下拟合到理想的标签分布, 当训练数据的标签质量得到保证时, 不应该存在明显的以出现大量检测框为特征的虚警现象. 但在SAR目标检测任务中确实出现了上述的情况(而在大规模光学数据集上类似问题并不显著), 因此可以首先通过实验确认这种现象的产生规律, 与对应数据以及分布的关联, 并给出合理的评估SAR目标检测任务中False Alarm问题的Evaluation Metrix. </p>
 ]]></content>
       <categories>
         <category>论文笔记</category>
@@ -1520,43 +1557,6 @@ L = L_1(x+\delta, y) + \alpha \cdot KL(\tilde{W} \cdot \tilde{f}(x + \delta), \t
         <tag>论文</tag>
         <tag>对抗样本</tag>
         <tag>对抗防御</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>论文笔记：One-Pixel-Attack</title>
-    <url>/2025/02/14/paper2-One-Pixel-Attack/</url>
-    <content><![CDATA[<div style="text-align: center;"> 
-关于One-Pixel-Attack的论文笔记  
-</div>  
-
-<span id="more"></span>
-<h1 id="论文去向"><a href="#论文去向" class="headerlink" title="论文去向"></a>论文去向</h1><p>收录于2019年IEEE Transactions on Evolutionary Computation</p>
-<h1 id="论文思路和方法"><a href="#论文思路和方法" class="headerlink" title="论文思路和方法"></a>论文思路和方法</h1><p>在One-Pixel Attack方法之前，诸如FGSM和JSMA等经典方法均产生全局扰动，该方法则着眼于限制扰动像素的个数并从该角度出发进行了CNN架构的VGG16、AllConv和AlexNet等经典架构的攻击机理解释。该方法的核心在于采用差分进化算法（Differential Evolution，DE）实现被扰动像素位置和RGB值的选取，从而摆脱了对待攻击模型架构与参数等白盒信息的依赖并不再要求模型的可微性，实现了对模型的黑盒攻击。</p>
-<h2 id="主要方法"><a href="#主要方法" class="headerlink" title="主要方法"></a>主要方法</h2><p>对抗样本生成的数学表达可简化如下：  </p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})|| \leq L</script><p>其中 $\mathbf{x}$ 为输入到分类器的图像向量，所有的像素点视为离散的维度坐标，例如10*10*1的图像可看作1*100的向量变量。$e(\mathbf{x})$则表示对应的全局扰动向量，L表示该向量的最大扰动长度。在One-Pixel方法中，相应的数学表达如下：</p>
-<script type="math/tex; mode=display">
-\mathop{\text{maximize}}\limits_{e(\mathbf{x})^*}  \ f_{adv}(\mathbf{x} + e(\mathbf{x}))</script><script type="math/tex; mode=display">
-subject\ to \ ||e(\mathbf{x})||_0 \leq d</script><p>上式中的d取较小的实数值，用来表示被更改的输入图像矩阵坐标轴的数量（即被选中的像素值个数）。除单像素攻击场景外，作者还实验了3像素和5像素攻击。此外，像素改变的程度不再加以限制，在图像较小时单点像素的更改已经实现了人眼可察觉的效果。  </p>
-<p>在确定了图像扰动个数后，对于扰动位置和扰动程度的选择，作者采用了DE方法。该方法作为一种被较早提出的遗传优化算法，具有方法简单、对目标系统的信息需求少和全局最优解搜索能力强等优势。对于其中的第二点，One-Pixel方法在攻击时只需要访问模型对输入的分类结果软标签即可。</p>
-<p>在One-Pixel Attack中，作者首先设定了n=400的候选点作为初代种群，每代的优化过程如下：  </p>
-<script type="math/tex; mode=display">
-x_i(g+1)\ = x_{r1}(g) + F(x_{r2}(g) - x_{r3}(g))</script><script type="math/tex; mode=display">
-r1 \neq r2 \neq r3</script><p>上式中的 $x_i$ 为候选结果中的一个元素，包含坐标对和RGB值，r1-r3为随机数，F为缩放因子并设定为0.5，其作用为对r2和r3对应元素取差值平均，g则为进化代际指数。每一个候选结果在产生后便于其对应祖先结果进行比较并保留较好的结果。以CIFAR-10数据集为例，初始候选点坐标选取服从U（1，32）的均值分布，RGB值服从N（$\mu$=124,$\sigma$=127）的高斯分布。  </p>
-<h2 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h2><p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/9a48a4cc61207b23f63fcb63da7ade13" alt="9a48a4cc61207b23f63fcb63da7ade13">  </p>
-<p>作者针对四种分类模型，测试了有目标攻击、无目标攻击分类准确率和置信度（COnfidence）结果，其中的置信度定义为对每一个成功的扰动，计算所有的目标类软标签概率，再除以成功扰动的总数，作为成功攻击的平均概率置信度值。   </p>
-<p>考虑到One-Pixel方法的扰动像素数量，对于相对简单的模型该方法展现了较好的攻击效果，但对如AlexNet等较为复杂的模型攻击效果出现明显下降，且对更加复杂的分类器或检测器模型该方法的攻击鲁棒性有待探究。</p>
-<p>此外作者还对不同模型和实验设置开展了多项消融实验，在此不再赘述。  </p>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>该论文较早探索了限制扰动区域的攻击效果，但由于扰动范围较小并未获取较为理想的攻击结果，DE方法相较于Grad-CAM等融合模型信息获取图像关键位置的方法在攻击机理上仍有可挖掘的空间。   </p>
-]]></content>
-      <categories>
-        <category>论文笔记</category>
-      </categories>
-      <tags>
-        <tag>笔记</tag>
-        <tag>论文</tag>
-        <tag>对抗样本</tag>
       </tags>
   </entry>
   <entry>
