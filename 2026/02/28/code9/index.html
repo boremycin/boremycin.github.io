@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="尽可能地在无法使用vscode remote-ssh的服务器上配置类ide的nvim">
+<meta property="og:type" content="article">
+<meta property="og:title" content="终端nvim配置">
+<meta property="og:url" content="http://boremycin.github.io/2026/02/28/code9/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="尽可能地在无法使用vscode remote-ssh的服务器上配置类ide的nvim">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260301153435.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/1.png">
+<meta property="article:published_time" content="2026-02-28T06:40:22.585Z">
+<meta property="article:modified_time" content="2026-03-03T06:41:55.263Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="工程开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260301153435.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2026/02/28/code9/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>终端nvim配置 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2026/02/28/code9/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          终端nvim配置
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2026-02-28 14:40:22" itemprop="dateCreated datePublished" datetime="2026-02-28T14:40:22+08:00">2026-02-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2026-03-03 14:41:55" itemprop="dateModified" datetime="2026-03-03T14:41:55+08:00">2026-03-03</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+尽可能地在无法使用vscode remote-ssh的服务器上配置类ide的nvim
+</p><br><span id="more"></span></p>
+<h1 id="动机"><a href="#动机" class="headerlink" title="动机"></a>动机</h1><p>在不久前薅到了一台双卡a800的服务器, 但<strong>非常非常非常遗憾</strong>的是这台服务器上安装了老旧的Ubuntu 18.04系统, 无法跟笔者当前的vscode版本适配, 想要通过vscode的remote-ssh使用这台服务器就需要对vscode版本进行降级或者使用别的支持远程的ide, 由于笔者还需要使用vscode高强度远程连接其他服务器, 同时这台服务器经常处于显存闲置的状态(极有可能是因为其他用户也不方便使用vscode远程), 此外笔者一直希望学习使用vim编程与开发, 因此决定在这台服务器上配置nvim, 使之满足基本的代码开发需求.</p>
+<h1 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h1><p>为了实现类现代的ide配置, 笔者选择了Neovim, 并通过Lua对其进行相应的配置, 期望的功能包括侧边栏文件树, 代码高亮和自动补全, 内置terminal终端以及对文件的快速搜索. 同时结合Vim的语法, 在写代码的过程中可以更大程度地减小对鼠标的依赖. 对于具体的各类插件配置, 则选择了LazyVim. LazyVim是基于nvim的预配置框架, 通过lazy.nvim插件管理器提供开箱即用的IDE功能,同时保持高度可定制性. 相较于在Neovim中单独配置各个插件, Lazyvim的核心优势是可以最大限度地规避各个插件之间的潜在冲突并避免了手动安装的繁琐. 我所采用的插件生态和对应的插件下所示:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>插件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LSP</td>
+<td>nvim-lspconfig</td>
+</tr>
+<tr>
+<td>LSP 安装管理</td>
+<td>mason.nvim</td>
+</tr>
+<tr>
+<td>语法树</td>
+<td>nvim-treesitter</td>
+</tr>
+<tr>
+<td>自动补全</td>
+<td>blink.cmp</td>
+</tr>
+<tr>
+<td>代码格式化</td>
+<td>conform.nvim</td>
+</tr>
+<tr>
+<td>Git 行级 diff</td>
+<td>gitsigns.nvim</td>
+</tr>
+<tr>
+<td>状态栏</td>
+<td>lualine.nvim</td>
+</tr>
+<tr>
+<td>主题</td>
+<td>tokyonight.nvim</td>
+</tr>
+<tr>
+<td>注释增强</td>
+<td>todo-comments.nvim</td>
+</tr>
+<tr>
+<td>Python venv 管理</td>
+<td>venv-selector.nvim</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>最终实现的代码界面如图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260301153435.png"style="width: 800px; height: auto;">
+</figure>
+
+<h1 id="安装过程"><a href="#安装过程" class="headerlink" title="安装过程"></a>安装过程</h1><p>安装Neovim并验证</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt update</span><br><span class="line"><span class="built_in">sudo</span> apt install -y git curl unzip build-essential</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> ~</span><br><span class="line">wget https://github.com/neovim/neovim/releases/latest/download/nvim.appimage</span><br><span class="line"><span class="built_in">chmod</span> u+x nvim.appimage</span><br><span class="line">./nvim.appimage --appimage-extract</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> squashfs-root /opt/nvim</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">ln</span> -s /opt/nvim/AppRun /usr/local/bin/nvim</span><br><span class="line"></span><br><span class="line">nvim --version</span><br></pre></td></tr></table></figure>
+<p>第二步是安装对应依赖</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install -y ripgrep fd-find nodejs npm python3-pip</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">ln</span> -s $(<span class="built_in">which</span> fdfind) /usr/bin/fd</span><br></pre></td></tr></table></figure>
+<p>接着安装LazyVim</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mv</span> ~/.config/nvim ~/.config/nvim.bak</span><br><span class="line"><span class="built_in">mv</span> ~/.local/share/nvim ~/.local/share/nvim.bak</span><br><span class="line"></span><br><span class="line">git <span class="built_in">clone</span> https://github.com/LazyVim/starter ~/.config/nvim</span><br><span class="line"><span class="built_in">rm</span> -rf ~/.config/nvim/.git</span><br></pre></td></tr></table></figure>
+<p>然后只需要启动nvim并等待插件的自动安装即可. 此外需要额外启用Python模块, 编辑<code>~/.config/nvim/lazyvim.json</code>并向其中写入以下内容:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;extras&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="string">&quot;lazyvim.plugins.extras.lang.python&quot;</span></span><br><span class="line">  <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>通过lazyvim的默认插件即可实现绝大部分的IDE功能. </p>
+<h1 id="问题解决-无法使用粘贴板"><a href="#问题解决-无法使用粘贴板" class="headerlink" title="问题解决: 无法使用粘贴板"></a>问题解决: 无法使用粘贴板</h1><p>我在使用当前nvim时遇到的一个主要的问题是无法将远程服务器中的内容复制到本地, 虽然nvim提供了鼠标右键菜单并支持<code>copy</code>选项, 但由于服务器本身是docker容器的原因常用的x11等服务无法正常运行, 这对调试代码造成了极大的困扰(但粘贴选项是支持的)了.</p>
+<p>在尝试复制服务器中的代码内容时发生以下报错:<br><figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">clipboard:</span> No provider. <span class="keyword">Try</span> <span class="string">&quot;:checkhealth&quot;</span> <span class="built_in">or</span> <span class="string">&quot;:h clipboard&quot;</span></span><br></pre></td></tr></table></figure><br>该问题发生的主要原因是当前的Neovim找不到系统的剪贴板接口. 解决该问题需要安装X11 clipboard工具. 然而, 由于所使用的服务器类似docker容器, 直接下载<code>xclip</code>也无法使用剪贴板, 更合适的方案是在LazyVim中配置OSC52, 使远程SSH复制内容自动同步到本地剪贴板. 然而, 由于学校网络的原因, 当前服务器无法访问GitHub, 测试的多个镜像网站也都无法正常访问. 因此只能手动下载osc52的repo内容为zip, 解压缩后整理成git clone后的文件树排布, 然后尝试手动将文件复制到lazyvim的插件路径下. 这里的主要问题是lazyvim在进入nvim后会自动下载osc52的repo, 最终的解决思路是在复制的osc52文件夹下手动创建空的<code>.git</code>, 具体的操作步骤如下:</p>
+<p>首先下载对应repo并整理成git clone的相应文件树分布, 项目地址为<a target="_blank" rel="noopener" href="https://github.com/ojroques/nvim-osc52">https://github.com/ojroques/nvim-osc52</a>, 接着将其放置于对应的路径下:<code>~/.local/share/nvim/lazy/</code>, 最后将其伪装成git仓库, 进入路径<code>cd ~/.local/share/nvim/lazy/nvim-osc52</code>, 接着执行git初始化:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git init</span><br><span class="line">git add .</span><br><span class="line">git commit -m <span class="string">&quot;manual install&quot;</span></span><br></pre></td></tr></table></figure>
+<p>此外, 还需要修改Lazyvim的相应配置以实现对手动复制的模块的识别. 在<code>~/.config/nvim/lua/plugins/</code>路径下创建<code>osc52.lua</code>文件并写入以下内容:</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> &#123;</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="string">&quot;ojroques/nvim-osc52&quot;</span>,</span><br><span class="line">    <span class="comment">-- 【关键修改 1】：指定本地路径，防止 lazy 联网同步覆盖你的手动操作</span></span><br><span class="line">    dir = vim.fn.stdpath(<span class="string">&quot;data&quot;</span>) .. <span class="string">&quot;/lazy/nvim-osc52&quot;</span>,</span><br><span class="line">    <span class="comment">-- 【关键修改 2】：标记为开发模式，进一步禁止 lazy 自动管理这个目录</span></span><br><span class="line">    dev = <span class="literal">true</span>,</span><br><span class="line">    <span class="built_in">config</span> = <span class="function"><span class="keyword">function</span><span class="params">()</span></span></span><br><span class="line">      <span class="built_in">require</span>(<span class="string">&quot;osc52&quot;</span>).setup(&#123;</span><br><span class="line">        max_length = <span class="number">0</span>,</span><br><span class="line">        silent = <span class="literal">true</span>,</span><br><span class="line">        trim = <span class="literal">false</span>,</span><br><span class="line">      &#125;)</span><br><span class="line"></span><br><span class="line">      <span class="comment">-- 使用系统剪贴板时走 OSC52</span></span><br><span class="line">      vim.keymap.set(<span class="string">&quot;n&quot;</span>, <span class="string">&quot;&lt;leader&gt;c&quot;</span>, <span class="built_in">require</span>(<span class="string">&quot;osc52&quot;</span>).copy_operator, &#123; expr = <span class="literal">true</span> &#125;)</span><br><span class="line">      vim.keymap.set(<span class="string">&quot;v&quot;</span>, <span class="string">&quot;&lt;leader&gt;c&quot;</span>, <span class="built_in">require</span>(<span class="string">&quot;osc52&quot;</span>).copy_visual)</span><br><span class="line"></span><br><span class="line">      <span class="comment">-- 让 &quot;+y 自动走 osc52</span></span><br><span class="line">      <span class="comment">-- 修复：将 require(&quot;osc52&quot;).copy 放入匿名函数，防止加载顺序问题</span></span><br><span class="line">      vim.g.clipboard = &#123;</span><br><span class="line">        name = <span class="string">&quot;osc52&quot;</span>,</span><br><span class="line">        copy = &#123;</span><br><span class="line">          [<span class="string">&quot;+&quot;</span>] = <span class="function"><span class="keyword">function</span><span class="params">(lines, regtype)</span></span> <span class="built_in">require</span>(<span class="string">&quot;osc52&quot;</span>).copy(<span class="built_in">table</span>.<span class="built_in">concat</span>(<span class="built_in">lines</span>, <span class="string">&quot;\n&quot;</span>)) <span class="keyword">end</span>,</span><br><span class="line">          [<span class="string">&quot;*&quot;</span>] = <span class="function"><span class="keyword">function</span><span class="params">(lines, regtype)</span></span> <span class="built_in">require</span>(<span class="string">&quot;osc52&quot;</span>).copy(<span class="built_in">table</span>.<span class="built_in">concat</span>(<span class="built_in">lines</span>, <span class="string">&quot;\n&quot;</span>)) <span class="keyword">end</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        paste = &#123;</span><br><span class="line">          [<span class="string">&quot;+&quot;</span>] = <span class="function"><span class="keyword">function</span><span class="params">()</span></span></span><br><span class="line">            <span class="keyword">return</span> &#123; vim.fn.getreg(<span class="string">&#x27;&quot;&#x27;</span>), vim.fn.getregtype(<span class="string">&#x27;&quot;&#x27;</span>) &#125;</span><br><span class="line">          <span class="keyword">end</span>,</span><br><span class="line">          [<span class="string">&quot;*&quot;</span>] = <span class="function"><span class="keyword">function</span><span class="params">()</span></span></span><br><span class="line">            <span class="keyword">return</span> &#123; vim.fn.getreg(<span class="string">&#x27;&quot;&#x27;</span>), vim.fn.getregtype(<span class="string">&#x27;&quot;&#x27;</span>) &#125;</span><br><span class="line">          <span class="keyword">end</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">      &#125;</span><br><span class="line">    <span class="keyword">end</span>,</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>完成上述步骤后即可实现使用右键进行内容的复制, 效果如下:</p>
+<p><img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/1.png" alt="1"></p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>人生苦短, 我用VIM.</p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/01/27/paper12/" rel="prev" title="目标检测中的虚警问题调研">
+      <i class="fa fa-chevron-left"></i> 目标检测中的虚警问题调研
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8A%A8%E6%9C%BA"><span class="nav-number">1.</span> <span class="nav-text">动机</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%86%E5%A4%87"><span class="nav-number">2.</span> <span class="nav-text">准备</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">安装过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3-%E6%97%A0%E6%B3%95%E4%BD%BF%E7%94%A8%E7%B2%98%E8%B4%B4%E6%9D%BF"><span class="nav-number">4.</span> <span class="nav-text">问题解决: 无法使用粘贴板</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">108k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:16</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
