@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="SAR有源物理域攻击和无源物理域攻击的论文笔记">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SAR物理域对抗攻击论文笔记">
+<meta property="og:url" content="http://boremycin.github.io/2026/03/14/paper13/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="SAR有源物理域攻击和无源物理域攻击的论文笔记">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260309195508.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/range_doppler_image_data.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313204528.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313212551.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313213420.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/1.gif">
+<meta property="og:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260309191725.png">
+<meta property="article:published_time" content="2026-03-14T07:37:36.603Z">
+<meta property="article:modified_time" content="2026-03-14T07:42:05.600Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="笔记">
+<meta property="article:tag" content="论文">
+<meta property="article:tag" content="对抗样本">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260309195508.png">
+
+<link rel="canonical" href="http://boremycin.github.io/2026/03/14/paper13/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>SAR物理域对抗攻击论文笔记 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2026/03/14/paper13/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SAR物理域对抗攻击论文笔记
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-03-14 15:37:36 / 修改时间：15:42:05" itemprop="dateCreated datePublished" datetime="2026-03-14T15:37:36+08:00">2026-03-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">论文笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>20 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+SAR有源物理域攻击和无源物理域攻击的论文笔记
+</p><br><span id="more"></span></p>
+<h2 id="简要介绍"><a href="#简要介绍" class="headerlink" title="简要介绍"></a>简要介绍</h2><p>这两篇论文同属于北京化工大学张帆老师课题组, 分别结合的无源角反和有源干扰机进行对抗扰动的物理域实际部署. 需要注意的是这两篇论文都没有实现真正的原型机或提出切实准确的能够用于复现的方法框架. 此外, 两篇论文最大的共同点是都利用了遗传算法(差分进化算法和粒子群优化算法)完成扰动生成的优化过程, 主要借此机会梳理所用的遗传算法的具体细节, 但笔者对这项技术在当前的结合DNN(尤其是可以获取模型梯度信息)的优化场景下的有效性和适用性持强烈的否定态度. 最后, 这两篇论文分别是发表在雷达学报的<em>基于有源干扰机的SAR智能识别对抗方法</em>和发表在JSTAR上的<em>A Physically Realizable Adversarial Attack Method Against SAR Target Recognization Model</em>.</p>
+<h2 id="有源干扰"><a href="#有源干扰" class="headerlink" title="有源干扰"></a>有源干扰</h2><p>论文提出SAR回波信号模型可以别简化为目标散射系数与SAR系统的冲激响应的卷积, 即:</p>
+<script type="math/tex; mode=display">
+s(t, \tau) =\sigma(t, \tau) \otimes h(t, \tau) \tag{1}</script><p>其中$t$与$\tau$分别代表方位向时间和距离向时间, $s(t, \tau)$是SAR回波信号, $\sigma(\cdot)$和$h(\cdot)$分别代表目标散射系数和SAR系统的冲击响应函数, 无源场景下信号域对抗扰动的优化目标则是$\sigma(t, \tau)$, 使对应的成像结果与数字域的对抗样本尽可能一致; 对于有源干扰场景, 由于理想情况下干扰机的信号可以直接与SAR系统的原始回波信号叠加, 实现对数据的任意纂改, 其对应的优化目标则变为:</p>
+<script type="math/tex; mode=display">
+s_{adv}(t, \tau) = s(t, \tau) + \epsilon \tag{2}</script><p>作者提出的扰动信号生成的整体流程如下图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260309195508.png"  style="width: auto; height: 400px;">
+</figure>
+
+<p>干扰过程的优化目标被设定为$r = [\Phi, p, m, k_E]$, 对应分段相位向量, 初始干扰范围, 位置偏移向量, 能量缩放因子. 此处作者选用了余弦幅度加权多相位分段调制干扰技术来生成对抗扰动信号. 对于原始的回波数据, 首先通过矩形窗函数进行分段处理, 随后对每个分段进行随机相位调制, 即通过引入随机相位偏移改变分段信号的相位特性, 继而影响后续脉冲压缩过程的输出, 对于第$i$分段雷达信号的调制结果如下:</p>
+<script type="math/tex; mode=display">
+\epsilon_i(t) = \omega_i(t) rect(\frac{t}{T_r}) exp(j \pi K_r t^2) exp(j \theta_i) \tag{3}</script><p>其中的$\theta_i \in [0, 2\pi]$为第i分段对应的调制相位. 在此基础上, 通过余弦幅度加权函数处理分段信号, 进而抑制扰动信号的旁瓣, 优化信号能量的分布, 对应加权函数的数学表达如下:</p>
+<script type="math/tex; mode=display">
+\omega_{cos}(t) = \alpha + (1 -\alpha) \cos(\frac{2\pi t}{T_r}) \tag{4}</script><p>上式中$\alpha \in [0.5, 1]$是余弦系数, 取值越小对应的旁瓣抑制效果越好, 但是主瓣展宽越严重, 最终调制和加权后的信号可表示为:</p>
+<script type="math/tex; mode=display">
+\epsilon_s(t) = \sum_{i=1}^N \epsilon_i(t) \cdot \sum_{j=1}^N[\alpha + (1-\alpha) \cdot \cos (2 \pi \frac{t - (a_{j+1} + a_j) / 2}{a_{j+1} - a_j})] \tag{5}</script><p>由于无论是雷达发射信号还是接收机处理信号, 信号在时间或频率域中总是有限长的, 而在对信号用矩形窗进行截断时, 由于矩形窗函数的FFT结果是sinc函数, 为包含一个主峰和无数振荡波纹的函数, 因此会给压缩后的信号峰值两侧带来旁瓣. 以SAR图像为例, 物理表现为强目标周围的十字星或者拖尾假影, 效果如下图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/range_doppler_image_data.png"  style="width: auto; height: 400px;">
+</figure>
+
+<p>为了抑制旁瓣, 需要对信号幅度进行平滑处理, 即幅度加权, 广义的余弦加权函数由一系列余弦项组成(两项窗最为常见), 数学表达形式如下:</p>
+<script type="math/tex; mode=display">
+w(n) = \sum_{m=0}^{M-1}(-1)^m a_m \cos (\frac{2\pi mn}{N}) \tag{6}</script><p>SAR接收机接收到扰动信号并去除载频后获得的干扰机回波信号的数学表达如下所示:</p>
+<script type="math/tex; mode=display">
+\epsilon(t, \tau) = k_E \cdot A_0 rect(\frac{t - \eta}{T_r}) \cdot rect(\frac{\tau - x_{J0}/v}{T_a}) \cdot \epsilon_s(t-\eta)\exp(-j \frac{4\pi R_J(\tau)}{\lambda}) \tag{7}</script><p>上式中$T_a$为合成孔径时间, $k_E$为对抗扰动信号的能量缩放因子, $A_0(t, \tau)$是$m \times m$大小的扰动信号模板, $\eta$为$2R_j(\tau)/c$, 是方位向扰动信号的时延. 将生成的扰动信号与原始回波融合可得到用于生成对抗样本的回波信号:</p>
+<script type="math/tex; mode=display">
+s^{adv}(t, \tau) = s(t, \tau) + \epsilon(t, \tau) \tag{8}</script><p>本文采用了CS(Chirp Scaling)成像算法, 规避RDA算法中复杂的卷积, 将SAR Image Formation过程限定为若干次的CS因子相乘和FFT处理. 目标的回波信号模型表示如下:</p>
+<script type="math/tex; mode=display">
+s(t, \tau) \sigma_0 \cdot \omega_a \cdot \omega_r \cdot \exp(-j \frac{4\pi R_M(\tau)}{\lambda}) \cdot \exp(j \pi K_r(t - \frac{2R_T(\tau)}{c})^2) \tag{9}</script><p>上式中$\sigma_0$为目标的后向散射系数, $\omega_a$和$\omega_r$分别为方位向和距离向的包络函数, $R_M(\tau)$为方位向$\tau$时刻平台和目标的距离, 表示如下:</p>
+<script type="math/tex; mode=display">
+R_M(\tau) = \sqrt{y_{M0}^2 + (v\tau - x_{M0})^2 + H_p^2} \tag{10}</script><p>最终, 作者将$[\Phi,\mathbf{p},m, k_E]$作为扰动向量$\mathbf{r}$, 通过输入由处理干扰回波信号后获得的对抗样本到模型中, 计算损失函数并反馈给DE算法, 计算新的扰动向量. 至此, 作者的算法闭环可以大致总结为原始MSTAR图像-&gt;仿真回波-&gt;设定扰动向量-&gt;CSA成像-&gt;目标模型-&gt;更新扰动向量-&gt;新回波, 但在这个过程中最大的问题是如何实现MSTAR图像的对应回波的获取以及CSA成像算法的参数设定, 这里应该是本文最核心的部分, 却被作者忽略, 笔者尝试设定不同的参数进行复现, 但都以失败告终. </p>
+<p>同时, 作者需要模型的损失函数却拒绝使用模型的反向传播获得的梯度信息, 极度不符合实际的攻防场景. CNN模型构建的高维空间中使用遗传算法注定是低效且随机的, 并不能对模型和数据之间的拟合状态有更深的认知和信息利用. </p>
+<h2 id="无源干扰"><a href="#无源干扰" class="headerlink" title="无源干扰"></a>无源干扰</h2><p>本文的核心思想是将sticker和scatters结合, 分别在目标和背景两部分放置不同形式的扰动, 目标部分放置精细的sticker, 背景部分放置对成像结果影响更明显的角反, 并结合Grad-CAM和PSO算法优化对应的放置位置.  </p>
+<p>对于sticker部分的优化, 其核心是类似FGSM的梯度上升, 将CAM的热力图结果中对模型预测影响最大的部分作为sticker的部署位置, 此外作者还将扰动通过$tanh(\cdot)$进行了映射. 需要特别注意的是, 这是著名的CW对抗算法的核心思想, 但作者并没有明确的引用和说明.</p>
+<p>对于背景角反扰动的优化过程, 其流程大致如下图所示. 首先使用simple scattering model(论文的表达, 实际应该对应简化<strong>点</strong>散射模型)对输入图像进行处理获得散点图像和强度图像(Intensity Image), 接着使用PSO算法获取放置这些散点图像的优化位置, 旨在实现更理想的攻击效果. 为了使强散点图像更接近真实SAR场景, 在使用simple scattering model时首先计算后向散射系数(backscatter coefficient):</p>
+<script type="math/tex; mode=display">
+\sigma = \frac{4 \pi a^4}{3 \lambda^2} \tag{11}</script><p>该后向散射系数的实质是Rayleigh Scattering Approximation, 适用于目标尺寸远小于雷达波长的情况. 该系数反映了目标反射雷达能量的能力, 其中的$a$为散射体半径, $\lambda$为雷达波长, $\sigma$为后向散射截面积.</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313204528.png"  style="width: auto; height: 400px;">
+</figure>
+
+<p>在计算上述系数后,作者会进一步仿真强散射点的原始回波并根据MSTAR数据的相关参数使回波更真实, 更接近成像场景, 接着通过RAD算法将回波转换为强散点图像. 作者选择使用PSO遗传算法进行对抗优化, 对于每个粒子的速度和位置的优化过程如下:</p>
+<script type="math/tex; mode=display">
+v_k(n+1) = u \cdot v_k(n) + c_1 \cdot r_1 \cdot (pbest_k - l_k(n)) + c_2 \cdot r_2 \cdot (gbest - l_k(n)) \tag{12}</script><script type="math/tex; mode=display">
+l_k(n+1) = l_k(n) + v_k(n+1) \tag{13}</script><p>最终, 算法的伪代码如下所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313212551.png"  style="width: 500px; height: auto;">
+</figure>
+
+
+<p>对于simple scatter model, 初步的复现代码和对应的可视化结果如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> cv2</span><br><span class="line"><span class="keyword">from</span> scipy.ndimage <span class="keyword">import</span> maximum_filter</span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> mpl_toolkits.mplot3d <span class="keyword">import</span> Axes3D </span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">extract_scatter_image</span>(<span class="params">img, out_size=<span class="number">24</span>, num_scatter=<span class="number">10</span></span>):</span><br><span class="line">    img = img.astype(np.float32)</span><br><span class="line">    img = img / (np.<span class="built_in">max</span>(img) + <span class="number">1e-8</span>)</span><br><span class="line"></span><br><span class="line">    img_log = np.log1p(img)</span><br><span class="line"></span><br><span class="line">    local_max = maximum_filter(img_log, size=<span class="number">5</span>)</span><br><span class="line">    peaks = (img_log == local_max)</span><br><span class="line"></span><br><span class="line">    coords = np.argwhere(peaks)</span><br><span class="line"></span><br><span class="line">    intensities = img_log[coords[:,<span class="number">0</span>], coords[:,<span class="number">1</span>]]</span><br><span class="line">    idx = np.argsort(-intensities)</span><br><span class="line">    coords = coords[idx][:num_scatter]</span><br><span class="line"></span><br><span class="line">    scatter_img = np.zeros((out_size, out_size))</span><br><span class="line">    intensity_img = np.zeros((out_size, out_size))</span><br><span class="line"></span><br><span class="line">    scale = out_size / img.shape[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> y, x <span class="keyword">in</span> coords:</span><br><span class="line"></span><br><span class="line">        ny = <span class="built_in">int</span>(y * scale)</span><br><span class="line">        nx = <span class="built_in">int</span>(x * scale)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ny &gt;= out_size:</span><br><span class="line">            ny = out_size - <span class="number">1</span></span><br><span class="line">        <span class="keyword">if</span> nx &gt;= out_size:</span><br><span class="line">            nx = out_size - <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        scatter_img[ny, nx] = <span class="number">1</span></span><br><span class="line">        intensity_img[ny, nx] = img_log[y, x]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> scatter_img, intensity_img</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">img = cv2.imread(<span class="string">&quot;BRDM2.png&quot;</span>, <span class="number">0</span>)  <span class="comment"># 128×128</span></span><br><span class="line">scatter, intensity = extract_scatter_image(img)</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">1</span>)</span><br><span class="line">plt.title(<span class="string">&quot;SAR&quot;</span>)</span><br><span class="line">plt.imshow(img, cmap=<span class="string">&quot;gray&quot;</span>) <span class="comment">#type: ignore</span></span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>)</span><br><span class="line">plt.title(<span class="string">&quot;Scatter Image&quot;</span>)</span><br><span class="line">plt.imshow(scatter, cmap=<span class="string">&quot;gray&quot;</span>)</span><br><span class="line">plt.subplot(<span class="number">1</span>,<span class="number">3</span>,<span class="number">3</span>)</span><br><span class="line">plt.title(<span class="string">&quot;Intensity Image&quot;</span>)</span><br><span class="line">plt.imshow(intensity, cmap=<span class="string">&quot;plasma&quot;</span>)</span><br><span class="line">plt.show()</span><br></pre></td></tr></table></figure>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260313213420.png"  style="width: auto; height: 200px;">
+</figure>
+
+
+<h2 id="遗传算法"><a href="#遗传算法" class="headerlink" title="遗传算法"></a>遗传算法</h2><h3 id="差分进化算法"><a href="#差分进化算法" class="headerlink" title="差分进化算法"></a>差分进化算法</h3><p>差分进化算法(Differental Evolution)是一种元启发(metaheuristic)的方法, 特点是对目标优化问题进行较少的假设, 可以在较大的搜索空间中获取候选结果, 同时带来的显著局限是DE算法无法保证结果是全局最优的. DE算法优化更新的核心步骤是维持一个候选结果的中去, 通过组合已存在的候选结果来获得新的结果, 在这个过程中优化问题本身作为黑盒处理, 仅提供对候选结果质量的查询, 而无需提供梯度信息. </p>
+<figure align="center">
+  <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/1.gif" alt="1" />
+</figure>
+
+<p>在算法实现过程中, 设$f: \mathbb{R}^n \rightarrow \mathbb{R}$为待优化的目标函数, 优化的目标参数集合可以视为实数向量, 函数的输出是单一实数, 其对应的梯度未知. 设$x \in \mathbb{R}^n$是一个搜索空间中的一个候选结果, DE算法的优化过程大致如下:</p>
+<ul>
+<li>设定参数, $NP \geq 4, CR \in [0,1], F \in [0, 2]$<ul>
+<li>NP: 种群大小, 即候选结果的数量</li>
+<li>CR crossover possibility</li>
+<li>F 差分权重(differential weight)</li>
+<li>通常采用的设定为$NP = 10n, CR = 0.9, F = 0.8$</li>
+</ul>
+</li>
+<li>初始化所有的候选结果$\mathbf{x}$</li>
+<li>在满足终止条件(循环次数或最优结果的拟合程度)前重复以下步骤:<ul>
+<li>从当前种群中随机选择三个候选值$\mathbf{a}, \mathbf{b}, \mathbf{c}$, 这三个值和初始化的$\mathbf{x}$彼此之间互不相同. </li>
+<li>从$R \in \{1, …, n\}$中随机选择一个下标, 其中n是搜索空间的维度</li>
+<li>计算候选结果的潜在新组合$\mathbf{y} = [y_1,…, y_n]$, 计算方法如下:<ul>
+<li>对于$i \in \{1,…, n \}$, 获取对应的服从均匀分布的随机数$r_i \sim U(0,1)$</li>
+<li>如果$r_i &lt; CR$ 或者$i = R$, 设定$y_i = a_i + F \times (b_i - c_i)$ 否则 $y_i = x_i$, 其中R的作用是对更新的候选结果至少保留一个变异参数</li>
+</ul>
+</li>
+<li>如果$f(\mathbf{y} \leq \mathbf{x})$, 用$\mathbf{y}$替换$\mathbf{x}$</li>
+</ul>
+</li>
+<li>从更新结束后的所有候选结果中选出最优结果.</li>
+</ul>
+<p>接下来通过经典的测试全局优化算法性能的Rastrigin函数进行DE算法的复现. Rastrigin函数是一个非凸函数, 其特点是包含大量的局部极小值点, 对应的数学定义如下:</p>
+<script type="math/tex; mode=display">
+f(\mathbf{x}) = A \cdot n + \sum_{i=1}^n[x_i^2 - A \cos(2 \pi x_i)] \tag{14}</script><p>函数的可视化效果如下图所示:</p>
+<figure style="text-align: center;">
+    <img src="https://raw.githubusercontent.com/boremycin/ImageBed/master/20260309191725.png"  style="width: auto; height: 400px;">
+</figure>
+
+<p>简单的复现代码和运行结果如下:<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">rastrigin</span>(<span class="params">x</span>):</span><br><span class="line">    A = <span class="number">10</span></span><br><span class="line">    <span class="keyword">return</span> A * <span class="built_in">len</span>(x) + np.<span class="built_in">sum</span>(x**<span class="number">2</span> - A * np.cos(<span class="number">2</span> * np.pi * x))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">differential_evolution</span>(<span class="params">func, bounds, pop_size=<span class="number">50</span>, mut=<span class="number">0.8</span>, crossp=<span class="number">0.7</span>, its=<span class="number">1000</span></span>):</span><br><span class="line">    dimensions = <span class="built_in">len</span>(bounds)</span><br><span class="line">    pop = np.random.rand(pop_size, dimensions)</span><br><span class="line">    min_b, max_b = np.asarray(bounds).T</span><br><span class="line">    diff = np.fabs(min_b - max_b)</span><br><span class="line">    pop_denorm = min_b + pop * diff</span><br><span class="line">    </span><br><span class="line">    fitness = np.asarray([func(ind) <span class="keyword">for</span> ind <span class="keyword">in</span> pop_denorm])</span><br><span class="line">    best_idx = np.argmin(fitness)</span><br><span class="line">    best = pop_denorm[best_idx]</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(its):</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(pop_size):</span><br><span class="line">            idxs = [idx <span class="keyword">for</span> idx <span class="keyword">in</span> <span class="built_in">range</span>(pop_size) <span class="keyword">if</span> idx != j]</span><br><span class="line">            a, b, c = pop[np.random.choice(idxs, <span class="number">3</span>, replace=<span class="literal">False</span>)]</span><br><span class="line"></span><br><span class="line">            mutant = np.clip(a + mut * (b - c), <span class="number">0</span>, <span class="number">1</span>)</span><br><span class="line">            </span><br><span class="line">            cross_points = np.random.rand(dimensions) &lt; crossp</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> np.<span class="built_in">any</span>(cross_points):</span><br><span class="line">                cross_points[np.random.randint(<span class="number">0</span>, dimensions)] = <span class="literal">True</span></span><br><span class="line">            </span><br><span class="line">            trial = np.where(cross_points, mutant, pop[j])</span><br><span class="line">            </span><br><span class="line">            trial_denorm = min_b + trial * diff</span><br><span class="line">            f = func(trial_denorm)</span><br><span class="line">            <span class="keyword">if</span> f &lt; fitness[j]:</span><br><span class="line">                fitness[j] = f</span><br><span class="line">                pop[j] = trial</span><br><span class="line">                <span class="keyword">if</span> f &lt; fitness[best_idx]:</span><br><span class="line">                    best_idx = j</span><br><span class="line">                    best = trial_denorm</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> i % <span class="number">100</span> == <span class="number">0</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;Iteration <span class="subst">&#123;i&#125;</span>: Best fitness = <span class="subst">&#123;fitness[best_idx]&#125;</span>&quot;</span>)</span><br><span class="line">            </span><br><span class="line">    <span class="keyword">return</span> best, fitness[best_idx]</span><br><span class="line"></span><br><span class="line">bounds = [(-<span class="number">5.12</span>, <span class="number">5.12</span>)] * <span class="number">10</span></span><br><span class="line">best_params, best_score = differential_evolution(rastrigin, bounds, pop_size=<span class="number">30</span>, its=<span class="number">500</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;best agent: <span class="subst">&#123;best_params&#125;</span>\n best result: <span class="subst">&#123;best_score&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure></p>
+<p>运行后的结果如下:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Iteration 0: Best fitness = 131.18888379715838</span><br><span class="line">Iteration 100: Best fitness = 47.12929028797117</span><br><span class="line">Iteration 200: Best fitness = 29.335750840363247</span><br><span class="line">Iteration 300: Best fitness = 29.335750840363247</span><br><span class="line">Iteration 400: Best fitness = 23.47984546485553</span><br><span class="line"></span><br><span class="line">best agent: [ 9.81505410e-01 -1.98237823e+00 -9.75046970e-02  1.91025963e+00</span><br><span class="line">  4.05786922e-02 -2.00510353e+00  1.43435642e-03 -1.08143019e+00</span><br><span class="line"> -1.06084210e+00  8.98173764e-01]</span><br><span class="line"></span><br><span class="line">best result: 23.47984546485553</span><br></pre></td></tr></table></figure></p>
+<h3 id="粒子群算法"><a href="#粒子群算法" class="headerlink" title="粒子群算法"></a>粒子群算法</h3><p>粒子群优化算法（Particle Swarm Optimization, PSO）是一种模拟鸟群觅食行为的元启发（metaheuristic）方法。其核心逻辑在于通过个体间的协作与信息共享来引导整个种群在较大的搜索空间内寻找候选解。与DE算法类似，PSO对优化问题本身进行黑盒处理，不依赖目标函数的梯度信息，但也面临着在高维非凸空间中容易陷入局部最优且无法保证全局收敛的显著局限。PSO维持一个由多个“粒子”组成的种群，每个粒子代表一个候选结果，并通过动态调整位置与速度来演化。</p>
+<p>在算法实现过程中，设 $f: \mathbb{R}^n \rightarrow \mathbb{R}$ 为待优化的目标函数。每个粒子包含两个实数向量：位置 $\mathbf{x} \in \mathbb{R}^n$ 和速度 $\mathbf{v} \in \mathbb{R}^n$。此外，算法需记录粒子自身的历史最优位置 $\mathbf{pbest}$ 以及整个种群的全局最优位置 $\mathbf{gbest}$。PSO的优化过程大致如下：</p>
+<ul>
+<li>设定参数，$N \geq 20, w \in [0, 1], c_1, c_2 \in [0, 2]$<ul>
+<li>N: 种群大小（粒子数量）</li>
+<li>$w$: 惯性权重（Inertia Weight），用于控制前一时刻速度对当前的影响</li>
+<li>$c_1, c_2$: 加速常数或学习因子（Cognitive and Social Factors）</li>
+<li>通常设定为 $w=0.8, c_1=1.5, c_2=1.5$</li>
+</ul>
+</li>
+<li>初始化所有粒子的位置 $\mathbf{x}$ 和速度 $\mathbf{v}$，并初始化其 $\mathbf{pbest}$ 和 $\mathbf{gbest}$</li>
+<li>在满足终止条件前重复以下步骤：<ul>
+<li>对于每个粒子，生成两个独立的随机向量 $r_1, r_2 \sim U(0, 1)$</li>
+<li>更新粒子的速度：$\mathbf{v} = w\mathbf{v} + c_1 r_1 (\mathbf{pbest} - \mathbf{x}) + c_2 r_2 (\mathbf{gbest} - \mathbf{x})$</li>
+<li>更新粒子的位置：$\mathbf{x} = \mathbf{x} + \mathbf{v}$，通常需对位置和速度进行边界裁剪（Clipping）</li>
+<li>计算新的适应度 $f(\mathbf{x})$：<ul>
+<li>如果 $f(\mathbf{x}) &lt; f(\mathbf{pbest})$，更新个体最优 $\mathbf{pbest} = \mathbf{x}$</li>
+<li>如果 $f(\mathbf{x}) &lt; f(\mathbf{gbest})$，更新全局最优 $\mathbf{gbest} = \mathbf{x}$</li>
+</ul>
+</li>
+<li>从更新结束后的全局最优位置 $\mathbf{gbest}$ 中得出最终结果。</li>
+</ul>
+</li>
+</ul>
+<p>同样利用 Rastrigin函数 对PSO算法进行复现。由于该函数具有极其密集的局部极小值点，PSO在迭代后期往往会出现“早熟”现象，需要通过调整惯性权重或粒子规模来增强全局搜索能力, 简单的代码复现结果如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">rastrigin</span>(<span class="params">x</span>):</span><br><span class="line">    A = <span class="number">10</span></span><br><span class="line">    <span class="keyword">return</span> A * <span class="built_in">len</span>(x) + np.<span class="built_in">sum</span>(x**<span class="number">2</span> - A * np.cos(<span class="number">2</span> * np.pi * x))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">pso_optimization</span>(<span class="params">func, bounds, pop_size=<span class="number">50</span>, w=<span class="number">0.8</span>, c1=<span class="number">1.5</span>, c2=<span class="number">1.5</span>, its=<span class="number">1000</span></span>):</span><br><span class="line">    dimensions = <span class="built_in">len</span>(bounds)</span><br><span class="line">    min_b, max_b = np.asarray(bounds).T</span><br><span class="line">    </span><br><span class="line">    pos = min_b + np.random.rand(pop_size, dimensions) * (max_b - min_b)</span><br><span class="line">    vel = np.zeros((pop_size, dimensions))</span><br><span class="line">    </span><br><span class="line">    pbest_pos = np.copy(pos)</span><br><span class="line">    pbest_fitness = np.array([func(ind) <span class="keyword">for</span> ind <span class="keyword">in</span> pos])</span><br><span class="line">    gbest_idx = np.argmin(pbest_fitness)</span><br><span class="line">    gbest_pos = np.copy(pbest_pos[gbest_idx])</span><br><span class="line">    gbest_fitness = pbest_fitness[gbest_idx]</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(its):</span><br><span class="line">        <span class="comment"># update velocity and position</span></span><br><span class="line">        r1, r2 = np.random.rand(pop_size, dimensions), np.random.rand(pop_size, dimensions)</span><br><span class="line">        vel = w * vel + c1 * r1 * (pbest_pos - pos) + c2 * r2 * (gbest_pos - pos)</span><br><span class="line">        pos = pos + vel</span><br><span class="line">        </span><br><span class="line">        pos = np.clip(pos, min_b, max_b)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(pop_size):</span><br><span class="line">            curr_fitness = func(pos[j])</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> curr_fitness &lt; pbest_fitness[j]:</span><br><span class="line">                pbest_fitness[j] = curr_fitness</span><br><span class="line">                pbest_pos[j] = np.copy(pos[j])</span><br><span class="line">                </span><br><span class="line">                <span class="keyword">if</span> curr_fitness &lt; gbest_fitness:</span><br><span class="line">                    gbest_fitness = curr_fitness</span><br><span class="line">                    gbest_pos = np.copy(pos[j])</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> i % <span class="number">100</span> == <span class="number">0</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;Iteration <span class="subst">&#123;i&#125;</span>: Best fitness = <span class="subst">&#123;gbest_fitness&#125;</span>&quot;</span>)</span><br><span class="line">            </span><br><span class="line">    <span class="keyword">return</span> gbest_pos, gbest_fitness</span><br><span class="line"></span><br><span class="line">bounds = [(-<span class="number">5.12</span>, <span class="number">5.12</span>)] * <span class="number">10</span></span><br><span class="line">best_params, best_score = pso_optimization(rastrigin, bounds, pop_size=<span class="number">30</span>, its=<span class="number">500</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;best agent: <span class="subst">&#123;best_params&#125;</span>\n best result: <span class="subst">&#123;best_score&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Iteration 0: Best fitness = 113.56381213622413</span><br><span class="line">Iteration 100: Best fitness = 16.57112536953578</span><br><span class="line">Iteration 200: Best fitness = 10.876539675696648</span><br><span class="line">Iteration 300: Best fitness = 6.284962764665835</span><br><span class="line">Iteration 400: Best fitness = 5.9926198584910395</span><br><span class="line">best agent: [ 1.98994666e+00 -1.21917480e-04 -7.95126273e-05  1.07830982e-04</span><br><span class="line"> -9.90205539e-05  9.94995637e-01 -1.28149953e-05  9.95042170e-01</span><br><span class="line"> -2.21481588e-04  2.77073171e-04]</span><br><span class="line">best result: 5.9697846447392635</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>唬人的论文题目加上低质量的论文内容, 直接给人看力竭了.</p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%AC%94%E8%AE%B0/" <i class="fa fa-tag"></i> 笔记</a>
+              <a href="/tags/%E8%AE%BA%E6%96%87/" <i class="fa fa-tag"></i> 论文</a>
+              <a href="/tags/%E5%AF%B9%E6%8A%97%E6%A0%B7%E6%9C%AC/" <i class="fa fa-tag"></i> 对抗样本</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/02/28/code9/" rel="prev" title="终端nvim配置">
+      <i class="fa fa-chevron-left"></i> 终端nvim配置
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E8%A6%81%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">简要介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%89%E6%BA%90%E5%B9%B2%E6%89%B0"><span class="nav-number">2.</span> <span class="nav-text">有源干扰</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A0%E6%BA%90%E5%B9%B2%E6%89%B0"><span class="nav-number">3.</span> <span class="nav-text">无源干扰</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%97%E4%BC%A0%E7%AE%97%E6%B3%95"><span class="nav-number">4.</span> <span class="nav-text">遗传算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%AE%E5%88%86%E8%BF%9B%E5%8C%96%E7%AE%97%E6%B3%95"><span class="nav-number">4.1.</span> <span class="nav-text">差分进化算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B2%92%E5%AD%90%E7%BE%A4%E7%AE%97%E6%B3%95"><span class="nav-number">4.2.</span> <span class="nav-text">粒子群算法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">118k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">3:35</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
