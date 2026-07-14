@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/border-collie.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/border-collie2.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="复现并分析ViT与ConvNeXt模型">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ViT与ConvNeXt模型复现与代码解析">
+<meta property="og:url" content="http://boremycin.github.io/2026/05/26/code10/index.html">
+<meta property="og:site_name" content="Boremycin&#39;s Blog">
+<meta property="og:description" content="复现并分析ViT与ConvNeXt模型">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-05-26T12:17:49.925Z">
+<meta property="article:modified_time" content="2026-05-26T13:08:06.767Z">
+<meta property="article:author" content="Boremycin">
+<meta property="article:tag" content="工程开发">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://boremycin.github.io/2026/05/26/code10/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ViT与ConvNeXt模型复现与代码解析 | Boremycin's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Boremycin's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Boremycin's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://boremycin.github.io/2026/05/26/code10/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Boremycin">
+      <meta itemprop="description" content="There's nothing behind you.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Boremycin's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ViT与ConvNeXt模型复现与代码解析
+        </h1>
+
+        <div class="post-meta">
+          <span class="post-time">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2026-05-26 20:17:49 / 修改时间：21:08:06" itemprop="dateCreated datePublished" datetime="2026-05-26T20:17:49+08:00">2026-05-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">笔记</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>24 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><p style="text-align: center;">
+复现并分析ViT与ConvNeXt模型
+</p><br><span id="more"></span></p>
+<h1 id="ViT"><a href="#ViT" class="headerlink" title="ViT"></a>ViT</h1><p>该模型最早出自于ICLR2021的论文An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale. 由于Transformer架构自提出之后, 在NLP任务中取得了令人瞩目的提升, 成为了de-facto的标准模型. 因此, 如何在视觉任务用引入并改造Transformer架构使之更加适配二维多通道的图像数据成为研究关注的重点. 在论文中作者提出了通过patch划分将二维的图像数据转换为一维的序列数据, 并进行了多种针对视觉任务的下游适配和改进, 并在大规模数据集上进行了充分的预训练和针对特定任务的下游微调. 论文的结果显示相较于以往的以ResNet为残差连接为代表的CNN架构模型, Transformer架构在视觉任务上也表现出了SOTA的性能. </p>
+<p>首先, 简单回顾一下NLP任务中的Transformer架构的原理. 在著名的Attention is All You Need的论文中, Google所给出的Attention的数学表达定义如下:</p>
+<script type="math/tex; mode=display">
+Attention(Q, K, V) = softmax(\frac{Q K^T}{\sqrt{d_k}}) V \tag{1}</script><p>上式中$Q \in R^{n \times d_k}, K \in R^{m \times d_k}, V \in R^{m \times d_v}$, 忽略softmax的话QKV的计算结果应该是维度为$n \times d_v$的矩阵. 因此可以认为Attention层的核心作用是将$n \times d_k$的序列Q编码为了新的$n \times d_v$的序列. 对于分母位置的因子$\sqrt{d_k}$, 其作用为调节内积的大小, 从而是softmax的输出满足一种更均衡的分布(而不是非0即1). 在此基础上, Google进一步提出了Multi-Head Attention的概念, 其核心是将Q, K, V通过参数矩阵进行映射后再进行Attention处理, 将该过程重复n次并进行拼接, 即实现了多头注意力的效果. 对应的架构示意图如下:</p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260518183925.png" style="width:auto; height: 500px;">
+</figure>
+
+<p>对于每个注意力头的数学表达如下:</p>
+<script type="math/tex; mode=display">
+head_i = Attention(QW_i^Q, KW_i^K, VW_i^V) \tag{2}</script><p>上式中的线性变换矩阵W的对应维度为$W_i^Q \in R^{d_k \times \tilde{d_k}}$, $W_i^K \in R^{d_k \times \tilde{d_k}}$, $W_i^V \in R^{d_v \times \tilde{d_v}}$. 然后通过直接拼接的方式获得多头注意力的计算结果, 即:</p>
+<script type="math/tex; mode=display">
+MultiHead(Q, K, V) = Concat(head_1, ..., head_h) \tag{3}</script><p>最后输出的矩阵维度为$n \times h \times \tilde{d_v}$. 通过对QKV不同矩阵来源的划分, 可以将注意力的机制大致分为QKV模式, QVV模式和VVV模式. 其中QVV模式和VVV模式分别代表两个不同集合之间的互注意力机制和同一个集合自身的自注意力机制. 但是当用VVV分别作为QKV时, 一个明显的问题是K和V不包含位置信息(将K,V打乱后计算的Attention结果仍然相同). 为了解决这个问题, Google引入了Position Embedding位置向量, 即对每个位置进行编码, 为K和V加入位置信息. 在NLP任务中, 位置向量是基于正余弦函数直接固定编码的, 对应的Position Embedding的构造公式如下:</p>
+<script type="math/tex; mode=display">
+\begin{cases}
+PE_{2i}(p) = sin(\frac{p}{10000^{2i/d_{pos}}}) \\
+PE_{2i+1}(p) = cos(\frac{p}{10000^{2i / d_{pos}}})
+\end{cases} \tag{4}</script><p>这里的含义为将id为p的位置映射为$d_{pos}$为的位置向量, 其中的第i个元素即为$PE_i(p)$. 在引入PE向量中, 常用的操作有拼接和相加两种. NLP任务下的Transformer和ViT均采用了第二中处理方式. 需要特别说明的是, 在ViT中PE反而是被设定为可学习的参数, 通过rand进行随机初始化. 此外还要额外说明的是Transformer结构中采用的LayerNorm操作. 在CV任务中较为流行的一般是BatchNorm归一化操作, 而NLP中则更倾向与使用LayerNorm. 二者的核心都是”减均值, 除标准差”, 进而将数据转化为标准的正态分布.</p>
+<p>对于BatchNorm, 其核心是结合统一批次(batch)的所有数据, 将<strong>不同样本相同维度</strong>的特征处理为相同的分布. 该操作的优势是保留了不同样本之间相同特征的比较关系, 但弱化了同一样本的不同特征之间的分布差距(都被转化为了相同分布). 而对于LayerNorm, 其针对的是NLP任务中的数据维度不对齐的问题(图像数据有统一的分辨率, 而语料数据的每个输入句子的长度往往是参差不齐的, 这时进行不同样本间的分布统一显然没有意义), 考虑单个样本中的每个元素在样本中占据的分布信息(即先计算一个句子的均值和方差, 再对每个单词进行相应的归一化操作). LayerNorm的操作核心是计算出每个样本的语义中心, 再将样本中的各个元素归一化到该中心周围, 此时不同元素之间的相对关系不会被破坏. LayerNorm和BatchNorm相应的可视化效果如下图所示: </p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260518201651.png" style="width:auto; height: 500px;">
+</figure>
+
+<p>对于将Transformer架构迁移到视觉任务, 其核心任务主要包括一下两点: 1. 如何将二维的图像构造成一维的序列 2. 如何改造Transformer架构以适配图像分类等视觉任务. 在ViT模型中其核心创新为通过Patch划分的方式将二维的图像转化为一维的patch序列, 通过展平和线性映射的操作获得一维向量序列(与语言数据对其), 加入Position Embeddind后输入Transformer Encoder, 再外接MLP分类头后完成分类任务. 对应的模型架构如下图所示: </p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260518203626.png" style="width:auto; height: 500px;">
+</figure>
+
+<p>结合上图可以看出ViT的核心组件主要包括Transformer模块和MLP模块. 对于最外层的MLP分类头, 其代码实现为简单的<code>self.mlp_head = nn.Linear(dim, num_classes)</code>, 即仅用一层线性变换将特征向量映射到类别向量上. 特征向量被先验设定为384, 同时ViT为每个输入图像设定了一个CLS Token, 该向量的初始设定为<code>self.cls_token = nn.Parameter(torch.randn(1, num_cls_tokens, dim))</code>, 维度为(1, 1, 384). 在将batch格式的输入数据x进行patch_embedding操作后, x的shape变为[B, 64, 384]. 对于patch_embedding, 其核心包括Patchify和Linear Projection. 核心代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">self</span>.to_patch_embedding = nn.Sequential(</span><br><span class="line">        nn.Conv2d(channels, dim, kernel_size=patch_size, stride=patch_size),</span><br><span class="line">        nn.Flatten(<span class="number">2</span>),</span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
+<p>假设输入为[B, 3, 128, 128], Conv2d的输出shape的标准公式为:</p>
+<script type="math/tex; mode=display">
+H_{out} = \frac{H - K + 2P}{S} + 1 \tag{5}</script><p>带入可得, 输出的矩阵应为[8, 8], 结合out_channels, 对应输出为[B, 384, 8, 8], 接着Flatten从第2维开始展平(即将每个子patch展平为1维线性向量), 获得的feature shape为[B, 384, 64]. 后续还会加入<code>.transpose(1,2)</code>, 其作用为将feature调整为[B, 64, 384], 此时64对应Token数, 即patch总数. 通过Conv2d对每个patch做一次线性映射, 即实现了Linear Projection的作用. 对于初始化的cls_token, 通过<code>cls_tokens = repeat(self.cls_token,&#39;1 n d -&gt; b n d&#39;, b = batch)</code>与Patchify后的特征进行维度对齐, 此时cls_tokens的shape为[B, 1, 384], 接着与feature在dim=1维度进行拼接, 获得新的x, shape为[B, 64+1, 384]. 再与随机初始化得到的Position Embedding向量进行直接相加的操作, 经过dropout后即可进入Transformer中. 此处dropout的作用是对token embedding进行正则化处理, 以防止过拟合. Transformer模块的核心代码为:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Transformer</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, dim, depth, heads, dim_head, mlp_dim, dropout = <span class="number">0.</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.norm = nn.LayerNorm(dim)</span><br><span class="line">        <span class="variable language_">self</span>.layers = nn.ModuleList([])</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(depth):</span><br><span class="line">            <span class="variable language_">self</span>.layers.append(nn.ModuleList([</span><br><span class="line">                Attention(dim, heads = heads, dim_head=dim_head, dropout=dropout),</span><br><span class="line">                FeedForwardLayer(dim, mlp_dim, dropout=dropout)</span><br><span class="line">            ]))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="keyword">for</span> attn, ff <span class="keyword">in</span> <span class="variable language_">self</span>.layers:</span><br><span class="line">            x = attn(x) + x</span><br><span class="line">            x = ff(x) + x</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.norm(x)</span><br></pre></td></tr></table></figure>
+<p>可以看出核心是Attention和FeedFowardLayer, 同时在<code>forward</code>中加入了残差连接的操作. Attention和FeedForwardLayer的核心代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Attention</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, dim, heads = <span class="number">8</span>, dim_head = <span class="number">64</span>, dropout = <span class="number">0.</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        inner_dim = dim_head * heads</span><br><span class="line">        project_out = <span class="keyword">not</span>(heads == <span class="number">1</span> <span class="keyword">and</span> dim_head == dim)</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.heads = heads</span><br><span class="line">        <span class="variable language_">self</span>.scale = dim_head ** (-<span class="number">0.5</span>)</span><br><span class="line">        <span class="variable language_">self</span>.norm = nn.LayerNorm(dim)</span><br><span class="line">        <span class="variable language_">self</span>.attend = nn.Softmax(dim = -<span class="number">1</span>)</span><br><span class="line">        <span class="variable language_">self</span>.dropout = nn.Dropout(dropout)</span><br><span class="line">        <span class="variable language_">self</span>.dropout_p = dropout</span><br><span class="line">        </span><br><span class="line">        <span class="variable language_">self</span>.to_qkv = nn.Linear(dim, inner_dim*<span class="number">3</span>, bias = <span class="literal">True</span>)</span><br><span class="line">        <span class="variable language_">self</span>.to_out = nn.Sequential(</span><br><span class="line">            nn.Linear(inner_dim, dim),</span><br><span class="line">            nn.Dropout(dropout)</span><br><span class="line">        ) <span class="keyword">if</span> project_out <span class="keyword">else</span> nn.Identity()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.norm(x)</span><br><span class="line">        qkv = <span class="variable language_">self</span>.to_qkv(x).chunk(<span class="number">3</span>, dim = -<span class="number">1</span>)</span><br><span class="line">        q,k,v = <span class="built_in">map</span>(<span class="keyword">lambda</span> t: rearrange(t, <span class="string">&#x27;b n (h d) -&gt; b h n d&#x27;</span>, h = <span class="variable language_">self</span>.heads), qkv)</span><br><span class="line">        out = F.scaled_dot_product_attention(</span><br><span class="line">            q, k, v,</span><br><span class="line">            dropout_p = <span class="variable language_">self</span>.dropout_p <span class="keyword">if</span> <span class="variable language_">self</span>.training <span class="keyword">else</span> <span class="number">0.0</span></span><br><span class="line">        )</span><br><span class="line">        out = rearrange(out, <span class="string">&#x27;b h n d -&gt; b n (h d)&#x27;</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.to_out(out)</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">FeedForwardLayer</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, dim, hidden_dim, dropout = <span class="number">0.</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.net = nn.Sequential(</span><br><span class="line">            nn.LayerNorm(dim),</span><br><span class="line">            nn.Linear(dim, hidden_dim),</span><br><span class="line">            nn.GELU(),</span><br><span class="line">            nn.Dropout(dropout),</span><br><span class="line">            nn.Linear(hidden_dim, dim),</span><br><span class="line">            nn.Dropout(dropout)</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.net(x)</span><br></pre></td></tr></table></figure>
+<p>在Attention模块中, 核心部分是Q,K,V的构建和Attention的计算. 对于QKV的构建, 通过Linear模块进行1次线性映射, 同时生成Q, K, V, chunk后的对应shape均为[B, 64 + 1, 384]. 接着利用rearrange将各个head的特征向量分离重排, 整理为[B, 6, 64+1, 64]的形式, 这里的6为head数目. 对于点积Attention的计算, 直接利用torch内置函数, 计算后重新排列为[B, 64+1, 384]的形式输出.</p>
+<p>在FeedForwardLayer模块中, 可以看出该模块则较为简单, 主要由两个线性层组成, 有GELU作为激活函数, 用LayerNorm进行归一化处理(而不是CV中常用的BatchNorm). 在完成Transformer模块的计算后(跟设定的depth对应), ViT会对patch+cls_token进行全局特征聚合, 常见的作法是取出cls_token对应的384维向量, 也有操作会对64+1进行求平均来完成全局信息的聚合. 最后通过单层MLP分类头映射到[B, class_number]中获得初步的分类logits结果. 至此, 基本完成对ViT框架的梳理. </p>
+<h1 id="ConvNeXt"><a href="#ConvNeXt" class="headerlink" title="ConvNeXt"></a>ConvNeXt</h1><p>由Meta团队在2022年的论文A ConvNet for the 2020s中提出, 其主要的核心思想是借鉴ViT模型在视觉任务中的成功, 同时仍然将以ResNet为核心的卷积神经网络作为主干, 将ViT中的trick迁移到CNN网络中. 实验结果显示这个思路取得了巨大的成功, 使ConvNeXt模型成为Transformer时代中的仍然保持极强竞争力的CNN架构.  </p>
+<p>训练设定: 在training technology方面ConvNeXt模型在原有的ResNet时代的常用设定上参照swin-transformer架构进行了相应的改进. 首先是优化器的选择, 将SGD或Adam改为了ViT架构模型训练中更通用的AdamW优化器. 与Adam优化器相比, AdamW的核心改进是将weight decay从梯度中解耦, 单独进行weight decay. 此外, 对于ResNet常用的90 epoches的设定, 作者参考DeiT和Swin-Transformer, 将其调整为了300轮次. 在数据增强方法上, 作者选择了Mixup, Cutmix, RandAugment和Random Erasing. 对于正则化处理, 作者选择了Stochastic Depth和Label Smoothing. </p>
+<p>在宏观设定上, 作者主要参考Swin-Transformer架构的相关设定. 与ResNet等卷积网络类似, Swin-Transformer中包含了多阶段模块(multi-stage), 不同阶段对应不同分辨率的特征图. 但是Swin-Transformer架构向其中加入了两个改进的设计: stage compute ratio和stem cell架构. 在ResNet中, 原始的不同stage之间的计算分布很大程度依先验设定; 而在Swin-T中则给出了1:1:3:1的不同stage的compute ratio(对于更大的模型则设定为1:1:9:1). 受这个设定的启发, 作者将ResNet中的原有的(3, 4, 6, 3)的block数量改为了(3, 3, 9 , 3)以和Swin-T对齐. 对于stem cell的设定, 由于自然图像的冗余性质, 常见的stem cell会倾向于将输入图像下采样到合理的特征图大小, 在标准的ResNet中利用7*7, 步长为2的卷积层连接一个最大池化层实现, 以达到4倍降采样的效果. 在ViT中, 更激进的patchify策略被提出以替代stem cell, 在相应结构中一个更大的14或16的kernel被用来进行不重叠的卷积过程. 在Swin-T中一个$4 \times 4$的步长为4的卷积核被用来进行patchify. 在ConvNeXt中, 作者同样参照Swin-T, 采用$4 \times 4$ non-overlapping卷积作为stem cell.</p>
+<p>此外, 作者还参考了CNN架构中的ResNext架构, 这个模型与ResNet相比有更好的FLOPS/ACC性能. 在ResNext模型中应用了一种grouped convolution的组件, 这个组件的核心创新是把卷积核分成不同的组, 用不同的$3 \times 3$卷积作为模型的bottleneck部分. 在ConvNeXt模型中, 作者采用了depthwise卷积, 可以简单理解为在grouped convolution基础上加入了$1 \times 1$的卷积核用来融合不同通道之间的信息(类似Transformer架构中的自注意力机制的weighted sum operation). 对应的可以同时兼顾不同空间和不同通道的特征融合, 但同时会增加模型的FLOPs. 最终作者采用了ResNext模型的设定.</p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260526104006.png" style="width:auto; height: 400px;">
+</figure>
+
+<p>同时, 在Transformer Block中一个重要的设计是inverted bottleneck, 其核心是将MLP中的隐藏层维度扩大4倍以上. 在ConvNeXt模型中作者继承了这种inverted bottleneck的设定, 具体的架构细节如下图所示. 此外, 作者参考了ViT架构中使用更大的核来获取更大的感受野的思路, 作者首先将depthwise conv layer上移, 与Transformer中的将MSA模块放置与MLP模块之前的思路类似, 然后向在输出的feature上施加更大kernel的卷积层. 实验结果表明, 从原始的ResNet的$3 \times 3$卷积核扩大到Transformer架构的$7 \times 7$的kernel size, 模型的性能有了提升, 而FLOPs几乎保持不变(得益于上述的模块顺序调整), 而继续增加kernel size到9, 11后并没有额外的收益. 最终在ConvNeXt模型中作者采用了$7 \times 7$的depthwise conv卷积核.</p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260526105646.png" style="width:auto; height: 650px;">
+</figure>
+
+
+<p>在微观层面, 作者也提出了对应的改进. 首先是用GELU替换CNN网络中常用的ReLU激活函数. GELU(Gaussian Error Linear Unit)可以被是为ReLU的更平滑的变式, 被广泛用于更高级的Transformer架构中, 如GPT-2, BERT和ViT. 此外ConvNeXt模型减少了激活函数的数量, 在每一个block中只加入一个GELU激活函数. 同时, 作者也将CNN中常见的BatchNorm替换为ViT中更加通用的LayerNorm, 并相应地减少了正则化层的数量. 最后, 作者在ConvNeXt中加入了分离降采样层, 用$2 \times 2$, 步长为2的卷积核实现空间降采样, 并在其后加入LN层进行正则化处理. 基于上述改进, 作者实现了以ResNet为核心, 融合Swin-T模型设定的CNN架构模型, 命名为ConvNeXt, 不同架构之间的比较如下所示:</p>
+<figure style = "text-align : center">
+    <img src = "https://raw.githubusercontent.com/boremycin/ImageBed/master/20260526153044.png" style="width:auto; height: 650px;">
+</figure>
+
+<p>接下来基于Tiny-ConvNeXt和MSTAR数据集, 具体分析ConvNeXt的代码实现. 模型的核心架构代码如下: </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">forward_features</span>(<span class="params">self, x</span>):</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">4</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.downsample_layers[i](x)</span><br><span class="line">        x = <span class="variable language_">self</span>.stages[i](x)</span><br><span class="line">    <span class="keyword">return</span> <span class="variable language_">self</span>.norm(x.mean([-<span class="number">2</span>, -<span class="number">1</span>]))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">    x = <span class="variable language_">self</span>.forward_features(x)</span><br><span class="line">    x = <span class="variable language_">self</span>.head(x)</span><br><span class="line">    <span class="keyword">return</span> x</span><br></pre></td></tr></table></figure>
+<p>forward_features()为提取特征的backbone, head()为模型的分类器头, 也可以根据下游任务修改为检测头或者分割头. 在forward_features()的具体实现中, 模型被先验地划分为了4个stage. 其中的downsample_layers为下采样网络, 其主要构成代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">self</span>.downsample_layers = nn.ModuleList()</span><br><span class="line">        stem = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_chans, dims[<span class="number">0</span>], kernel_size=<span class="number">4</span>, stride=<span class="number">4</span>), <span class="comment"># [3, 128, 128] -&gt; [dims[0], 128/4, 128/4]</span></span><br><span class="line">            LayerNorm(dims[<span class="number">0</span>], eps=<span class="number">1e-6</span>, data_format=<span class="string">&#x27;channels_first&#x27;</span>)</span><br><span class="line">        )</span><br><span class="line"><span class="variable language_">self</span>.downsample_layers.append(stem)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>):</span><br><span class="line">    downsample_layer = nn.Sequential(</span><br><span class="line">        LayerNorm(dims[i], eps=<span class="number">1e-6</span>, data_format=<span class="string">&#x27;channels_first&#x27;</span>),</span><br><span class="line">        nn.Conv2d(dims[i], dims[i+<span class="number">1</span>], kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">    )</span><br><span class="line">    <span class="variable language_">self</span>.downsample_layers.append(downsample_layer)</span><br></pre></td></tr></table></figure>
+<p>对于dims的设定, 先验设定为[96, 192, 384, 768]. 以输入的[B, 3, 128, 128]的MSTAR图像为例, 通过stem模块可以将其转换为[B, 96, 32, 32]的多通道特征图, 接着进行循环LN和卷积, 其中卷积核设定为kernel=2, stride=2, 相当于增加通道数, 减少每个通道的特征图大小. 对于LayerNorm的代码实现, 具体如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LayerNorm</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self,normalized_shape, eps=<span class="number">1e-6</span>, data_format = <span class="string">&#x27;channels_first&#x27;</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.weight = nn.Parameter(torch.ones(normalized_shape))</span><br><span class="line">        <span class="variable language_">self</span>.bias = nn.Parameter(torch.zeros(normalized_shape))</span><br><span class="line">        <span class="variable language_">self</span>.eps = eps</span><br><span class="line">        <span class="variable language_">self</span>.data_format = data_format</span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.data_format <span class="keyword">not</span> <span class="keyword">in</span> [<span class="string">&#x27;channels_first&#x27;</span>, <span class="string">&#x27;channels_last&#x27;</span>]:</span><br><span class="line">            <span class="keyword">raise</span> NotImplementedError</span><br><span class="line">        <span class="variable language_">self</span>.normalized_shape = (normalized_shape,)</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.data_format == <span class="string">&#x27;channels_last&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> F.layer_norm(x, <span class="variable language_">self</span>.normalized_shape, <span class="variable language_">self</span>.weight, <span class="variable language_">self</span>.bias, <span class="variable language_">self</span>.eps)</span><br><span class="line">        <span class="keyword">elif</span> <span class="variable language_">self</span>.data_format == <span class="string">&#x27;channels_first&#x27;</span>:</span><br><span class="line">            u = x.mean(<span class="number">1</span>, keepdim = <span class="literal">True</span>)</span><br><span class="line">            s = (x - u).<span class="built_in">pow</span>(<span class="number">2</span>).mean(<span class="number">1</span>, keepdim=<span class="literal">True</span>)</span><br><span class="line">            x = (x - u) / torch.sqrt(s + <span class="variable language_">self</span>.eps)</span><br><span class="line">            x = <span class="variable language_">self</span>.weight[:, <span class="literal">None</span>, <span class="literal">None</span>] * x + <span class="variable language_">self</span>.bias[:, <span class="literal">None</span>, <span class="literal">None</span>]</span><br><span class="line">            <span class="keyword">return</span> x</span><br></pre></td></tr></table></figure>
+<p>假设输入的特征图x的形状为[B, C, H, W], 向量u在C维度求求平均, 结果是[B, 1, H, W], 为x在Channel上的方差, 最终的x是在C通道上减去均值除标准差(即完成归一化的过程), 然后加入可学习的仿射变换.  由于纯正则化会损失特征图的表达能力, 因此加入这个仿射变化来让网络学习哪些channel放大, 哪些缩小, 哪些进行平移. 此外该操作不会混合不同channel之间的信息, 只单独对各个channel进行可学习的缩放与平移. </p>
+<p>在下采样模块后ConvNeXt构造了stages模块, 其相应的构造代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable language_">self</span>.stages = nn.ModuleList()</span><br><span class="line">dp_rates =[x.item() <span class="keyword">for</span> x <span class="keyword">in</span> torch.linspace(<span class="number">0</span>, drop_path_rate, <span class="built_in">sum</span>(depths))]</span><br><span class="line">cur = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">4</span>):</span><br><span class="line">    stage = nn.Sequential(</span><br><span class="line">        *[Block(dim=dims[i], drop_path = dp_rates[cur + j],</span><br><span class="line">        layer_scale_value = layer_scale_init_value) <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(depths[i])]</span><br><span class="line">    )</span><br><span class="line">    <span class="variable language_">self</span>.stages.append(stage)</span><br><span class="line">    cur += depths[i]</span><br></pre></td></tr></table></figure>
+<p>上述代码中的depths决定了每个stage的block的数量, 默认的设定为[3,3,9,3], layer_scale_value的作用是给每个block的LayerScale参数设定初始值, 该参数的作用是Block输出先乘一个很小的可学习系数以稳定模型的训练. block部分的实现代码如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Block</span>(nn.Module):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Args:</span></span><br><span class="line"><span class="string">        dim (int) : Number of input channels </span></span><br><span class="line"><span class="string">        drop_path (float) : Stochastic depth rate. Default: 0.0</span></span><br><span class="line"><span class="string">        layer_scale_init_value (float) : Init value for Layer Scale. Default: 1e-6</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, dim, drop_path = <span class="number">0.</span>, layer_scale_value = <span class="number">1e-6</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.dwconv = nn.Conv2d(dim, dim, kernel_size=<span class="number">7</span>, padding=<span class="number">3</span>, groups=dim)</span><br><span class="line">        <span class="variable language_">self</span>.norm = nn.LayerNorm(dim, eps = <span class="number">1e-6</span>)</span><br><span class="line">        <span class="variable language_">self</span>.pwconv1 = nn.Linear(dim, <span class="number">4</span> * dim)</span><br><span class="line">        <span class="variable language_">self</span>.act = nn.GELU()</span><br><span class="line">        <span class="variable language_">self</span>.pwconv2 = nn.Linear(<span class="number">4</span>*dim, dim)</span><br><span class="line">        <span class="variable language_">self</span>.gamma = nn.Parameter(layer_scale_value * torch.ones((dim)), requires_grad = <span class="literal">True</span>) <span class="keyword">if</span> layer_scale_value &gt; <span class="number">0</span> <span class="keyword">else</span> <span class="literal">None</span></span><br><span class="line">        <span class="variable language_">self</span>.drop_path = DropPath(drop_path) <span class="keyword">if</span> drop_path &gt; <span class="number">0</span> <span class="keyword">else</span> nn.Identity()</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="built_in">input</span> = x</span><br><span class="line">        x = <span class="variable language_">self</span>.dwconv(x)</span><br><span class="line">        x = x.permute(<span class="number">0</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">1</span>) <span class="comment"># (N, C, H, W) -&gt; (N, H ,W, C)</span></span><br><span class="line">        x = <span class="variable language_">self</span>.norm(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.pwconv1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.act(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.pwconv2(x)</span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.gamma <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            x = <span class="variable language_">self</span>.gamma * x</span><br><span class="line">        x = x.permute(<span class="number">0</span>, <span class="number">3</span>, <span class="number">1</span>, <span class="number">2</span>)</span><br><span class="line">        x = <span class="built_in">input</span> + <span class="variable language_">self</span>.drop_path(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br></pre></td></tr></table></figure>
+<p>代码中的dwconv()即为论文中提及的depthwise convolution, 可以看到跟一般的2d卷积相比其代码的关键修改是加入了groups参数, 该参数的作用是分组卷积, 该参数对input_channels进行分组, 不同组别之间的空间卷积核不进行channel维度的叠加求和操作. 需要注意的是该卷积操作要求输入和输出均能均匀分组, 即$in_channels mod groups = 0$同时$out_channels mod groups = 0$. 对于每个通道特征图的输入输出的大小, 再次回顾卷积输入输出的数学表达, 以H维度为例:</p>
+<script type="math/tex; mode=display">
+H_{out} = [\frac{H + 2P - K}{S}] + 1 \tag{6}</script><p>以第一层为例, feature map的大小为32*32, kernel_size为7, padding为3, 步长为1, 则输出为32, 即feature map的大小不变, 同时通道数也没有发生变化(可以理解为进行了纯粹的单通道卷积的输入输出操作). 然后可以观察到ConvNeXt进行了一个permute的操作, 将通道调整到了最后一维. 这是因为self.norm()的实现是以来torch本身的layernorm, 该函数默认对最后一个维度进行归一化操作. 后续的pwconv1, act和pwconv2构成了FFN(Feed Forward Network), 其本质上就是一个MLP, 对应的升维-激活-降维的操作的核心目的是将特征投射到表征范围更大的高维空间, 以实现特征解耦, 使模型可以建立复杂组合并学习非线性关系. 在该模块后对x进行gamma缩放, 其作用是LayerScale, 实质是对残差分支输出进行可学习的缩放, 主要用于稳定训练, 防止残差分支的输出值相较于原始的input过大, 使模型的梯度不稳定, 深层网络训练困难. 最后的分支合并中利用了DropPach, 其对应的代码实现如下:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">drop_path</span>(<span class="params">x, drop_prob: <span class="built_in">float</span> = <span class="number">0.</span>, training: <span class="built_in">bool</span> = <span class="literal">False</span></span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Drop Paths (Stochastic Depth)</span></span><br><span class="line"><span class="string">    x : [B, ...]</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> drop_prob == <span class="number">0.</span> <span class="keyword">or</span> <span class="keyword">not</span> training:</span><br><span class="line">        <span class="keyword">return</span> x</span><br><span class="line">    keep_prob = <span class="number">1</span> - drop_prob</span><br><span class="line">    </span><br><span class="line">    shape = (x.shape[<span class="number">0</span>],) + (<span class="number">1</span>,) * (x.ndim-<span class="number">1</span>)</span><br><span class="line">    random_tensor = keep_prob + torch.rand(</span><br><span class="line">        shape,</span><br><span class="line">        dtype=x.dtype,</span><br><span class="line">        device=x.device</span><br><span class="line">    )</span><br><span class="line">    random_tensor.floor_()</span><br><span class="line">    output = x.div(keep_prob) * random_tensor</span><br><span class="line">    <span class="keyword">return</span> output</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">DropPath</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, drop_prob = <span class="number">0.</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.drop_prob = drop_prob</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="keyword">return</span> drop_path(x, <span class="variable language_">self</span>.drop_prob, <span class="variable language_">self</span>.training)</span><br></pre></td></tr></table></figure>
+<p>DropPath模块是一种适用于残差网络的正则化手段, 其核心作用是随机丢弃整个残差项输出, 使对应block的输入等于输出, 该正则化手段可以解决深层网络过拟合, 过度依赖特定层和梯度传播困难等问题. 结合forward_features部分代码, 在完成4个block的特征提取后, ConvNeXt进行了self.norm(x.mean([-2, -1]))操作. 这是ConvNeXt在分类头前的Global Average Pooling和LayerNorm操作, 首先对[B, C, H, W]的feature map进行H, W上的平均操作(GAP), 最后获得[B, C]的向量来代表整张图的语义(分类任务不需要空间信息), 然后对每个sample的channel维做归一化处理, 最终进入分类头获得模型的logits输出.</p>
+<p>至此, 完成了对ConvNeXt模型的架构和代码细节的梳理. </p>
+
+    </div>
+
+    
+    
+    
+        
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B7%A5%E7%A8%8B%E5%BC%80%E5%8F%91/" <i class="fa fa-tag"></i> 工程开发</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2026/05/23/essay2/" rel="prev" title="村上与莫言的小说对比分析">
+      <i class="fa fa-chevron-left"></i> 村上与莫言的小说对比分析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2026/07/14/paper15/" rel="next" title="Grad-CAM论文笔记">
+      Grad-CAM论文笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ViT"><span class="nav-number">1.</span> <span class="nav-text">ViT</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ConvNeXt"><span class="nav-number">2.</span> <span class="nav-text">ConvNeXt</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Boremycin</p>
+  <div class="site-description" itemprop="description">There's nothing behind you.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-dog"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Boremycin</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">150k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">4:34</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动 -->
+  </div>  
+
+
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("01/12/2025 10:00:00"); //此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒.";
+    }
+setInterval("createtime()",250);
+</script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
