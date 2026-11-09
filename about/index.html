@@ -22,15 +22,15 @@
     var CONFIG = {"hostname":"boremycin.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content=".cv-container {     font-family: &#39;Inter&#39;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, sans-serif;     line-height: 1.6;     color: #333;     max-width: 800px;     margin: 0 auto;     padd">
+  <meta name="description" content=".cv-container {     color: var(--text-color, #555);     line-height: 1.75;     max-width: 900px;     margin: 0 auto;     overflow-wrap: break-word;     text-align: left; } .cv-container .cv-header {">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Boremycin&#39;s Blog">
 <meta property="og:url" content="http://boremycin.github.io/about/index.html">
 <meta property="og:site_name" content="Boremycin&#39;s Blog">
-<meta property="og:description" content=".cv-container {     font-family: &#39;Inter&#39;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, sans-serif;     line-height: 1.6;     color: #333;     max-width: 800px;     margin: 0 auto;     padd">
+<meta property="og:description" content=".cv-container {     color: var(--text-color, #555);     line-height: 1.75;     max-width: 900px;     margin: 0 auto;     overflow-wrap: break-word;     text-align: left; } .cv-container .cv-header {">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2025-01-09T13:59:55.000Z">
-<meta property="article:modified_time" content="2026-09-06T06:02:04.202Z">
+<meta property="article:modified_time" content="2026-11-09T03:41:14.072Z">
 <meta property="article:author" content="Boremycin">
 <meta property="article:tag" content="CPP,Linux,Python,SAR,Adersarial Attack">
 <meta name="twitter:card" content="summary">
@@ -216,153 +216,248 @@
       
       
       <div class="post-body">
-          <div class="cv-container">
-<style>
+          <style>
 .cv-container {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    max-width: 800px;
+    color: var(--text-color, #555);
+    line-height: 1.75;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
+    overflow-wrap: break-word;
+    text-align: left;
 }
-.cv-header {
+.cv-container .cv-header {
+    margin-bottom: 28px;
     text-align: center;
-    margin-bottom: 40px;
 }
-.cv-header h1 {
-    margin-bottom: 5px;
-    font-size: 2.5em;
+.cv-container .cv-name {
+    border: 0;
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 8px;
+    padding: 0;
 }
-.cv-header p {
-    margin: 5px 0;
-    color: #666;
+.cv-container .cv-affiliation {
+    margin: 0 0 12px;
 }
-.cv-section {
-    margin-bottom: 30px;
-}
-.cv-section h2 {
-    border-bottom: 2px solid #eee;
-    padding-bottom: 5px;
-    margin-bottom: 15px;
-    color: #2c3e50;
-    font-size: 1.5em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-.item {
-    margin-bottom: 15px;
-}
-.item-header {
+.cv-container .cv-links {
     display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    justify-content: center;
+}
+.cv-container .cv-intro {
+    margin-bottom: 28px;
+}
+.cv-container .cv-section {
+    margin-bottom: 32px;
+}
+.cv-container .cv-section h2 {
+    border-bottom: 1px solid var(--blockquote-color, #999);
+    font-size: 1.35em;
+    letter-spacing: 0;
+    margin: 0 0 16px;
+    padding: 0 0 6px;
+}
+.cv-container .cv-item {
+    margin-bottom: 20px;
+}
+.cv-container .cv-item:last-child {
+    margin-bottom: 0;
+}
+.cv-container .cv-item-header {
+    align-items: baseline;
+    display: flex;
+    gap: 4px 20px;
     justify-content: space-between;
-    font-weight: bold;
 }
-.pub-list {
-    list-style-type: none;
-    padding-left: 0;
-}
-.pub-item {
-    margin-bottom: 12px;
-    display: flex;
-}
-.pub-year {
-    min-width: 80px;
-    font-weight: bold;
-    color: #555;
-}
-.award-tag {
-    color: #d35400;
-    font-weight: bold;
+.cv-container .cv-date {
+    color: var(--blockquote-color, #666);
+    flex-shrink: 0;
     font-size: 0.9em;
+    white-space: nowrap;
 }
-.service-list, .mentoring-list {
-    padding-left: 20px;
+.cv-container .cv-muted {
+    color: var(--blockquote-color, #666);
+}
+.cv-container .cv-list,
+.cv-container .cv-publications {
+    margin: 0;
+    padding-left: 1.4em;
+}
+.cv-container .cv-list li {
+    margin-bottom: 8px;
+}
+.cv-container .cv-publications li {
+    margin-bottom: 20px;
+    padding-left: 4px;
+}
+.cv-container .cv-paper-title {
+    display: block;
+}
+.cv-container .cv-item p {
+    margin: 6px 0 0;
+}
+.cv-container .cv-awards li {
+    display: flex;
+    gap: 4px 20px;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.cv-container .cv-awards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 @media (max-width: 600px) {
-    .item-header {
+    .cv-container .cv-item-header,
+    .cv-container .cv-awards li {
         flex-direction: column;
+        gap: 0;
+    }
+    .cv-container .cv-name {
+        font-size: 1.7em;
     }
 }
 </style>
 
+<div class="cv-container" lang="en">
 <header class="cv-header">
-    <h1>Yiming Zhang</h1>
-    <p>
-        <a href="zhangym21@m.fudan.edu.cn">zhangym21@m.fudan.edu.cn</a> | 
-        <a href="https://scholar.google.com/citations?user=1mgHElwAAAAJ&hl=en" target="_blank">Google Scholar</a> 
-    </p>
+    <p class="cv-name">Yiming Zhang</p>
+    <p class="cv-affiliation">M.S. Student &middot; Fudan University</p>
+    <nav class="cv-links" aria-label="Contact and academic profiles">
+        <a href="mailto:zhangym21@m.fudan.edu.cn">Email</a>
+        <a href="https://github.com/boremycin" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://scholar.google.com/citations?user=1mgHElwAAAAJ&hl=en" target="_blank" rel="noopener noreferrer">Google Scholar</a>
+        <a href="/cv/YimingZhang_resume_en.pdf" target="_blank" rel="noopener noreferrer">CV (PDF)</a>
+    </nav>
 </header>
 
-<section class="cv-section">
-    <h2>Research Interests</h2>
-    <div class="item">
-        <ul style="list-style-type: disc; padding-left: 20px; margin: 0;">
-            <li>Adversarial Machine Learning</li>
-            <li>AI for Synthetic Aperture Radar (SAR)</li>
-        </ul>
-    </div>
-</section>
+<p class="cv-intro">I am a master's student in Information and Communication Engineering at Fudan University, advised by Prof. Feng Wang. My research focuses on adversarial robustness and security in machine learning, with a particular emphasis on synthetic aperture radar (SAR) imagery and its physics-driven image formation process.</p>
 
-<section class="cv-section">
-    <h2>Education</h2>
-    <div class="item">
-        <div class="item-header">
-            <span>Fudan University</span>
-            <span>2025 - present</span>
-        </div>
-        <div>M.Sc. in Information and Communication Engineering, Advisor: Feng Wang</div>
-    </div>
-    <div class="item">
-        <div class="item-header">
-            <span>Fudan University</span>
-            <span>2021 - 2025</span>
-        </div>
-        <div>B.E. in Intelligence Science and Technology, Advisor: Feng Wang</div>
-    </div>
-</section>
-
-<section class="cv-section">
-    <h2>Publications</h2>
-    <ul class="pub-list">
-        <li class="pub-item">
-            <span class="pub-year">2026</span>
-            <div>
-                Yiming Zhang, et al. <strong>SRAW-Attack: Space-Reweighted Adversarial Warping Attack for SAR Target Recognition.</strong> arXiv preprint arXiv:2601.10324 (2026)<br>
-                Yiming Zhang, et al. <strong>Towards Physically Realizable Adversarial Attenuation Patch against SAR Object Detection.</strong> 2026 China Aerospace Information Technology Conference (CAIT). IEEE, 2026<br>
-            </div>
-        </li>
-        <li class="pub-item">
-            <span class="pub-year">2023</span>
-            <div>
-                Weibo Qin, Yiming Zhang and Feng Wang.<strong> Rethinking the Optimal Strategy of Deep Learning for Sar Image Semantic Segmentation.</strong> 2023 SAR in Big Data Era<br>
-            </div>
-        </li>
+<section class="cv-section" aria-labelledby="research-interests">
+    <h2 id="research-interests">Research Interests</h2>
+    <ul class="cv-list">
+        <li>Adversarial attacks against SAR classification and object detection models.</li>
+        <li>Adversarial training and robust learning for SAR semantic segmentation.</li>
+        <li>Security, robustness, and interpretability of large language models (LLMs) and vision-language models (VLMs).</li>
     </ul>
 </section>
 
-<section class="cv-section">
-    <h2>Awards</h2>
-    <ul class="service-list">
-        <li><strong>Wang-Dao Scholar</strong>, FDUROP, Fudan University</li>
-        <li><strong>Scholarship for Outstanding Students</strong>, Fudan University (2023, 2025)</li>
-        <li><strong>Mu Xin AI Scholarship</strong>, SIST, Fudan University (2024)</li>
-        <li><strong>3rd Place</strong>, Track of SAR Image Segmentation, AISAR Contest 2023</li>
-        <li><strong>1st Place</strong>, Raytron Competition 2025 (Track: Large Model-based Image and Scene Generation), hosted on Alibaba Tianchi</li>
+<section class="cv-section" aria-labelledby="education">
+    <h2 id="education">Education</h2>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Fudan University</strong>
+            <span class="cv-date">Sep 2025 - Present</span>
+        </div>
+        <div>M.S. in Information and Communication Engineering</div>
+        <div class="cv-muted">Advisor: Prof. Feng Wang &middot; Shanghai, China</div>
+    </div>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Fudan University</strong>
+            <span class="cv-date">Sep 2021 - Jul 2025</span>
+        </div>
+        <div>B.E. in Intelligence Science and Technology</div>
+        <div class="cv-muted">Advisor: Prof. Feng Wang &middot; Shanghai, China</div>
+    </div>
+</section>
+
+<section class="cv-section" aria-labelledby="publications">
+    <h2 id="publications">Publications</h2>
+    <ol class="cv-publications">
+        <li>
+            <strong class="cv-paper-title">SRAW-Attack: Space-Reweighted Adversarial Warping Attack for SAR Target Recognition</strong>
+            <div><strong>Y. Zhang</strong>, W. Qin, Y. Liu, and F. Wang</div>
+            <div><em>IEEE Geoscience and Remote Sensing Letters</em>, 2026. <a href="https://github.com/boremycin/SAR-ATR-TransAttack" target="_blank" rel="noopener noreferrer">Code</a></div>
+        </li>
+        <li>
+            <strong class="cv-paper-title">Towards Physically Realizable Adversarial Attenuation Patch against SAR Object Detection</strong>
+            <div><strong>Y. Zhang</strong>, W. Qin, and F. Wang</div>
+            <div><em>China Aerospace Information Technology Conference (CAIT)</em>, Tongxiang, China, 2026. <a href="https://github.com/boremycin/SAAP" target="_blank" rel="noopener noreferrer">Code</a></div>
+        </li>
+        <li>
+            <strong class="cv-paper-title">Cross-Domain Universal Adversarial Perturbations for Synthetic-to-Measured SAR Target Classification Attacks</strong>
+            <div>Y. Liu, W. Qin, <strong>Y. Zhang</strong>, and F. Wang</div>
+            <div><em>IEEE Geoscience and Remote Sensing Letters</em>, 2026.</div>
+        </li>
+        <li>
+            <strong class="cv-paper-title">Rethinking the Optimal Strategy of Deep Learning for Sar Image Semantic Segmentation</strong>
+            <div>W. Qin, <strong>Y. Zhang</strong>, and F. Wang</div>
+            <div><em>SAR in Big Data Era (BIGSARDATA)</em>, Beijing, China, 2023.</div>
+        </li>
+    </ol>
+</section>
+
+<section class="cv-section" aria-labelledby="awards">
+    <h2 id="awards">Awards and Honors</h2>
+    <ul class="cv-awards">
+        <li><span><strong>National Scholarship</strong> (top 1%)</span><span class="cv-date">2026</span></li>
+        <li><span>Fudan University Academic Scholarship for Graduate Students</span><span class="cv-date">2026</span></li>
+        <li><span>Fudan University Wang-dao Scholar (Undergraduate Research Program)</span><span class="cv-date">2025</span></li>
+        <li><span>Fudan University Scholarship for Outstanding Undergraduate Students</span><span class="cv-date">2023, 2025</span></li>
+        <li><span>Mu Xin AI Scholarship, SIST, Fudan University</span><span class="cv-date">2024</span></li>
     </ul>
 </section>
 
-
-<section class="cv-section">
-    <h2>Teaching & Mentoring</h2>
-    <div class="item">
-        <strong>Teaching Assistant:</strong>
-        <ul class="service-list">
-            <li>Introduction to Aerospace Information Technology | Spring 2026</li>
-        </ul>
+<section class="cv-section" aria-labelledby="projects">
+    <h2 id="projects">Selected Projects and Competitions</h2>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>NSFC General Program</strong>
+            <span class="cv-date">Sep 2026 - Present</span>
+        </div>
+        <div class="cv-muted">Key Contributor &middot; PI: Prof. Feng Wang</div>
+        <p>Contributed to research ideation and grant proposal writing. Developed an adversarial attack method and conducted research on a tailored adversarial training strategy for DNN-based SAR image interpretation.</p>
     </div>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Raytron Competition</strong>
+            <span class="cv-date">Aug 2025 - Nov 2025</span>
+        </div>
+        <div class="cv-muted">Team Leader and Core Participant &middot; Large Model-based Infrared Image and Scene Generation</div>
+        <p>Used Stable Diffusion and ControlNet for target-conditioned infrared scene generation, and developed a post-processing pipeline to integrate and animate target patches in Open-Sora-generated background videos. Awarded the <strong>national first prize</strong>.</p>
+    </div>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Wang-dao Undergraduate Research Program</strong>
+            <span class="cv-date">Aug 2023 - Mar 2025</span>
+        </div>
+        <div class="cv-muted">Independent Researcher &middot; Advisor: Prof. Feng Wang</div>
+        <p>Investigated how training-domain shifts affect the adversarial vulnerability of SAR models. Designed a patch-based attack for SAR object detection and evaluated its effectiveness and cross-model transferability.</p>
+    </div>
+</section>
+
+<section class="cv-section" aria-labelledby="academic-engagement">
+    <h2 id="academic-engagement">Academic and Educational Engagement</h2>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Poster Presentation, CAIT 2026</strong>
+            <span class="cv-date">May 2026</span>
+        </div>
+        <div>Towards Physically Realizable Adversarial Attenuation Patch against SAR Object Detection</div>
+        <div class="cv-muted">Wuzhen, Tongxiang, China</div>
+    </div>
+    <div class="cv-item">
+        <div class="cv-item-header">
+            <strong>Teaching Assistant, Fudan University</strong>
+            <span class="cv-date">Spring 2026</span>
+        </div>
+        <div>Introduction to Aerospace Information and Technology</div>
+    </div>
+</section>
+
+<section class="cv-section" aria-labelledby="skills">
+    <h2 id="skills">Skills</h2>
+    <ul class="cv-list">
+        <li><strong>Programming and frameworks:</strong> Python, C++, C, MATLAB, PyTorch.</li>
+        <li><strong>Research and development tools:</strong> LaTeX, Git, VS Code, Markdown, Codex.</li>
+        <li><strong>Languages:</strong> Mandarin (native), English (professional working proficiency).</li>
+    </ul>
 </section>
 </div>
+
       </div>
       
       
@@ -423,7 +518,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Yiming Zhang</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link"><span class="nav-number">1.1.</span> <span class="nav-text">Research Interests</span></a></li><li class="nav-item nav-level-2"><a class="nav-link"><span class="nav-number">1.2.</span> <span class="nav-text">Education</span></a></li><li class="nav-item nav-level-2"><a class="nav-link"><span class="nav-number">1.3.</span> <span class="nav-text">Publications</span></a></li><li class="nav-item nav-level-2"><a class="nav-link"><span class="nav-number">1.4.</span> <span class="nav-text">Awards</span></a></li><li class="nav-item nav-level-2"><a class="nav-link"><span class="nav-number">1.5.</span> <span class="nav-text">Teaching &amp; Mentoring</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#research-interests"><span class="nav-number">1.</span> <span class="nav-text">Research Interests</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#education"><span class="nav-number">2.</span> <span class="nav-text">Education</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#publications"><span class="nav-number">3.</span> <span class="nav-text">Publications</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#awards"><span class="nav-number">4.</span> <span class="nav-text">Awards and Honors</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#projects"><span class="nav-number">5.</span> <span class="nav-text">Selected Projects and Competitions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#academic-engagement"><span class="nav-number">6.</span> <span class="nav-text">Academic and Educational Engagement</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#skills"><span class="nav-number">7.</span> <span class="nav-text">Skills</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -458,6 +553,9 @@
   <div class="links-of-author motion-element">
       <span class="links-of-author-item">
         <a href="https://github.com/boremycin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;boremycin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/cv/YimingZhang_resume_en.pdf" title="CV → &#x2F;cv&#x2F;YimingZhang_resume_en.pdf"><i class="fa fa-file-pdf fa-fw"></i>CV</a>
       </span>
       <span class="links-of-author-item">
         <a href="mailto:timothyludwig@outlook.com" title="E-Mail → mailto:timothyludwig@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
